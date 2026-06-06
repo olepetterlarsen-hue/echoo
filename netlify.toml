@@ -1,0 +1,20 @@
+# Netlify-konfigurasjon for OPCOM Elektro Kvalitet
+# Bruker Netlify's offisielle Next.js-runtime for SSR-støtte.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20.18"
+
+# Eksplisitt installasjon av Next.js-runtime — sikrer at SSR-ruter
+# fungerer på Netlify (ikke bare statiske sider).
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Env-variabler settes i Netlify Site settings → Environment variables:
+#   NEXT_PUBLIC_SUPABASE_URL
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY
+#   SUPABASE_SERVICE_ROLE_KEY     (Sensitive — kun server)
+#   NEXT_PUBLIC_APP_URL           (Production URL)

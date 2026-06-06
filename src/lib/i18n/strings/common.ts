@@ -1,0 +1,203 @@
+import type { TranslationDict } from "./types";
+
+export const COMMON: TranslationDict = {
+  // App-wide
+  app_name: { no: "Echoo", en: "Echoo" },
+  app_tagline: {
+    no: "Kvalitet og produksjonsplan for elektro",
+    en: "Quality and production planning for electrical trades",
+  },
+
+  nav_issues: { no: "Innmeldte problemer", en: "Reported issues" },
+  nav_org: { no: "Bedrift", en: "Company" },
+
+  // Nav
+  nav_dashboard: { no: "Oversikt", en: "Dashboard" },
+  nav_my_tasks: { no: "Mine oppgaver", en: "My tasks" },
+  nav_tasks: { no: "Oppgaver", en: "Tasks" },
+  nav_projects: { no: "Prosjekter", en: "Projects" },
+  nav_kanban: { no: "Kanban", en: "Kanban" },
+  nav_calendar: { no: "Kalender", en: "Calendar" },
+  nav_schedule: { no: "Produksjonsplan", en: "Production schedule" },
+  nav_customers: { no: "Kunder", en: "Customers" },
+  nav_sites: { no: "Sites", en: "Sites" },
+  nav_map: { no: "Kart", en: "Map" },
+  nav_skjemaer: { no: "Skjemaer", en: "Forms" },
+  nav_deviations: { no: "Avvik", en: "Deviations" },
+  nav_competence: { no: "Kompetanse", en: "Competence" },
+  nav_substances: { no: "Stoffkartotek", en: "Substance register" },
+  nav_routines: { no: "Rutiner", en: "Routines" },
+  nav_admin: { no: "Administrasjon", en: "Administration" },
+  nav_users: { no: "Brukere", en: "Users" },
+  nav_groups: { no: "Grupper", en: "Groups" },
+  nav_templates: { no: "Dokumentmaler", en: "Document templates" },
+  nav_categories: { no: "Kategorier", en: "Categories" },
+  nav_project_templates: { no: "Prosjektmaler", en: "Project templates" },
+  nav_email: { no: "E-post", en: "Email" },
+  nav_settings: { no: "Innstillinger", en: "Settings" },
+  nav_handbook: { no: "Håndbok", en: "Handbook" },
+  nav_profile: { no: "Min profil", en: "My profile" },
+  nav_logout: { no: "Logg ut", en: "Sign out" },
+  nav_mode_planner: { no: "Planner", en: "Planner" },
+  nav_mode_kvalitet: { no: "Kvalitet", en: "Quality" },
+  nav_section_planning: { no: "Planlegging", en: "Planning" },
+  nav_section_quality: { no: "Kvalitet & HMS", en: "Quality & HSE" },
+  nav_section_admin: { no: "Admin", en: "Admin" },
+
+  // Auth
+  auth_login_title: { no: "Logg inn", en: "Sign in" },
+  auth_email: { no: "E-post", en: "Email" },
+  auth_password: { no: "Passord", en: "Password" },
+  auth_signin: { no: "Logg inn", en: "Sign in" },
+  auth_forgot: { no: "Glemt passord?", en: "Forgot password?" },
+  auth_reset_sent: {
+    no: "Sjekk e-post for tilbakestillingslenke.",
+    en: "Check your email for a reset link.",
+  },
+  auth_invalid: { no: "Feil e-post eller passord.", en: "Invalid email or password." },
+
+  // Common buttons / verbs
+  save: { no: "Lagre", en: "Save" },
+  cancel: { no: "Avbryt", en: "Cancel" },
+  delete: { no: "Slett", en: "Delete" },
+  edit: { no: "Rediger", en: "Edit" },
+  create: { no: "Opprett", en: "Create" },
+  back: { no: "Tilbake", en: "Back" },
+  download: { no: "Last ned", en: "Download" },
+  upload: { no: "Last opp", en: "Upload" },
+  sign: { no: "Signer", en: "Sign" },
+  signed: { no: "Signert", en: "Signed" },
+  draft: { no: "Utkast", en: "Draft" },
+  new_version: { no: "Ny versjon", en: "New version" },
+  version: { no: "Versjon", en: "Version" },
+  loading: { no: "Laster…", en: "Loading…" },
+  search: { no: "Søk", en: "Search" },
+  no_results: { no: "Ingen treff.", en: "No results." },
+  required: { no: "Påkrevd", en: "Required" },
+  yes: { no: "Ja", en: "Yes" },
+  no: { no: "Nei", en: "No" },
+  open: { no: "Åpne", en: "Open" },
+  close: { no: "Lukk", en: "Close" },
+  add: { no: "Legg til", en: "Add" },
+  remove: { no: "Fjern", en: "Remove" },
+  confirm: { no: "Bekreft", en: "Confirm" },
+  see_all: { no: "Se alle", en: "See all" },
+  see_full_list: { no: "Se full liste", en: "See full list" },
+  see_overview: { no: "Se oversikt", en: "See overview" },
+  show_all: { no: "Vis alle", en: "Show all" },
+  view: { no: "Vis", en: "View" },
+  details: { no: "Detaljer", en: "Details" },
+  status: { no: "Status", en: "Status" },
+  active: { no: "Aktiv", en: "Active" },
+  inactive: { no: "Inaktiv", en: "Inactive" },
+  completed: { no: "Ferdigstilt", en: "Completed" },
+  paused: { no: "Pauset", en: "Paused" },
+  archived: { no: "Arkivert", en: "Archived" },
+  none: { no: "Ingen", en: "None" },
+  optional: { no: "Valgfri", en: "Optional" },
+  description: { no: "Beskrivelse", en: "Description" },
+  name: { no: "Navn", en: "Name" },
+  date: { no: "Dato", en: "Date" },
+  notes: { no: "Notater", en: "Notes" },
+  created: { no: "Opprettet", en: "Created" },
+  updated: { no: "Oppdatert", en: "Updated" },
+  by_user: { no: "Av", en: "By" },
+  unknown: { no: "Ukjent", en: "Unknown" },
+  copy: { no: "Kopier", en: "Copy" },
+  copied: { no: "Kopiert", en: "Copied" },
+  send: { no: "Send", en: "Send" },
+  next: { no: "Neste", en: "Next" },
+  previous: { no: "Forrige", en: "Previous" },
+  today: { no: "I dag", en: "Today" },
+  yesterday: { no: "I går", en: "Yesterday" },
+  tomorrow: { no: "I morgen", en: "Tomorrow" },
+  toggle_menu: { no: "Veksle meny", en: "Toggle menu" },
+
+  // Severity / priority shared
+  severity_low: { no: "Lav", en: "Low" },
+  severity_medium: { no: "Middels", en: "Medium" },
+  severity_high: { no: "Høy", en: "High" },
+  severity_critical: { no: "Kritisk", en: "Critical" },
+
+  // My-tasks badge / toast
+  my_tasks_badge_new_one: { no: "Du har en ny oppgave 📋", en: "You have a new task 📋" },
+  my_tasks_badge_new_many: {
+    no: "Du har {n} nye oppgaver 📋",
+    en: "You have {n} new tasks 📋",
+  },
+  my_tasks_badge_see: { no: "Se oppgaver", en: "See tasks" },
+  my_tasks_badge_n_tasks: { no: "{n} oppgaver", en: "{n} tasks" },
+  my_tasks_badge_n_deviations: { no: "{n} avvik", en: "{n} deviations" },
+  my_tasks_badge_n_certs: { no: "{n} utløpende kursbevis", en: "{n} expiring certificates" },
+  my_tasks_badge_none: { no: "Ingen åpne saker", en: "No open items" },
+
+  // Signature pad
+  signature_draw_here: { no: "Tegn signaturen din her", en: "Draw your signature here" },
+  signature_help_inline: {
+    no: "Bruk mus eller fingertupp. Lagres på din profil.",
+    en: "Use mouse or fingertip. Saved to your profile.",
+  },
+
+  // Issue reporter (floating button + modal)
+  issue_button: { no: "Rapporter problem", en: "Report issue" },
+  issue_modal_title: { no: "Rapporter et problem", en: "Report an issue" },
+  issue_modal_help: {
+    no: "Beskriv kort hva som ikke fungerer. URL og nettleserinfo legges automatisk ved.",
+    en: "Briefly describe what's not working. URL and browser info are attached automatically.",
+  },
+  issue_title_label: { no: "Tittel", en: "Title" },
+  issue_title_placeholder: {
+    no: "F.eks. Knapp 'Lagre' gjør ingenting",
+    en: "E.g. 'Save' button does nothing",
+  },
+  issue_description_label: { no: "Beskrivelse", en: "Description" },
+  issue_description_placeholder: {
+    no: "Hva gjorde du? Hva forventet du? Hva skjedde?",
+    en: "What did you do? What did you expect? What happened?",
+  },
+  issue_severity_label: { no: "Alvorlighet", en: "Severity" },
+  issue_severity_low: { no: "Lav — irritasjon", en: "Low — annoyance" },
+  issue_severity_medium: { no: "Middels — fungerer dårlig", en: "Medium — works poorly" },
+  issue_severity_high: { no: "Høy — blokkerer arbeid", en: "High — blocks work" },
+  issue_submit: { no: "Send rapport", en: "Send report" },
+  issue_sending: { no: "Sender…", en: "Sending…" },
+  issue_sent: { no: "Takk! Rapporten er mottatt.", en: "Thanks! The report has been received." },
+  issue_send_failed: {
+    no: "Klarte ikke å sende rapporten.",
+    en: "Could not send the report.",
+  },
+
+  // Category fields renderer
+  category_no_extra_fields: {
+    no: "Ingen ekstra felter for denne kategorien.",
+    en: "No extra fields for this category.",
+  },
+  select_placeholder: { no: "— Velg —", en: "— Select —" },
+
+  // Profile
+  profile_signature: { no: "Min signatur", en: "My signature" },
+  profile_signature_help: {
+    no: "Tegn signaturen din én gang — den limes inn på alle dokumenter du signerer.",
+    en: "Draw your signature once — it will be applied to all documents you sign.",
+  },
+  profile_clear: { no: "Tøm", en: "Clear" },
+
+  // Documents (regulatory body of templates stays Norwegian — these are just UI labels for the doc types)
+  doc_risk: { no: "Risikovurdering", en: "Risk assessment" },
+  doc_final: { no: "Sluttkontroll", en: "Final inspection" },
+  doc_conformity: { no: "Samsvarserklæring", en: "Declaration of conformity" },
+
+  // De 5 sikre
+  fem_sikre_title: { no: "De 5 Sikre", en: "The 5 Safety Steps" },
+  fem_sikre_1: { no: "Frakoble", en: "Disconnect" },
+  fem_sikre_2: { no: "Sikre mot innkobling", en: "Secure against reconnection" },
+  fem_sikre_3: {
+    no: "Kontroller spenningsløs tilstand",
+    en: "Verify voltage-free condition",
+  },
+  fem_sikre_4: { no: "Jord og kortslutt", en: "Earth and short-circuit" },
+  fem_sikre_5: {
+    no: "Avskjerm spenningssatte deler",
+    en: "Shield live parts",
+  },
+};
