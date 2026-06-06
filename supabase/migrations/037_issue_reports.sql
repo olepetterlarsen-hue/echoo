@@ -12,7 +12,9 @@ exception when duplicate_object then null; end $$;
 
 create table if not exists public.issue_reports (
   id uuid primary key default gen_random_uuid(),
-  reported_by uuid not null references public.profiles(id) on delete set null,
+  -- Nullable så ON DELETE SET NULL ikke krasjer hvis bruker slettes.
+  -- Rapporten beholdes for audit-historikk, men reporter blir anonym.
+  reported_by uuid references public.profiles(id) on delete set null,
   title text not null,
   description text,
   severity issue_severity not null default 'middels',
