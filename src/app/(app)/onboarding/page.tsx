@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, ImageIcon, Users, ArrowRight } from "lucide-react";
+import { Building2, ImageIcon, Users, ArrowRight, Sparkles } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getServerT } from "@/lib/i18n/server";
@@ -33,6 +33,13 @@ export default async function OnboardingPage() {
         desc={t("onboarding_step3_desc")}
         cta={t("onboarding_step3_cta")}
         href="/admin/brukere"
+      />
+      <Step
+        icon={<Sparkles className="size-5" />}
+        title="Importér eksisterende dokumenter"
+        desc="Last opp dine PDF-er — AI-en sorterer dem inn i rutiner, skjemaer, stoffkartotek og kompetansebevis. Du bekrefter før noe lagres."
+        cta="Start AI-import"
+        href="/onboarding/import"
       />
 
       <div className="text-center pt-4">

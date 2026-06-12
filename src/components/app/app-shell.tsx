@@ -33,6 +33,7 @@ import {
   FileStack,
   FlaskConical,
   Bug,
+  Sparkles,
 } from "lucide-react";
 import { LocaleContext, type Locale } from "@/lib/i18n";
 import { tr } from "@/lib/i18n/strings";
@@ -131,6 +132,12 @@ const ADMIN_NAV: NavItem[] = [
     href: "/admin/innstillinger",
     labelKey: "nav_settings",
     icon: <Settings className="size-4" />,
+    adminOnly: true,
+  },
+  {
+    href: "/admin/import-wizard",
+    labelKey: "nav_import_wizard",
+    icon: <Sparkles className="size-4" />,
     adminOnly: true,
   },
   {

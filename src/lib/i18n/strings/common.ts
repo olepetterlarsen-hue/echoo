@@ -25,6 +25,7 @@ export const COMMON: TranslationDict = {
   nav_skjemaer: { no: "Skjemaer", en: "Forms" },
   nav_deviations: { no: "Avvik", en: "Deviations" },
   nav_iso: { no: "ISO 9001 / 14001", en: "ISO 9001 / 14001" },
+  nav_import_wizard: { no: "AI-import", en: "AI import" },
   nav_competence: { no: "Kompetanse", en: "Competence" },
   nav_substances: { no: "Stoffkartotek", en: "Substance register" },
   nav_routines: { no: "Rutiner", en: "Routines" },
