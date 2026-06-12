@@ -7,7 +7,11 @@ Sjekkliste for å gå fra commit til kunde i prod. Skal kjøres i rekkefølge.
 ## 1. Klargjør Supabase
 
 1. Nytt Supabase-prosjekt (region eu-north-1 / eu-west-1).
-2. SQL Editor — kjør alle migrasjoner i rekkefølge `001…043`. Verifiser at hver kjører uten error. (Migration 040 må kjøre _etter_ 039 og _før_ 041/042/043.)
+2. SQL Editor — kjør alle migrasjoner i rekkefølge `001…050`. Verifiser at hver kjører uten error. (Migration 040 må kjøre _etter_ 039 og _før_ 041–050.)
+   - 001–038: forked-base fra OPCOM IKK
+   - 039: multi-tenant
+   - 040–043: Phase 1 hardning
+   - 044–050: ISO 9001 / 14001 moduler
 3. Hent fra **Settings → API**:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -108,9 +112,11 @@ Kjør Lighthouse-audit (Chrome DevTools) på `/login` og `/dashboard` etter innl
 ## 6. Final checklist før annonsering
 
 - [ ] HTTPS aktivert med valid sertifikat (Netlify gjør dette automatisk).
+- [ ] HSTS-header verifisert: `curl -I https://<domain>/` skal vise `Strict-Transport-Security: max-age=31536000…`.
 - [ ] Tenant-isolasjonstest passerer (siste kjøring < 24 t gammel).
 - [ ] Sentry mottar events.
 - [ ] PITR aktiv med ≥ 7 dager retention.
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` er IKKE i klient-bundle (sjekk Network-tab).
-- [ ] Robots/SEO: `/signup` indeksbar, `/admin/*` har `noindex`.
+- [ ] Robots/SEO: `/signup` indeksbar, `/admin/*` har `noindex` (settes via next.config.ts header).
 - [ ] Rate limit testet: 6 forsøk på `/signup` fra samme IP → den 6. blokkeres.
+- [ ] ISO-modul: opprett ny org, bekreft at standard audit-sjekklister, foreslåtte mål og norske compliance-forpliktelser er seedet (migration 050).
