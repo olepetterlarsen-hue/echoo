@@ -60,10 +60,30 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     }
   }
 
+  // Read-only / låst tilgang ved utløpt prøveperiode / forfalt betaling.
+  // Vi REDIRECTER ikke — brukeren skal kunne se data + navigere til
+  // abonnement-siden. Banner i AppShell varsler, og write-actions
+  // sjekker selv via guardOrgWritable() (lib/billing.ts).
+  const { data: orgFull } = await supabase
+    .from("organizations")
+    .select(
+      "locked_at, subscription_status, trial_ends_at, plan_tier",
+    )
+    .eq("id", profile.organization_id)
+    .single();
+
+  const locked = orgFull
+    ? !!orgFull.locked_at ||
+      ((orgFull.subscription_status !== "active" &&
+        orgFull.subscription_status !== "trialing") &&
+        orgFull.trial_ends_at !== null &&
+        new Date(orgFull.trial_ends_at).getTime() < Date.now())
+    : false;
+
   const locale = await getLocale();
 
   return (
-    <AppShell profile={profile} initialLocale={locale}>
+    <AppShell profile={profile} initialLocale={locale} locked={locked}>
       {children}
     </AppShell>
   );

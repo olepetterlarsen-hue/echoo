@@ -34,6 +34,7 @@ import {
   FlaskConical,
   Bug,
   Sparkles,
+  CreditCard,
 } from "lucide-react";
 import { LocaleContext, type Locale } from "@/lib/i18n";
 import { tr } from "@/lib/i18n/strings";
@@ -129,6 +130,12 @@ const ADMIN_NAV: NavItem[] = [
     adminOnly: true,
   },
   {
+    href: "/admin/abonnement",
+    labelKey: "nav_subscription",
+    icon: <CreditCard className="size-4" />,
+    adminOnly: true,
+  },
+  {
     href: "/admin/innstillinger",
     labelKey: "nav_settings",
     icon: <Settings className="size-4" />,
@@ -154,9 +161,10 @@ interface Props {
   profile: Profile;
   initialLocale: Locale;
   children: ReactNode;
+  locked?: boolean;
 }
 
-export function AppShell({ profile, initialLocale, children }: Props) {
+export function AppShell({ profile, initialLocale, children, locked }: Props) {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   useEffect(() => {
     try {
@@ -377,7 +385,24 @@ export function AppShell({ profile, initialLocale, children }: Props) {
             <div className="w-8" />
           </header>
 
-          <main className="flex-1 overflow-y-auto">{children}</main>
+          <main className="flex-1 overflow-y-auto">
+            {locked && (
+              <div className="bg-red/10 border-b border-red/30 px-6 py-2 text-sm text-red flex items-center justify-between gap-4">
+                <span>
+                  <strong>Tilgangen er låst:</strong> abonnementet er
+                  utløpt eller forfalt. Data er trygt — gjør betaling for å
+                  gjenåpne.
+                </span>
+                <Link
+                  href="/admin/abonnement"
+                  className="font-medium underline whitespace-nowrap"
+                >
+                  Til abonnement
+                </Link>
+              </div>
+            )}
+            {children}
+          </main>
         </div>
 
         <ReportIssueButton />

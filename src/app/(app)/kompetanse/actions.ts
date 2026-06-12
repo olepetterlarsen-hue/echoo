@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrgId } from "@/lib/supabase/org";
+import { guardOrgWritable, checkStorageQuota } from "@/lib/billing";
 import type { Certificate } from "@/lib/types/database";
 import { getServerT } from "@/lib/i18n/server";
 
@@ -24,12 +25,20 @@ export async function uploadCertificate(formData: FormData): Promise<{
   let orgId: string;
   try {
     orgId = await getCurrentOrgId(supabase);
-  } catch {
-    return { error: t("form_err_not_logged_in") };
+    await guardOrgWritable(supabase, orgId);
+  } catch (e) {
+    return { error: (e as Error).message || t("form_err_not_logged_in") };
   }
 
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: t("cert_err_missing_file") };
+
+  const quota = await checkStorageQuota(supabase, orgId, file.size);
+  if (!quota.ok) {
+    return {
+      error: `Lagringskvoten er nådd (${Math.round(quota.used / 1024 ** 3)} GB av ${Math.round(quota.quota / 1024 ** 3)} GB). Oppgrader i /admin/abonnement.`,
+    };
+  }
   const profileId = (formData.get("profile_id") as string) || user.id;
 
   // Bruker må enten være eier eller admin (RLS håndhever — vi feiler tidlig hvis ikke)

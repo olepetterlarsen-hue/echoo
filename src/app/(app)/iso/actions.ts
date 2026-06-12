@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getOrgAndUser } from "@/lib/supabase/org";
+import { requireIsoPlan } from "@/lib/billing";
 import type {
   ObjectiveKind,
   ObjectiveStatus,
@@ -13,6 +14,23 @@ import type {
   AuditStatus,
   ManagementReviewStatus,
 } from "@/lib/types/database";
+
+/**
+ * Server-side guard for ISO actions: hver server action under /iso/ kaller
+ * dette først. Returnerer en feilmelding hvis ISO-tilgang ikke er gyldig
+ * (manglende add-on, locked, etc.). Vi pakker som returverdi i stedet for
+ * throw for å holde mønsteret konsistent med eksisterende actions.
+ */
+async function guardIsoOrThrow(): Promise<{
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  orgId: string;
+  userId: string;
+}> {
+  const supabase = await createClient();
+  const { orgId, userId } = await getOrgAndUser(supabase);
+  await requireIsoPlan(supabase, orgId);
+  return { supabase, orgId, userId };
+}
 
 /* ============================================================
    ISO 9001 7.5 — Dokumentstyring (godkjenningsflyt)
@@ -25,7 +43,9 @@ export async function submitDocumentForReview(input: {
   const supabase = await createClient();
   let userId: string;
   try {
-    ({ userId } = await getOrgAndUser(supabase));
+    const ctx = await getOrgAndUser(supabase);
+    userId = ctx.userId;
+    await requireIsoPlan(supabase, ctx.orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -66,7 +86,9 @@ export async function approveDocument(input: {
   const supabase = await createClient();
   let userId: string;
   try {
-    ({ userId } = await getOrgAndUser(supabase));
+    const ctx = await getOrgAndUser(supabase);
+    userId = ctx.userId;
+    await requireIsoPlan(supabase, ctx.orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -114,7 +136,9 @@ export async function rejectDocument(input: {
   const supabase = await createClient();
   let userId: string;
   try {
-    ({ userId } = await getOrgAndUser(supabase));
+    const ctx = await getOrgAndUser(supabase);
+    userId = ctx.userId;
+    await requireIsoPlan(supabase, ctx.orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -179,7 +203,9 @@ export async function updateCapa(
   const supabase = await createClient();
   let userId: string;
   try {
-    ({ userId } = await getOrgAndUser(supabase));
+    const ctx = await getOrgAndUser(supabase);
+    userId = ctx.userId;
+    await requireIsoPlan(supabase, ctx.orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -260,6 +286,7 @@ export async function upsertObjective(
   let userId: string;
   try {
     ({ orgId, userId } = await getOrgAndUser(supabase));
+    await requireIsoPlan(supabase, orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -312,6 +339,7 @@ export async function recordObjectiveMeasurement(input: {
   let userId: string;
   try {
     ({ orgId, userId } = await getOrgAndUser(supabase));
+    await requireIsoPlan(supabase, orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -364,6 +392,7 @@ export async function upsertAuditPlan(
   let userId: string;
   try {
     ({ orgId, userId } = await getOrgAndUser(supabase));
+    await requireIsoPlan(supabase, orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -417,6 +446,7 @@ export async function createAuditFinding(input: {
   let userId: string;
   try {
     ({ orgId, userId } = await getOrgAndUser(supabase));
+    await requireIsoPlan(supabase, orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -511,6 +541,7 @@ export async function createManagementReview(input: {
   let userId: string;
   try {
     ({ orgId, userId } = await getOrgAndUser(supabase));
+    await requireIsoPlan(supabase, orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -548,7 +579,8 @@ export async function updateManagementReview(input: {
 }): Promise<{ error?: string }> {
   const supabase = await createClient();
   try {
-    await getOrgAndUser(supabase);
+    const ctx = await getOrgAndUser(supabase);
+    await requireIsoPlan(supabase, ctx.orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -599,6 +631,7 @@ export async function upsertAspect(
   let userId: string;
   try {
     ({ orgId, userId } = await getOrgAndUser(supabase));
+    await requireIsoPlan(supabase, orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -662,6 +695,7 @@ export async function upsertCompliance(
   let userId: string;
   try {
     ({ orgId, userId } = await getOrgAndUser(supabase));
+    await requireIsoPlan(supabase, orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }

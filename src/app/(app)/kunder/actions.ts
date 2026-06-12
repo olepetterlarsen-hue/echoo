@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getOrgAndUser } from "@/lib/supabase/org";
+import { guardOrgWritable } from "@/lib/billing";
 import { getServerT } from "@/lib/i18n/server";
 
 interface CustomerInput {
@@ -35,8 +36,9 @@ export async function createCustomer(input: CustomerInput): Promise<{
   let userId: string;
   try {
     ({ orgId, userId } = await getOrgAndUser(supabase));
-  } catch {
-    return { error: t("cust_err_not_logged_in") };
+    await guardOrgWritable(supabase, orgId);
+  } catch (e) {
+    return { error: (e as Error).message || t("cust_err_not_logged_in") };
   }
 
   const { data, error } = await supabase

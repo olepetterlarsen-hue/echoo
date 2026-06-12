@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrgId } from "@/lib/supabase/org";
+import { guardOrgWritable, checkStorageQuota } from "@/lib/billing";
 import type { DocumentKind, Project } from "@/lib/types/database";
 import { SAMSVAR_SIGNING_ROLES, DOCUMENT_KIND_LABELS } from "@/lib/types/database";
 import { renderDocumentPdf } from "@/lib/pdf/render";
@@ -142,6 +143,7 @@ export async function signDocument(input: SaveInput): Promise<{
   let orgId: string;
   try {
     orgId = await getCurrentOrgId(supabase);
+    await guardOrgWritable(supabase, orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -194,6 +196,15 @@ export async function signDocument(input: SaveInput): Promise<{
 
   const folder = input.projectId ?? `standalone/${user.id}`;
   const pdfPath = `${folder}/${input.kind}/v${docPre.version}-${docPre.id.slice(0, 8)}.pdf`;
+
+  // Sjekk lagringskvote før PDF lastes opp.
+  const quota = await checkStorageQuota(supabase, orgId, pdfBuffer.byteLength);
+  if (!quota.ok) {
+    return {
+      error: `Lagringskvoten er nådd (${Math.round(quota.used / 1024 ** 3)} GB av ${Math.round(quota.quota / 1024 ** 3)} GB). Oppgrader abonnementet i /admin/abonnement.`,
+    };
+  }
+
   const { error: uploadError } = await supabase.storage
     .from("documents")
     .upload(pdfPath, pdfBuffer, {

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getOrgAndUser } from "@/lib/supabase/org";
+import { guardOrgWritable } from "@/lib/billing";
 import type { InstallationType } from "@/lib/types/database";
 import { getServerT } from "@/lib/i18n/server";
 
@@ -46,8 +47,9 @@ export async function createProject(
   let userId: string;
   try {
     ({ orgId, userId } = await getOrgAndUser(supabase));
-  } catch {
-    return { error: t("proj_err_not_signed_in") };
+    await guardOrgWritable(supabase, orgId);
+  } catch (e) {
+    return { error: (e as Error).message || t("proj_err_not_signed_in") };
   }
 
   const { data, error } = await supabase
