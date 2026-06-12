@@ -30,6 +30,36 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
 
+  // 2FA-policy: hvis org krever 2FA, må brukeren ha enrollet en verified
+  // TOTP-faktor. /profil og /logout er alltid tilgjengelig så brukeren kan
+  // enrolle / komme seg ut.
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("require_2fa")
+    .eq("id", profile.organization_id)
+    .single();
+
+  if (org?.require_2fa) {
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const hasVerified =
+      (factors?.totp?.some((f) => f.status === "verified")) ?? false;
+    if (!hasVerified) {
+      // /mfa-setup ligger utenfor (app)-layouten så vi unngår
+      // redirect-loop. Brukeren kan enrolle der og sendes deretter
+      // til dashboard.
+      redirect("/mfa-setup");
+    }
+    // Selv om faktor finnes må sesjonen være aal2 (verifisert i denne login)
+    const { data: aal } =
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal?.currentLevel !== "aal2") {
+      await supabase.auth.signOut();
+      redirect(
+        "/login?error=Bedriften+krever+2FA.+Logg+inn+p%C3%A5+nytt+og+bekreft+med+kode.",
+      );
+    }
+  }
+
   const locale = await getLocale();
 
   return (

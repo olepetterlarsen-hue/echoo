@@ -116,3 +116,35 @@ export async function removeOrgLogo(): Promise<{ error?: string; ok?: boolean }>
   revalidatePath("/admin/bedrift");
   return { ok: true };
 }
+
+/**
+ * Skru av/på "Krev 2FA for alle brukere".
+ * Admin må selv ha aal2 før de kan slå dette på — ellers risikerer
+ * admin å låse seg ute. Vi sjekker via authenticatorAssuranceLevel().
+ */
+export async function setRequire2fa(
+  args: { value: boolean },
+): Promise<{ error?: string; ok?: boolean }> {
+  const ctx = await assertAdminOrg();
+  if ("error" in ctx) return { error: ctx.error };
+
+  if (args.value) {
+    const { data: aal } =
+      await ctx.supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal?.currentLevel !== "aal2") {
+      return {
+        error:
+          "Du må selv være autentisert med 2FA før du kan kreve det av andre. Aktiver 2FA i /profil og logg inn på nytt.",
+      };
+    }
+  }
+
+  const { error } = await ctx.supabase
+    .from("organizations")
+    .update({ require_2fa: args.value })
+    .eq("id", ctx.orgId);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/bedrift");
+  revalidatePath("/profil");
+  return { ok: true };
+}

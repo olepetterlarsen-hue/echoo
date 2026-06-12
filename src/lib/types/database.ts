@@ -122,6 +122,15 @@ export type Database = {
           trial_ends_at: string | null;
           created_at: string;
           updated_at: string;
+          require_2fa: boolean;
+          // Stripe-felter (migration 052)
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          subscription_status: string | null;
+          has_iso_addon: boolean;
+          plan_tier: "trial" | "elektro_hms" | null;
+          locked_at: string | null;
+          storage_used_bytes: number;
         };
         Insert: {
           id?: string;
@@ -142,6 +151,13 @@ export type Database = {
           employee_count_est?: number | null;
           plan?: string | null;
           trial_ends_at?: string | null;
+          require_2fa?: boolean;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          subscription_status?: string | null;
+          has_iso_addon?: boolean;
+          plan_tier?: "trial" | "elektro_hms" | null;
+          locked_at?: string | null;
         };
         Update: {
           firma?: string;
@@ -161,6 +177,14 @@ export type Database = {
           employee_count_est?: number | null;
           plan?: string | null;
           trial_ends_at?: string | null;
+          require_2fa?: boolean;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          subscription_status?: string | null;
+          has_iso_addon?: boolean;
+          plan_tier?: "trial" | "elektro_hms" | null;
+          locked_at?: string | null;
+          storage_used_bytes?: number;
         };
         Relationships: [];
       };

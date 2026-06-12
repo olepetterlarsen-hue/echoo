@@ -8,8 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Upload, Trash2 } from "lucide-react";
 import { useLocale } from "@/lib/i18n";
 import { tr } from "@/lib/i18n/strings";
+import { ShieldCheck } from "lucide-react";
 import type { Organization } from "@/lib/types/database";
-import { saveOrgSettings, uploadOrgLogo, removeOrgLogo } from "./actions";
+import {
+  saveOrgSettings,
+  uploadOrgLogo,
+  removeOrgLogo,
+  setRequire2fa,
+} from "./actions";
 
 interface Props {
   org: Organization;
@@ -31,6 +37,7 @@ export function OrgSettingsEditor({ org }: Props) {
   const [installatorEpost, setInstallatorEpost] = useState(org.installator_epost ?? "");
   const [primaryColor, setPrimaryColor] = useState(org.primary_color ?? "#F47920");
   const [logoUrl, setLogoUrl] = useState(org.logo_url ?? "");
+  const [require2fa, setRequire2faState] = useState(org.require_2fa ?? false);
   const [pending, startTransition] = useTransition();
   const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +95,18 @@ export function OrgSettingsEditor({ org }: Props) {
       const res = await removeOrgLogo();
       if (res?.error) setError(res.error);
       else setLogoUrl("");
+    });
+  }
+
+  function onToggle2fa(value: boolean) {
+    setError(null);
+    startTransition(async () => {
+      const res = await setRequire2fa({ value });
+      if (res?.error) {
+        setError(res.error);
+        return;
+      }
+      setRequire2faState(value);
     });
   }
 
@@ -234,6 +253,38 @@ export function OrgSettingsEditor({ org }: Props) {
               />
             </Field>
           </div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <span className="flex items-center gap-2">
+              <ShieldCheck className="size-4 text-orange" />
+              Sikkerhet
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardBody className="space-y-3">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={require2fa}
+              onChange={(e) => onToggle2fa(e.target.checked)}
+              className="size-4 accent-orange mt-0.5"
+              disabled={pending}
+            />
+            <div className="flex-1">
+              <div className="text-sm font-medium text-text-1">
+                Krev 2FA for alle brukere
+              </div>
+              <div className="text-xs text-text-3">
+                Brukerne får ikke tilgang til Echoo før de har aktivert
+                TOTP-2FA i /profil og logget inn på nytt. Du må selv være
+                aktivert med 2FA før du slår dette på.
+              </div>
+            </div>
+          </label>
         </CardBody>
       </Card>
 

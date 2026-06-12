@@ -10,7 +10,15 @@ interface SignInInput {
   redirectTo?: string;
 }
 
-export async function signIn({ email, password, redirectTo }: SignInInput) {
+export type SignInResult =
+  | { error: string }
+  | { mfa_required: true; factor_id: string };
+
+export async function signIn({
+  email,
+  password,
+  redirectTo,
+}: SignInInput): Promise<SignInResult | void> {
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -18,7 +26,47 @@ export async function signIn({ email, password, redirectTo }: SignInInput) {
     return { error: "Feil e-post eller passord." };
   }
 
+  // Sjekk om brukeren har en verified TOTP-faktor. Supabase sender
+  // currentLevel='aal1' og nextLevel='aal2' når MFA finnes men ikke er
+  // verifisert i denne sesjonen.
+  const { data: aal } =
+    await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal?.currentLevel === "aal1" && aal.nextLevel === "aal2") {
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const totp = factors?.totp?.find((f) => f.status === "verified");
+    if (totp) {
+      return { mfa_required: true, factor_id: totp.id };
+    }
+  }
+
   redirect(redirectTo && redirectTo.startsWith("/") ? redirectTo : "/dashboard");
+}
+
+export async function completeMfaSignIn(args: {
+  factor_id: string;
+  code: string;
+  redirectTo?: string;
+}): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const code = args.code.trim();
+  if (!/^\d{6}$/.test(code)) {
+    return { error: "Koden må være 6 sifre." };
+  }
+  const { data: challenge, error: chErr } = await supabase.auth.mfa.challenge({
+    factorId: args.factor_id,
+  });
+  if (chErr) return { error: chErr.message };
+  const { error: verErr } = await supabase.auth.mfa.verify({
+    factorId: args.factor_id,
+    challengeId: challenge.id,
+    code,
+  });
+  if (verErr) return { error: verErr.message };
+  redirect(
+    args.redirectTo && args.redirectTo.startsWith("/")
+      ? args.redirectTo
+      : "/dashboard",
+  );
 }
 
 export async function signOut() {
