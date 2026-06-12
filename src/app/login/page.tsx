@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { LoginForm } from "./login-form";
 import { getServerT } from "@/lib/i18n/server";
 
@@ -10,9 +11,20 @@ interface PageProps {
 export default async function LoginPage({ searchParams }: PageProps) {
   const { redirectTo, error, reset } = await searchParams;
   const { locale, t } = await getServerT();
+  // Landingssiden ligger separat (typisk echoo.no). Fall tilbake til
+  // app-rotdomenet hvis ikke satt; den korte stubsiden der lenker uansett
+  // til den ekte landingssiden hvis det er en split.
+  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL?.trim() || "/";
 
   return (
-    <main className="min-h-screen grid place-items-center px-4">
+    <main className="min-h-screen grid place-items-center px-4 relative">
+      <Link
+        href={landingUrl}
+        className="absolute top-4 left-4 text-xs text-text-3 hover:text-orange flex items-center gap-1"
+      >
+        <ArrowLeft className="size-3.5" />
+        {t("login_back_to_landing")}
+      </Link>
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
           <Image

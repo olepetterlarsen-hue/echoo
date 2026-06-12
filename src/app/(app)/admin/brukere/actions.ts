@@ -1,9 +1,9 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { guardOrgWritable } from "@/lib/billing";
+import { getAppOrigin } from "@/lib/origin";
 import { getServerT } from "@/lib/i18n/server";
 import type { Profile, UserRole } from "@/lib/types/database";
 
@@ -170,9 +170,7 @@ export async function sendReset(input: { email: string }) {
     return { error: t("adm_user_err_not_in_org") };
   }
 
-  const h = await headers();
-  const origin =
-    process.env.NEXT_PUBLIC_APP_URL ?? `https://${h.get("host") ?? "localhost:3000"}`;
+  const origin = await getAppOrigin();
   const { error } = await supabase.auth.resetPasswordForEmail(input.email, {
     redirectTo: `${origin}/auth/callback?next=/profil`,
   });

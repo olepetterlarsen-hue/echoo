@@ -4,14 +4,28 @@ import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, AlertTriangle } from "lucide-react";
-import { checkoutAndRedirect, portalAndRedirect } from "./actions";
+import {
+  checkoutAndRedirect,
+  portalAndRedirect,
+  startCheckout,
+} from "./actions";
 
 interface PageProps {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    prefill?: string;
+    auto_checkout?: string;
+  }>;
 }
 
 export default async function AbonnementPage({ searchParams }: PageProps) {
-  const { status: flash } = await searchParams;
+  const {
+    status: flash,
+    prefill: rawPrefill,
+    auto_checkout,
+  } = await searchParams;
+  const prefill: "base" | "iso" | undefined =
+    rawPrefill === "base" || rawPrefill === "iso" ? rawPrefill : undefined;
   const supabase = await createClient();
   const {
     data: { user },
@@ -33,6 +47,21 @@ export default async function AbonnementPage({ searchParams }: PageProps) {
     .eq("id", profile.organization_id)
     .single();
   if (!org) redirect("/dashboard");
+
+  // Auto-redirect rett til Stripe Checkout hvis bruker kom via
+  // landingsside-link og ikke har et aktivt abonnement ennå.
+  if (
+    auto_checkout === "1" &&
+    prefill &&
+    !org.stripe_customer_id &&
+    org.subscription_status !== "active"
+  ) {
+    const res = await startCheckout({ include_iso: prefill === "iso" });
+    if (res.url) {
+      redirect(res.url);
+    }
+    // Hvis Checkout feilet, fall gjennom til normal side med feilmelding.
+  }
 
   const trialRemainingDays = org.trial_ends_at
     ? Math.max(
@@ -150,11 +179,19 @@ export default async function AbonnementPage({ searchParams }: PageProps) {
               </p>
               <div className="flex flex-wrap gap-2">
                 <form action={checkoutAndRedirect}>
-                  <Button type="submit">Start Echoo Elektro + HMS</Button>
+                  <Button
+                    type="submit"
+                    variant={prefill === "iso" ? "secondary" : "primary"}
+                  >
+                    Start Echoo Elektro + HMS
+                  </Button>
                 </form>
                 <form action={checkoutAndRedirect}>
                   <input type="hidden" name="include_iso" value="1" />
-                  <Button type="submit" variant="secondary">
+                  <Button
+                    type="submit"
+                    variant={prefill === "iso" ? "primary" : "secondary"}
+                  >
                     Start med ISO-modul
                   </Button>
                 </form>

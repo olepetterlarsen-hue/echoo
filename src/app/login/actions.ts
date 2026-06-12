@@ -1,8 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { getAppOrigin } from "@/lib/origin";
 
 interface SignInInput {
   email: string;
@@ -81,9 +81,7 @@ interface ResetInput {
 
 export async function requestPasswordReset({ email }: ResetInput) {
   const supabase = await createClient();
-  const h = await headers();
-  const origin =
-    process.env.NEXT_PUBLIC_APP_URL ?? `https://${h.get("host") ?? "localhost:3000"}`;
+  const origin = await getAppOrigin();
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${origin}/auth/callback?next=/profil`,

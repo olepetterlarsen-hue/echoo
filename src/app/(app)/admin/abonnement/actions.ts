@@ -1,9 +1,9 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { stripe, STRIPE_PRICE_BASE, STRIPE_PRICE_ISO_ADDON } from "@/lib/stripe";
+import { getAppOrigin } from "@/lib/origin";
 
 async function requireAdminOrg() {
   const supabase = await createClient();
@@ -21,13 +21,6 @@ async function requireAdminOrg() {
   return { supabase, user, orgId: profile.organization_id as string };
 }
 
-async function getOrigin(): Promise<string> {
-  const h = await headers();
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ??
-    `https://${h.get("host") ?? "localhost:3000"}`
-  );
-}
 
 /**
  * Oppretter en Stripe Checkout-session for ny eller utvidet subscription.
@@ -62,7 +55,7 @@ export async function startCheckout(args: {
     .single();
   if (!org) return { error: "Fant ikke organisasjon." };
 
-  const origin = await getOrigin();
+  const origin = await getAppOrigin();
   const lineItems: { price: string; quantity: number }[] = [
     { price: STRIPE_PRICE_BASE, quantity: 1 },
   ];
@@ -126,7 +119,7 @@ export async function openPortal(): Promise<{ url?: string; error?: string }> {
   if (!org?.stripe_customer_id) {
     return { error: "Ingen Stripe-kunde knyttet. Start abonnement først." };
   }
-  const origin = await getOrigin();
+  const origin = await getAppOrigin();
   try {
     const portal = await stripe().billingPortal.sessions.create({
       customer: org.stripe_customer_id,

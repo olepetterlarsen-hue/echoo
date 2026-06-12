@@ -7,6 +7,7 @@ export const AUTH: TranslationDict = {
     en: "Quality and production planning for electrical contractors",
   },
   login_footer: { no: "Echoo · Bygget av håndverkere", en: "Echoo · Built by tradespeople" },
+  login_back_to_landing: { no: "Tilbake til echoo.no", en: "Back to echoo.no" },
   login_no_account: { no: "Har du ikke konto enda?", en: "Don't have an account yet?" },
   login_signup_link: { no: "Registrer bedriften din", en: "Register your company" },
 

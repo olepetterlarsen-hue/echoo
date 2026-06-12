@@ -10,6 +10,7 @@ import { tr } from "@/lib/i18n/strings";
 interface Props {
   initialError?: string;
   locale: Locale;
+  plan?: "base" | "iso";
 }
 
 const EMPLOYEE_RANGES: { value: string; label: string }[] = [
@@ -20,7 +21,7 @@ const EMPLOYEE_RANGES: { value: string; label: string }[] = [
   { value: "200+", label: "200+" },
 ];
 
-export function SignupForm({ initialError, locale }: Props) {
+export function SignupForm({ initialError, locale, plan }: Props) {
   const [firma, setFirma] = useState("");
   const [orgNr, setOrgNr] = useState("");
   const [fullName, setFullName] = useState("");
@@ -41,6 +42,7 @@ export function SignupForm({ initialError, locale }: Props) {
         email,
         password,
         employee_range: employeeRange,
+        plan,
       });
       if (res?.error) setError(res.error);
     });

@@ -4,11 +4,14 @@ import { SignupForm } from "./signup-form";
 import { getServerT } from "@/lib/i18n/server";
 
 interface PageProps {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; plan?: string }>;
 }
 
 export default async function SignupPage({ searchParams }: PageProps) {
-  const { error } = await searchParams;
+  const { error, plan: rawPlan } = await searchParams;
+  // Tillat kun de to gyldige verdiene fra landingssiden.
+  const plan: "base" | "iso" | undefined =
+    rawPlan === "base" || rawPlan === "iso" ? rawPlan : undefined;
   const { locale, t } = await getServerT();
 
   return (
@@ -28,7 +31,23 @@ export default async function SignupPage({ searchParams }: PageProps) {
         <div className="bg-card border border-border rounded-lg p-6">
           <h1 className="text-lg font-semibold mb-1">{t("signup_title")}</h1>
           <p className="text-sm text-text-2 mb-6">{t("signup_beta_note")}</p>
-          <SignupForm initialError={error} locale={locale} />
+          {plan && (
+            <div className="mb-4 bg-orange/10 border border-orange/30 rounded-md px-3 py-2 text-sm text-orange">
+              {plan === "iso" ? (
+                <>
+                  Du har valgt <strong>Echoo Elektro + HMS + ISO 9001-modul</strong>{" "}
+                  (4 990 kr/mnd). Du fortsetter rett til betaling etter
+                  registrering.
+                </>
+              ) : (
+                <>
+                  Du har valgt <strong>Echoo Elektro + HMS</strong> (2 990
+                  kr/mnd). Du fortsetter rett til betaling etter registrering.
+                </>
+              )}
+            </div>
+          )}
+          <SignupForm initialError={error} locale={locale} plan={plan} />
         </div>
 
         <p className="text-center text-sm text-text-2 mt-6">

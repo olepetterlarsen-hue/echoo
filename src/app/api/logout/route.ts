@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getAppOrigin } from "@/lib/origin";
 
 export async function POST() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  return NextResponse.redirect(
-    new URL("/login", process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
-    { status: 303 },
-  );
+  const origin = await getAppOrigin();
+  return NextResponse.redirect(new URL("/login", origin), { status: 303 });
 }
