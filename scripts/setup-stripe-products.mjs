@@ -66,19 +66,29 @@ const PRODUCTS = [
   },
 ];
 
-async function findExisting(echooKey) {
-  // Søk gjennom alle aktive produkter med metadata.echoo_key
-  const all = await stripe.products.search({
-    query: `metadata['echoo_key']:'${echooKey}' AND active:'true'`,
-    limit: 5,
-  });
-  return all.data[0] ?? null;
+async function findAllMatching(echooKey) {
+  // stripe.products.search er eventually consistent — vi paginerer
+  // products.list og filtrerer i kode for å være idempotente.
+  const matching = [];
+  for await (const p of stripe.products.list({ active: true, limit: 100 })) {
+    if (p.metadata?.echoo_key === echooKey) matching.push(p);
+  }
+  // Nyeste først så vi beholder den siste
+  matching.sort((a, b) => b.created - a.created);
+  return matching;
 }
 
 async function ensureProduct(spec) {
-  let product = await findExisting(spec.key);
-  if (product) {
+  const matches = await findAllMatching(spec.key);
+  let product;
+  if (matches.length > 0) {
+    product = matches[0];
     console.log(`= Eksisterer: ${spec.name} (${product.id})`);
+    // Arkiver eldre duplikater fra tidligere kjøringer
+    for (const dup of matches.slice(1)) {
+      await stripe.products.update(dup.id, { active: false });
+      console.log(`  - Arkivert duplikat: ${dup.id}`);
+    }
     product = await stripe.products.update(product.id, {
       name: spec.name,
       description: spec.description,
