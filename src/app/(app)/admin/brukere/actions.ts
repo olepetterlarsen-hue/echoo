@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { guardOrgWritable } from "@/lib/billing";
 import { getServerT } from "@/lib/i18n/server";
 import type { Profile, UserRole } from "@/lib/types/database";
 
@@ -37,8 +38,12 @@ export async function createUser(input: CreateInput): Promise<{
   profile?: Profile;
 }> {
   let orgId: string;
+  let userSupabase: Awaited<ReturnType<typeof createClient>>;
   try {
-    ({ orgId } = await requireAdmin());
+    const ctx = await requireAdmin();
+    orgId = ctx.orgId;
+    userSupabase = ctx.supabase;
+    await guardOrgWritable(userSupabase, orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }

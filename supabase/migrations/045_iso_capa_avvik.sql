@@ -48,13 +48,15 @@ alter table public.deviations
   add column if not exists verified_at timestamptz,
   add column if not exists verification_evidence text;
 
+-- enum_out (::text) er STABLE, ikke IMMUTABLE — kan ikke brukes i partial
+-- index predicate. Sammenligning på enum-verdien direkte er IMMUTABLE.
 create index if not exists idx_deviations_responsible
   on public.deviations(organization_id, responsible_id)
-  where status::text != 'lukket';
+  where status <> 'lukket'::deviation_status;
 
 create index if not exists idx_deviations_due_date
   on public.deviations(organization_id, due_date)
-  where due_date is not null and status::text != 'lukket';
+  where due_date is not null and status <> 'lukket'::deviation_status;
 
 ------------------------------------------------------------------
 -- Trigger: hindre lukking før verifikasjon er fullført

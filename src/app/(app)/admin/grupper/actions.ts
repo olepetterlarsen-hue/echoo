@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrgId } from "@/lib/supabase/org";
+import { guardOrgWritable } from "@/lib/billing";
 import { getServerT } from "@/lib/i18n/server";
 
 interface GroupInput {
@@ -32,6 +33,7 @@ export async function upsertGroup(
   let orgId: string;
   try {
     orgId = await getCurrentOrgId(supabase);
+    await guardOrgWritable(supabase, orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -103,6 +105,7 @@ export async function generateOpTeams(): Promise<{
   let orgId: string;
   try {
     orgId = await getCurrentOrgId(supabase);
+    await guardOrgWritable(supabase, orgId);
   } catch (e) {
     return { created: 0, skipped: 0, error: (e as Error).message };
   }

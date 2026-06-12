@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { getOrgAndUser } from "@/lib/supabase/org";
+import { guardOrgWritable } from "@/lib/billing";
 
 /**
  * AI-guided import wizard.
@@ -127,7 +128,8 @@ export async function classifyFile(args: {
 }): Promise<{ result?: ClassifyResult; error?: string }> {
   const supabase = await createClient();
   try {
-    await getOrgAndUser(supabase);
+    const { orgId } = await getOrgAndUser(supabase);
+    await guardOrgWritable(supabase, orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -227,6 +229,7 @@ export async function commitImports(args: {
   let userId: string;
   try {
     ({ orgId, userId } = await getOrgAndUser(supabase));
+    await guardOrgWritable(supabase, orgId);
   } catch (e) {
     return { results: [], error: (e as Error).message };
   }

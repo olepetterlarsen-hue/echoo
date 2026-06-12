@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrgId } from "@/lib/supabase/org";
+import { guardOrgWritable } from "@/lib/billing";
 import { sendEmail } from "@/lib/email/send";
 import { getServerT } from "@/lib/i18n/server";
 
@@ -25,6 +26,7 @@ export async function createComment(input: {
   let orgId: string;
   try {
     orgId = await getCurrentOrgId(supabase);
+    await guardOrgWritable(supabase, orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }

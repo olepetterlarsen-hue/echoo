@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrgId } from "@/lib/supabase/org";
+import { guardOrgWritable } from "@/lib/billing";
 import { getServerT } from "@/lib/i18n/server";
 import type { CustomTemplate } from "@/lib/types/database";
 import type { TemplateDef, SectionDef } from "@/lib/document-templates/types";
@@ -41,6 +42,7 @@ export async function createCustomTemplate(input: {
   let orgId: string;
   try {
     orgId = await getCurrentOrgId(supabase);
+    await guardOrgWritable(supabase, orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }

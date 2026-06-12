@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getOrgAndUser } from "@/lib/supabase/org";
+import { guardOrgWritable } from "@/lib/billing";
 import type { DocumentKind } from "@/lib/types/database";
 import { getServerT } from "@/lib/i18n/server";
 
@@ -30,8 +31,9 @@ export async function createStandaloneDocument(input: {
   let userId: string;
   try {
     ({ orgId, userId } = await getOrgAndUser(supabase));
-  } catch {
-    return { error: t("form_err_not_logged_in") };
+    await guardOrgWritable(supabase, orgId);
+  } catch (e) {
+    return { error: (e as Error).message || t("form_err_not_logged_in") };
   }
 
   const initialData: Record<string, unknown> = {};

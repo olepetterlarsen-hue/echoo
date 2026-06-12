@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrgId } from "@/lib/supabase/org";
+import { guardOrgWritable } from "@/lib/billing";
 import { getServerT } from "@/lib/i18n/server";
 
 const ALLOWED_ROLES = ["admin", "installator", "bemyndiget", "prosjektleder"] as const;
@@ -69,6 +70,7 @@ export async function upsertScheduleEntry(
   let orgId: string;
   try {
     orgId = await getCurrentOrgId(supabase);
+    await guardOrgWritable(supabase, orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrgId } from "@/lib/supabase/org";
+import { guardOrgWritable } from "@/lib/billing";
 import { getServerT } from "@/lib/i18n/server";
 import { revalidatePath } from "next/cache";
 
@@ -38,6 +39,7 @@ export async function createSection(name: string) {
   let orgId: string;
   try {
     orgId = await getCurrentOrgId(ctx.supabase);
+    await guardOrgWritable(ctx.supabase, orgId);
   } catch (e) {
     return { error: (e as Error).message };
   }

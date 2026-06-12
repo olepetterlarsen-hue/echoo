@@ -37,9 +37,12 @@ alter table public.documents
   -- (ISO 9001 7.5.3.2: "control of changes")
   add column if not exists change_summary text;
 
-create index if not exists idx_documents_status_under_review
-  on public.documents(organization_id, status)
-  where status::text = 'under_review';
+-- Vi kan ikke lage en partial index på 'under_review' i samme migration
+-- som vi legger til verdien (Postgres betrakter ny enum-verdi som ikke-
+-- immutable i samme transaksjon). Bruker full index — query-planneren
+-- kombinerer den med WHERE-filter på status.
+create index if not exists idx_documents_org_status
+  on public.documents(organization_id, status);
 
 ------------------------------------------------------------------
 -- Review-historikk: hvert state-skifte logges (compliance-spor)
