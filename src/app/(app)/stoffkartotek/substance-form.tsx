@@ -32,9 +32,10 @@ interface Substance {
 interface Props {
   mode: "create" | "edit";
   substance?: Substance;
+  orgId: string;
 }
 
-export function SubstanceForm({ mode, substance }: Props) {
+export function SubstanceForm({ mode, substance, orgId }: Props) {
   const router = useRouter();
   const { locale } = useLocale();
   const [pending, startTransition] = useTransition();
@@ -78,7 +79,8 @@ export function SubstanceForm({ mode, substance }: Props) {
       const supabase = createBrowserClient();
       const ext = file.name.split(".").pop() ?? "pdf";
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const path = `${fileName}`;
+      // Org-prefiks i pathen lar storage-RLS verifisere eierskap.
+      const path = `${orgId}/${fileName}`;
       const { error: uploadErr } = await supabase.storage
         .from("substance-sds")
         .upload(path, file, { upsert: false });

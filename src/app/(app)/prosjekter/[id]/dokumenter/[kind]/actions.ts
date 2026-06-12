@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentOrgId } from "@/lib/supabase/org";
 import type { DocumentKind, Project } from "@/lib/types/database";
 import { SAMSVAR_SIGNING_ROLES, DOCUMENT_KIND_LABELS } from "@/lib/types/database";
 import { renderDocumentPdf } from "@/lib/pdf/render";
@@ -70,9 +71,16 @@ export async function saveDraft(input: SaveInput): Promise<{
     input.kind,
     user.id,
   );
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
   const { data, error } = await supabase
     .from("documents")
     .insert({
+      organization_id: orgId,
       project_id: input.projectId,
       kind: input.kind,
       version,
@@ -131,6 +139,13 @@ export async function signDocument(input: SaveInput): Promise<{
 
   let documentId = input.existingId;
 
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
   if (!documentId) {
     const version = await nextVersion(
       supabase,
@@ -141,6 +156,7 @@ export async function signDocument(input: SaveInput): Promise<{
     const { data, error } = await supabase
       .from("documents")
       .insert({
+        organization_id: orgId,
         project_id: input.projectId,
         kind: input.kind,
         version,
@@ -199,6 +215,7 @@ export async function signDocument(input: SaveInput): Promise<{
   if (signError) return { error: signError.message };
 
   await supabase.from("audit_log").insert({
+    organization_id: orgId,
     actor_id: user.id,
     action: "document.signed",
     entity_type: "document",
@@ -252,10 +269,18 @@ export async function startInternalControl(input: {
     kontroll_dato: new Date().toISOString().slice(0, 10),
   };
 
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
   // Versjon: scope pr. parent_document_id (alltid v1 første gang)
   const { data, error } = await supabase
     .from("documents")
     .insert({
+      organization_id: orgId,
       project_id: parent.project_id,
       kind: "internkontroll" as DocumentKind,
       version: 1,

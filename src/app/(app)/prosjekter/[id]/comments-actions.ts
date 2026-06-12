@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentOrgId } from "@/lib/supabase/org";
 import { sendEmail } from "@/lib/email/send";
 import { getServerT } from "@/lib/i18n/server";
 
@@ -21,7 +22,15 @@ export async function createComment(input: {
   if (trimmed.length > 4000)
     return { error: t("proj_comment_err_too_long") };
 
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
   const { error } = await supabase.from("project_comments").insert({
+    organization_id: orgId,
     project_id: input.projectId,
     author_id: user.id,
     body: trimmed,

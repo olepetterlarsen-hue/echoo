@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentOrgId } from "@/lib/supabase/org";
 import { getServerT } from "@/lib/i18n/server";
 import type { CustomTemplate } from "@/lib/types/database";
 import type { TemplateDef, SectionDef } from "@/lib/document-templates/types";
@@ -37,10 +38,17 @@ export async function createCustomTemplate(input: {
     return { error: (e as Error).message };
   }
   const { supabase, userId } = ctx;
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 
   const { data, error } = await supabase
     .from("custom_templates")
     .insert({
+      organization_id: orgId,
       name: input.name.trim(),
       subtitle: input.subtitle?.trim() || null,
       description: input.description?.trim() || null,

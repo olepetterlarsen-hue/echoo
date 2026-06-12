@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentOrgId } from "@/lib/supabase/org";
 import { SubstanceForm } from "../substance-form";
 import { getServerT } from "@/lib/i18n/server";
 
@@ -10,6 +11,7 @@ export default async function NewSubstancePage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const orgId = await getCurrentOrgId(supabase);
 
   return (
     <div className="px-6 py-6 max-w-3xl mx-auto space-y-6">
@@ -21,7 +23,7 @@ export default async function NewSubstancePage() {
           {t("subs_form_create_subtitle")}
         </p>
       </header>
-      <SubstanceForm mode="create" />
+      <SubstanceForm mode="create" orgId={orgId} />
     </div>
   );
 }

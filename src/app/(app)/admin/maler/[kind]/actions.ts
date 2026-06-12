@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentOrgId } from "@/lib/supabase/org";
 import { getServerT } from "@/lib/i18n/server";
 import type { DocumentKind } from "@/lib/types/database";
 import type { TemplateDef } from "@/lib/document-templates/types";
@@ -34,15 +35,22 @@ export async function saveTemplate(input: {
   }
 
   const { supabase, userId } = ctx;
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
   const { error } = await supabase
     .from("document_templates")
     .upsert(
       {
+        organization_id: orgId,
         kind: input.kind,
         definition: input.definition as unknown as Record<string, unknown>,
         updated_by: userId,
       },
-      { onConflict: "kind" },
+      { onConflict: "organization_id,kind" },
     );
   if (error) return { error: error.message };
 
@@ -83,6 +91,12 @@ export async function toggleTemplateHidden(input: {
     return { error: (e as Error).message };
   }
   const { supabase, userId } = ctx;
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 
   // Sjekk om rad eksisterer; oppretter hvis ikke
   const { data: existing } = await supabase
@@ -101,6 +115,7 @@ export async function toggleTemplateHidden(input: {
     // Trenger en definisjon for å lage raden — bruk en tom placeholder
     // (selve definisjonen leses fra TS-default når den ikke er overskrevet)
     const { error } = await supabase.from("document_templates").insert({
+      organization_id: orgId,
       kind: input.kind,
       definition: {},
       is_hidden: input.hidden,

@@ -15,11 +15,14 @@ async function requireAdmin() {
   if (!user) throw new Error(t("adm_user_err_not_logged_in"));
   const { data: me } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, organization_id")
     .eq("id", user.id)
     .single();
   if (me?.role !== "admin") throw new Error(t("adm_user_err_missing_admin"));
-  return { supabase, user };
+  if (!me.organization_id) {
+    throw new Error(t("adm_user_err_no_org"));
+  }
+  return { supabase, user, orgId: me.organization_id as string };
 }
 
 interface CreateInput {
@@ -33,8 +36,9 @@ export async function createUser(input: CreateInput): Promise<{
   error?: string;
   profile?: Profile;
 }> {
+  let orgId: string;
   try {
-    await requireAdmin();
+    ({ orgId } = await requireAdmin());
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -48,6 +52,10 @@ export async function createUser(input: CreateInput): Promise<{
     user_metadata: {
       full_name: input.full_name.trim(),
       role: input.role,
+      // handle_new_user-trigger (migration 041) plukker dette opp og
+      // setter profile.organization_id direkte, så invited user havner
+      // i samme org som admin.
+      organization_id: orgId,
     },
   });
 
@@ -55,10 +63,16 @@ export async function createUser(input: CreateInput): Promise<{
     return { error: error?.message ?? t("adm_user_err_create_failed") };
   }
 
-  // Trigger oppretter profilen — vi henter den ferdig fra DB
+  // Trigger oppretter profilen — vi oppdaterer med korrekt navn/rolle/org
+  // som defense in depth. Filter på org_id sikrer at admin ikke kan
+  // overskrive en bruker i en annen org via race condition.
   const { data: profile } = await admin
     .from("profiles")
-    .update({ full_name: input.full_name.trim(), role: input.role })
+    .update({
+      full_name: input.full_name.trim(),
+      role: input.role,
+      organization_id: orgId,
+    })
     .eq("id", data.user.id)
     .select()
     .single();
@@ -77,8 +91,9 @@ export async function updateUser(input: UpdateInput): Promise<{
   error?: string;
   profile?: Profile;
 }> {
+  let orgId: string;
   try {
-    await requireAdmin();
+    ({ orgId } = await requireAdmin());
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -88,10 +103,14 @@ export async function updateUser(input: UpdateInput): Promise<{
   if (input.role) patch.role = input.role;
   if (input.full_name !== undefined) patch.full_name = input.full_name;
 
+  // Org-scope: admin kan kun oppdatere brukere i egen org. Vi bruker
+  // admin-client som bypasser RLS, så org-filteret er den eneste
+  // beskyttelsen mot kryss-org-skriving.
   const { data, error } = await admin
     .from("profiles")
     .update(patch)
     .eq("id", input.id)
+    .eq("organization_id", orgId)
     .select()
     .single();
 
@@ -104,8 +123,9 @@ export async function toggleActive(input: {
   id: string;
   active: boolean;
 }): Promise<{ error?: string; profile?: Profile }> {
+  let orgId: string;
   try {
-    await requireAdmin();
+    ({ orgId } = await requireAdmin());
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -115,6 +135,7 @@ export async function toggleActive(input: {
     .from("profiles")
     .update({ active: input.active })
     .eq("id", input.id)
+    .eq("organization_id", orgId)
     .select()
     .single();
 
@@ -124,12 +145,26 @@ export async function toggleActive(input: {
 }
 
 export async function sendReset(input: { email: string }) {
+  let orgId: string;
   try {
-    await requireAdmin();
+    ({ orgId } = await requireAdmin());
   } catch (e) {
     return { error: (e as Error).message };
   }
   const supabase = await createClient();
+
+  // Sjekk at den oppgitte e-posten faktisk tilhører admin sin org.
+  // Forhindrer at admin sender reset til brukere i andre orgs.
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("id, organization_id")
+    .eq("email", input.email.trim().toLowerCase())
+    .maybeSingle();
+  if (!target || target.organization_id !== orgId) {
+    const { t } = await getServerT();
+    return { error: t("adm_user_err_not_in_org") };
+  }
+
   const h = await headers();
   const origin =
     process.env.NEXT_PUBLIC_APP_URL ?? `https://${h.get("host") ?? "localhost:3000"}`;

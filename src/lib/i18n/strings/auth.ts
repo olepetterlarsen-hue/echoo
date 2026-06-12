@@ -77,6 +77,10 @@ export const AUTH: TranslationDict = {
     no: "Klarte ikke å opprette bedrift.",
     en: "Could not create company.",
   },
+  signup_err_rate_limited: {
+    no: "For mange registreringsforsøk. Prøv igjen om en time.",
+    en: "Too many signup attempts. Try again in an hour.",
+  },
 
   // Onboarding
   onboarding_title: { no: "Velkommen til Echoo 👋", en: "Welcome to Echoo 👋" },

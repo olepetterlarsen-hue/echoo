@@ -1,8 +1,21 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getServerT } from "@/lib/i18n/server";
+
+function getClientIp(h: Headers): string {
+  // Netlify, Vercel, og de fleste edge-proxyer setter en av disse.
+  const forwarded = h.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return (
+    h.get("x-real-ip") ??
+    h.get("x-nf-client-connection-ip") ??
+    h.get("cf-connecting-ip") ??
+    "unknown"
+  );
+}
 
 interface SignupArgs {
   firma: string;
@@ -34,6 +47,19 @@ export async function signUpOrganization(args: SignupArgs) {
   if (args.password.length < 8) return { error: t("signup_err_password_short") };
 
   const admin = await createAdminClient();
+
+  // Rate limit per IP + epost. Returnerer false hvis blokkert.
+  const ip = getClientIp(await headers());
+  const { data: allowed, error: rlErr } = await admin.rpc(
+    "check_signup_rate_limit",
+    { p_ip: ip, p_email: email },
+  );
+  if (rlErr) {
+    return { error: rlErr.message };
+  }
+  if (allowed === false) {
+    return { error: t("signup_err_rate_limited") };
+  }
 
   // 1) Opprett auth-bruker (admin-API for å auto-bekrefte e-post i beta)
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
@@ -72,6 +98,9 @@ export async function signUpOrganization(args: SignupArgs) {
   if (signInErr) {
     return { error: signInErr.message };
   }
+
+  // Marker rate-limit-attempt som vellykket (for forensikk)
+  await admin.rpc("mark_signup_success", { p_ip: ip, p_email: email });
 
   redirect("/onboarding");
 }

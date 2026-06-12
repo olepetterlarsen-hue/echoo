@@ -184,6 +184,7 @@ export type Database = {
           field_schema: CategoryFieldSchema;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -193,6 +194,7 @@ export type Database = {
           order_index?: number;
           is_active?: boolean;
           field_schema?: CategoryFieldSchema;
+          organization_id?: string | null;
         };
         Update: {
           slug?: string;
@@ -201,6 +203,7 @@ export type Database = {
           order_index?: number;
           is_active?: boolean;
           field_schema?: CategoryFieldSchema;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -220,6 +223,7 @@ export type Database = {
           is_active: boolean;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -234,6 +238,7 @@ export type Database = {
           default_category_data?: Record<string, unknown>;
           order_index?: number;
           is_active?: boolean;
+          organization_id?: string | null;
         };
         Update: {
           name?: string;
@@ -247,6 +252,7 @@ export type Database = {
           default_category_data?: Record<string, unknown>;
           order_index?: number;
           is_active?: boolean;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -259,6 +265,7 @@ export type Database = {
           order_index: number;
           is_active: boolean;
           created_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -267,6 +274,7 @@ export type Database = {
           label_en: string;
           order_index?: number;
           is_active?: boolean;
+          organization_id?: string | null;
         };
         Update: {
           slug?: string;
@@ -274,6 +282,7 @@ export type Database = {
           label_en?: string;
           order_index?: number;
           is_active?: boolean;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -293,6 +302,7 @@ export type Database = {
           resolved_by: string | null;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -305,6 +315,7 @@ export type Database = {
           group_id?: string | null;
           due_date?: string | null;
           reported_by: string;
+          organization_id?: string | null;
         };
         Update: {
           title?: string;
@@ -317,6 +328,7 @@ export type Database = {
           due_date?: string | null;
           resolved_at?: string | null;
           resolved_by?: string | null;
+          organization_id?: string | null;
         };
         Relationships: [
           {
@@ -350,6 +362,7 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -363,6 +376,7 @@ export type Database = {
           locked_reason?: string | null;
           notes?: string | null;
           created_by?: string | null;
+          organization_id?: string | null;
         };
         Update: {
           project_id?: string | null;
@@ -374,6 +388,7 @@ export type Database = {
           locked?: boolean;
           locked_reason?: string | null;
           notes?: string | null;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -389,6 +404,7 @@ export type Database = {
           locked_reason: string | null;
           created_by: string | null;
           created_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -400,6 +416,7 @@ export type Database = {
           locked?: boolean;
           locked_reason?: string | null;
           created_by?: string | null;
+          organization_id?: string | null;
         };
         Update: {
           group_id?: string | null;
@@ -409,6 +426,7 @@ export type Database = {
           notes?: string | null;
           locked?: boolean;
           locked_reason?: string | null;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -431,6 +449,7 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -448,6 +467,7 @@ export type Database = {
           notes?: string | null;
           active?: boolean;
           created_by?: string | null;
+          organization_id?: string | null;
         };
         Update: {
           name?: string;
@@ -463,6 +483,7 @@ export type Database = {
           quantity_estimate?: string | null;
           notes?: string | null;
           active?: boolean;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -480,6 +501,7 @@ export type Database = {
           created_at: string;
           updated_at: string;
           resolved_at: string | null;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -491,11 +513,13 @@ export type Database = {
           page_url?: string | null;
           user_agent?: string | null;
           admin_notes?: string | null;
+          organization_id?: string | null;
         };
         Update: {
           status?: "apen" | "under_arbeid" | "lukket";
           admin_notes?: string | null;
           resolved_at?: string | null;
+          organization_id?: string | null;
         };
         Relationships: [
           {
@@ -522,6 +546,7 @@ export type Database = {
           error: string | null;
           sent_by: string | null;
           sent_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -536,10 +561,12 @@ export type Database = {
           provider_message_id?: string | null;
           error?: string | null;
           sent_by?: string | null;
+          organization_id?: string | null;
         };
         Update: {
           status?: string;
           error?: string | null;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -579,6 +606,7 @@ export type Database = {
           created_at: string;
           updated_at: string;
           completed_at: string | null;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -613,6 +641,7 @@ export type Database = {
           category_id?: string | null;
           category_data?: Record<string, unknown>;
           completed_at?: string | null;
+          organization_id?: string | null;
         };
         Update: {
           project_number?: string;
@@ -645,6 +674,7 @@ export type Database = {
           category_id?: string | null;
           category_data?: Record<string, unknown>;
           completed_at?: string | null;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -656,15 +686,18 @@ export type Database = {
           body: string;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
           project_id: string;
           author_id: string;
           body: string;
+          organization_id?: string | null;
         };
         Update: {
           body?: string;
+          organization_id?: string | null;
         };
         Relationships: [
           {
@@ -698,6 +731,7 @@ export type Database = {
           created_by: string;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -711,6 +745,7 @@ export type Database = {
           signed_at?: string | null;
           signature_snapshot?: string | null;
           created_by: string;
+          organization_id?: string | null;
         };
         Update: {
           status?: DocumentStatus;
@@ -719,6 +754,7 @@ export type Database = {
           signed_by?: string | null;
           signed_at?: string | null;
           signature_snapshot?: string | null;
+          organization_id?: string | null;
         };
         Relationships: [
           {
@@ -752,6 +788,7 @@ export type Database = {
           resolved_at: string | null;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -765,6 +802,7 @@ export type Database = {
           resolution?: string | null;
           resolved_by?: string | null;
           resolved_at?: string | null;
+          organization_id?: string | null;
         };
         Update: {
           title?: string;
@@ -775,6 +813,7 @@ export type Database = {
           resolution?: string | null;
           resolved_by?: string | null;
           resolved_at?: string | null;
+          organization_id?: string | null;
         };
         Relationships: [
           {
@@ -812,6 +851,7 @@ export type Database = {
           notes: string | null;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -822,6 +862,7 @@ export type Database = {
           expires_date?: string | null;
           file_path: string;
           notes?: string | null;
+          organization_id?: string | null;
         };
         Update: {
           name?: string;
@@ -830,6 +871,7 @@ export type Database = {
           expires_date?: string | null;
           file_path?: string;
           notes?: string | null;
+          organization_id?: string | null;
         };
         Relationships: [
           {
@@ -848,17 +890,20 @@ export type Database = {
           is_hidden: boolean;
           updated_at: string;
           updated_by: string | null;
+          organization_id: string | null;
         };
         Insert: {
           kind: DocumentKind;
           definition: Record<string, unknown>;
           is_hidden?: boolean;
           updated_by?: string | null;
+          organization_id?: string | null;
         };
         Update: {
           definition?: Record<string, unknown>;
           is_hidden?: boolean;
           updated_by?: string | null;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -874,6 +919,7 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -884,6 +930,7 @@ export type Database = {
           is_hidden?: boolean;
           ai_generated?: boolean;
           created_by?: string | null;
+          organization_id?: string | null;
         };
         Update: {
           name?: string;
@@ -892,6 +939,7 @@ export type Database = {
           definition?: Record<string, unknown>;
           is_hidden?: boolean;
           ai_generated?: boolean;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -909,6 +957,7 @@ export type Database = {
           active: boolean;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: number;
@@ -921,6 +970,7 @@ export type Database = {
           file_path_en?: string | null;
           file_path_no?: string | null;
           active?: boolean;
+          organization_id?: string | null;
         };
         Update: {
           number?: number | null;
@@ -932,6 +982,7 @@ export type Database = {
           file_path_en?: string | null;
           file_path_no?: string | null;
           active?: boolean;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -1000,6 +1051,7 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1015,6 +1067,7 @@ export type Database = {
           map_color?: string | null;
           active?: boolean;
           created_by?: string | null;
+          organization_id?: string | null;
         };
         Update: {
           name?: string;
@@ -1028,6 +1081,7 @@ export type Database = {
           notes?: string | null;
           map_color?: string | null;
           active?: boolean;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -1050,6 +1104,7 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1067,6 +1122,7 @@ export type Database = {
           notes?: string | null;
           active?: boolean;
           created_by?: string | null;
+          organization_id?: string | null;
         };
         Update: {
           customer_id?: string | null;
@@ -1082,6 +1138,7 @@ export type Database = {
           site_type?: string | null;
           notes?: string | null;
           active?: boolean;
+          organization_id?: string | null;
         };
         Relationships: [
           {
@@ -1103,6 +1160,7 @@ export type Database = {
           is_active: boolean;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1111,6 +1169,7 @@ export type Database = {
           color?: string | null;
           description?: string | null;
           is_active?: boolean;
+          organization_id?: string | null;
         };
         Update: {
           name?: string;
@@ -1118,6 +1177,7 @@ export type Database = {
           color?: string | null;
           description?: string | null;
           is_active?: boolean;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -1132,6 +1192,7 @@ export type Database = {
           gantt_sort_order: number;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1141,6 +1202,7 @@ export type Database = {
           color?: string | null;
           gantt_section_id?: string | null;
           gantt_sort_order?: number;
+          organization_id?: string | null;
         };
         Update: {
           name?: string;
@@ -1149,6 +1211,7 @@ export type Database = {
           color?: string | null;
           gantt_section_id?: string | null;
           gantt_sort_order?: number;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -1159,15 +1222,18 @@ export type Database = {
           sort_order: number;
           created_at: string;
           updated_at: string;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
           name: string;
           sort_order?: number;
+          organization_id?: string | null;
         };
         Update: {
           name?: string;
           sort_order?: number;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -1195,6 +1261,7 @@ export type Database = {
           entity_id: string | null;
           metadata: Record<string, unknown>;
           created_at: string;
+          organization_id: string | null;
         };
         Insert: {
           actor_id?: string | null;
@@ -1202,6 +1269,7 @@ export type Database = {
           entity_type: string;
           entity_id?: string | null;
           metadata?: Record<string, unknown>;
+          organization_id?: string | null;
         };
         Update: {
           actor_id?: string | null;
@@ -1209,6 +1277,7 @@ export type Database = {
           entity_type?: string;
           entity_id?: string | null;
           metadata?: Record<string, unknown>;
+          organization_id?: string | null;
         };
         Relationships: [];
       };
@@ -1236,6 +1305,32 @@ export type Database = {
           p_full_name?: string | null;
         };
         Returns: string;
+      };
+      check_signup_rate_limit: {
+        Args: {
+          p_ip: string;
+          p_email?: string | null;
+        };
+        Returns: boolean;
+      };
+      mark_signup_success: {
+        Args: {
+          p_ip: string;
+          p_email: string;
+        };
+        Returns: void;
+      };
+      purge_old_signup_attempts: {
+        Args: Record<string, never>;
+        Returns: void;
+      };
+      set_organization_id_if_null: {
+        Args: Record<string, never>;
+        Returns: unknown;
+      };
+      storage_object_org_id: {
+        Args: { p_bucket: string; p_name: string };
+        Returns: string | null;
       };
     };
     Enums: {

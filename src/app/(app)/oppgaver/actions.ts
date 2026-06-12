@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getOrgAndUser } from "@/lib/supabase/org";
 import { sendEmail } from "@/lib/email/send";
 import type { TaskStatus } from "@/lib/types/database";
 import { getServerT } from "@/lib/i18n/server";
@@ -21,10 +22,13 @@ export async function createTask(
 ): Promise<{ id?: string; error?: string }> {
   const { t } = await getServerT();
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: t("task_err_not_logged_in") };
+  let orgId: string;
+  let userId: string;
+  try {
+    ({ orgId, userId } = await getOrgAndUser(supabase));
+  } catch {
+    return { error: t("task_err_not_logged_in") };
+  }
 
   const trimmed = input.title.trim();
   if (!trimmed) return { error: t("task_err_title_required") };
@@ -32,6 +36,7 @@ export async function createTask(
   const { data, error } = await supabase
     .from("tasks")
     .insert({
+      organization_id: orgId,
       title: trimmed,
       description: input.description?.trim() || null,
       task_type_slug: input.task_type_slug || null,
@@ -39,19 +44,19 @@ export async function createTask(
       assigned_to: input.assigned_to || null,
       group_id: input.group_id || null,
       due_date: input.due_date || null,
-      reported_by: user.id,
+      reported_by: userId,
     })
     .select("id, title")
     .single();
   if (error) return { error: error.message };
 
   // Send varsling hvis oppgaven har en tildelt person
-  if (input.assigned_to && input.assigned_to !== user.id) {
+  if (input.assigned_to && input.assigned_to !== userId) {
     notifyTaskAssigned(supabase, {
       taskId: data.id,
       title: data.title,
       assignedTo: input.assigned_to,
-      senderId: user.id,
+      senderId: userId,
       projectId: input.project_id ?? null,
     }).catch(() => {});
   }

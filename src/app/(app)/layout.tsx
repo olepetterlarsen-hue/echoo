@@ -21,6 +21,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/login?error=Kontoen+er+deaktivert.+Kontakt+administrator.");
   }
 
+  // Brukeren _må_ tilhøre en organisasjon. Uten organization_id vil RLS
+  // skjule alle data og inserts feile — bedre å logge ut og vise feilmelding.
+  if (!profile.organization_id) {
+    await supabase.auth.signOut();
+    redirect(
+      "/login?error=Kontoen+mangler+organisasjon.+Kontakt+administrator+for+invitasjon.",
+    );
+  }
+
   const locale = await getLocale();
 
   return (

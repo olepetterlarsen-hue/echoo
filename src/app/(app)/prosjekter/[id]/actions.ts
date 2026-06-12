@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getOrgAndUser } from "@/lib/supabase/org";
 import { sendEmail } from "@/lib/email/send";
 import { geocodeAddress, buildSearchString } from "@/lib/geocode";
 import type {
@@ -91,22 +92,24 @@ export async function createDeviation(input: {
   assigned_to: string | null;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    const { t } = await getServerT();
+  const { t } = await getServerT();
+  let orgId: string;
+  let userId: string;
+  try {
+    ({ orgId, userId } = await getOrgAndUser(supabase));
+  } catch {
     return { error: t("proj_err_not_signed_in") };
   }
 
   const { data, error } = await supabase
     .from("deviations")
     .insert({
+      organization_id: orgId,
       project_id: input.projectId,
       title: input.title.trim(),
       description: input.description.trim() || null,
       severity: input.severity,
-      reported_by: user.id,
+      reported_by: userId,
       assigned_to: input.assigned_to,
     })
     .select(
@@ -123,7 +126,7 @@ export async function createDeviation(input: {
       projectId: input.projectId,
       title: input.title,
       assignedTo: input.assigned_to,
-      senderId: user.id,
+      senderId: userId,
       severity: input.severity,
     });
   }
@@ -275,10 +278,18 @@ export async function addProjectToMap(projectId: string) {
   const result = await geocodeAddress(query);
   if (!result) return { error: t("proj_map_geocode_failed") };
 
+  let orgIdForSite: string;
+  try {
+    ({ orgId: orgIdForSite } = await getOrgAndUser(supabase));
+  } catch {
+    return { error: t("auth_invalid") };
+  }
+
   const siteName = p.site_company || p.site_address || p.title;
   const { data: newSite, error: insertErr } = await supabase
     .from("sites")
     .insert({
+      organization_id: orgIdForSite,
       customer_id: p.customer_id,
       name: siteName.slice(0, 120),
       address: p.site_address,

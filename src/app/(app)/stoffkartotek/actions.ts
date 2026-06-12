@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getOrgAndUser } from "@/lib/supabase/org";
 import { getServerT } from "@/lib/i18n/server";
 
 interface UpsertInput {
@@ -32,10 +33,13 @@ export async function upsertSubstance(
 ): Promise<{ id?: string; error?: string }> {
   const supabase = await createClient();
   const { t } = await getServerT();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: t("form_err_not_logged_in") };
+  let orgId: string;
+  let userId: string;
+  try {
+    ({ orgId, userId } = await getOrgAndUser(supabase));
+  } catch {
+    return { error: t("form_err_not_logged_in") };
+  }
 
   if (!input.name.trim()) return { error: t("subs_err_name_required") };
 
@@ -68,7 +72,7 @@ export async function upsertSubstance(
 
   const { data, error } = await supabase
     .from("substances")
-    .insert({ ...payload, created_by: user.id })
+    .insert({ ...payload, organization_id: orgId, created_by: userId })
     .select("id")
     .single();
   if (error) return { error: error.message };

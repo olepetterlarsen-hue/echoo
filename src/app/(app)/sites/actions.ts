@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getOrgAndUser } from "@/lib/supabase/org";
 import { getServerT } from "@/lib/i18n/server";
 
 interface SiteInput {
@@ -31,14 +32,18 @@ export async function createSite(input: SiteInput): Promise<{
 }> {
   const { t } = await getServerT();
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: t("site_err_not_logged_in") };
+  let orgId: string;
+  let userId: string;
+  try {
+    ({ orgId, userId } = await getOrgAndUser(supabase));
+  } catch {
+    return { error: t("site_err_not_logged_in") };
+  }
 
   const { data, error } = await supabase
     .from("sites")
     .insert({
+      organization_id: orgId,
       customer_id: input.customer_id || null,
       external_site_id: clean(input.external_site_id),
       name: input.name.trim(),
@@ -51,7 +56,7 @@ export async function createSite(input: SiteInput): Promise<{
       longitude: input.longitude,
       site_type: clean(input.site_type),
       notes: clean(input.notes),
-      created_by: user.id,
+      created_by: userId,
     })
     .select("id")
     .single();

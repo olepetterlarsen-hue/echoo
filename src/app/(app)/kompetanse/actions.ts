@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentOrgId } from "@/lib/supabase/org";
 import type { Certificate } from "@/lib/types/database";
 import { getServerT } from "@/lib/i18n/server";
 
@@ -19,6 +20,13 @@ export async function uploadCertificate(formData: FormData): Promise<{
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: t("form_err_not_logged_in") };
+
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch {
+    return { error: t("form_err_not_logged_in") };
+  }
 
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: t("cert_err_missing_file") };
@@ -42,6 +50,7 @@ export async function uploadCertificate(formData: FormData): Promise<{
   const { data, error } = await supabase
     .from("certificates")
     .insert({
+      organization_id: orgId,
       profile_id: profileId,
       name: (formData.get("name") as string).trim(),
       issuer: ((formData.get("issuer") as string) || "").trim() || null,

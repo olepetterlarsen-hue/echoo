@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentOrgId } from "@/lib/supabase/org";
 import { getServerT } from "@/lib/i18n/server";
 import type { ProjectPhase } from "@/lib/types/database";
 
@@ -35,6 +36,13 @@ export async function upsertTemplate(
     .single();
   if (me?.role !== "admin") return { error: t("adm_ptpl_err_requires_admin") };
 
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
   const payload = {
     name: input.name.trim(),
     description: input.description?.trim() || null,
@@ -59,7 +67,7 @@ export async function upsertTemplate(
   }
   const { data, error } = await supabase
     .from("project_templates")
-    .insert(payload)
+    .insert({ ...payload, organization_id: orgId })
     .select("id")
     .single();
   if (error) return { error: error.message };

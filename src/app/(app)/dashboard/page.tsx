@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentOrgId } from "@/lib/supabase/org";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getServerT } from "@/lib/i18n/server";
@@ -21,6 +22,10 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const { t } = await getServerT();
   const { data: { user } } = await supabase.auth.getUser();
+  // RLS scopes data til current org, men eksplisitt org-filter på hver
+  // query er defense in depth — gjør det åpenbart i kode at vi aldri
+  // viser andre orgs data, og hjelper kveruerings-planleggeren.
+  const orgId = await getCurrentOrgId(supabase);
 
   const [
     { count: activeProjects },
@@ -33,26 +38,32 @@ export default async function DashboardPage() {
     supabase
       .from("projects")
       .select("*", { count: "exact", head: true })
+      .eq("organization_id", orgId)
       .eq("status", "aktiv"),
     supabase
       .from("customers")
       .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
       .eq("active", true),
     supabase
       .from("sites")
       .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
       .eq("active", true),
     supabase
       .from("deviations")
       .select("*", { count: "exact", head: true })
+      .eq("organization_id", orgId)
       .neq("status", "lukket"),
     supabase
       .from("documents")
       .select("*", { count: "exact", head: true })
+      .eq("organization_id", orgId)
       .eq("status", "utkast"),
     supabase
       .from("projects")
       .select("id, project_number, title, status, updated_at")
+      .eq("organization_id", orgId)
       .order("updated_at", { ascending: false })
       .limit(6),
   ]);
@@ -72,22 +83,26 @@ export default async function DashboardPage() {
         supabase
           .from("deviations")
           .select("id, title, severity, status, project_id")
+          .eq("organization_id", orgId)
           .eq("assigned_to", user.id)
           .neq("status", "lukket")
           .limit(5),
         supabase
           .from("documents")
           .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
           .eq("created_by", user.id)
           .eq("status", "utkast"),
         supabase
           .from("projects")
           .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
           .eq("assigned_to", user.id)
           .neq("status", "ferdigstilt"),
         supabase
           .from("certificates")
           .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
           .eq("profile_id", user.id)
           .not("expires_date", "is", null)
           .lte("expires_date", in90Days),

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentOrgId } from "@/lib/supabase/org";
 import { getServerT } from "@/lib/i18n/server";
 import type { RawSiteRow } from "@/lib/import/csv-parser";
 import { suggestedColor, DEFAULT_MAP_COLOR } from "@/lib/customer-colors";
@@ -31,6 +32,13 @@ export async function importSites(input: {
     .single();
   if (me?.role !== "admin") {
     return { error: t("adm_imp_err_admin_only") };
+  }
+
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
   }
 
   const result: ImportResult = {
@@ -67,6 +75,7 @@ export async function importSites(input: {
         toCreate.map((name) => {
           const color = suggestedColor(name);
           return {
+            organization_id: orgId,
             name,
             // Sett kun farge hvis vi har et kjede-forslag — ellers la stå
             // på null så kunden bruker OPCOM-oransje default.
@@ -109,6 +118,7 @@ export async function importSites(input: {
       return true;
     })
     .map((r) => ({
+      organization_id: orgId,
       customer_id: customerByName.get(r.customerName) ?? null,
       external_site_id: r.externalSiteId,
       name: r.siteName,

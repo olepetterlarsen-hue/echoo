@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentOrgId } from "@/lib/supabase/org";
 import { getServerT } from "@/lib/i18n/server";
 
 interface SubmitArgs {
@@ -23,7 +24,15 @@ export async function submitIssueReport(args: SubmitArgs) {
     return { error: t("issue_title_label") + ": " + t("required") };
   }
 
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch {
+    return { error: t("auth_invalid") };
+  }
+
   const { error } = await supabase.from("issue_reports").insert({
+    organization_id: orgId,
     reported_by: user.id,
     title: args.title.trim().slice(0, 200),
     description: args.description.trim().slice(0, 2000) || null,

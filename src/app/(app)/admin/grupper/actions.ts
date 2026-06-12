@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentOrgId } from "@/lib/supabase/org";
 import { getServerT } from "@/lib/i18n/server";
 
 interface GroupInput {
@@ -28,6 +29,13 @@ export async function upsertGroup(
     .single();
   if (me?.role !== "admin") return { error: t("adm_grp_err_requires_admin") };
 
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
   const payload = {
     name: input.name.trim(),
     email: input.email?.trim() || null,
@@ -47,7 +55,7 @@ export async function upsertGroup(
   }
   const { data, error } = await supabase
     .from("groups")
-    .insert(payload)
+    .insert({ ...payload, organization_id: orgId })
     .select("id")
     .single();
   if (error) return { error: error.message };
@@ -92,6 +100,13 @@ export async function generateOpTeams(): Promise<{
   if (me?.role !== "admin")
     return { created: 0, skipped: 0, error: t("adm_grp_err_requires_admin") };
 
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { created: 0, skipped: 0, error: (e as Error).message };
+  }
+
   // Hent eksisterende OP-team-navn
   const { data: existing } = await supabase
     .from("groups")
@@ -100,11 +115,17 @@ export async function generateOpTeams(): Promise<{
   const existingNames = new Set((existing ?? []).map((g) => g.name));
 
   // Bygg liste av OP-01 til OP-22
-  const toCreate: Array<{ name: string; color: string; description: string }> = [];
+  const toCreate: Array<{
+    organization_id: string;
+    name: string;
+    color: string;
+    description: string;
+  }> = [];
   for (let i = 1; i <= 22; i++) {
     const name = `OP-${String(i).padStart(2, "0")}`;
     if (existingNames.has(name)) continue;
     toCreate.push({
+      organization_id: orgId,
       name,
       color: OP_TEAM_COLORS[(i - 1) % OP_TEAM_COLORS.length],
       description: `Team ${name} — feltteam for prosjektutførelse.`,

@@ -111,6 +111,14 @@ export const ADMIN: TranslationDict = {
     no: "Klarte ikke opprette bruker.",
     en: "Could not create user.",
   },
+  adm_user_err_no_org: {
+    no: "Administratoren mangler organisasjon.",
+    en: "Administrator has no organization.",
+  },
+  adm_user_err_not_in_org: {
+    no: "Brukeren tilhører ikke din organisasjon.",
+    en: "User is not in your organization.",
+  },
 
   // ──────────────────────────────────────────────────────────────────
   // Groups (Grupper)

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentOrgId } from "@/lib/supabase/org";
 import { getServerT } from "@/lib/i18n/server";
 import { revalidatePath } from "next/cache";
 
@@ -34,9 +35,15 @@ export async function createSection(name: string) {
     .maybeSingle();
   const nextOrder = (maxRow?.sort_order ?? 0) + 10;
 
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(ctx.supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
   const { data, error } = await ctx.supabase
     .from("gantt_sections")
-    .insert({ name: trimmed, sort_order: nextOrder })
+    .insert({ organization_id: orgId, name: trimmed, sort_order: nextOrder })
     .select("id")
     .single();
   if (error) return { error: error.message };

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getOrgAndUser } from "@/lib/supabase/org";
 import { getServerT } from "@/lib/i18n/server";
 
 interface CustomerInput {
@@ -30,14 +31,18 @@ export async function createCustomer(input: CustomerInput): Promise<{
 }> {
   const { t } = await getServerT();
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: t("cust_err_not_logged_in") };
+  let orgId: string;
+  let userId: string;
+  try {
+    ({ orgId, userId } = await getOrgAndUser(supabase));
+  } catch {
+    return { error: t("cust_err_not_logged_in") };
+  }
 
   const { data, error } = await supabase
     .from("customers")
     .insert({
+      organization_id: orgId,
       name: input.name.trim(),
       org_number: clean(input.org_number),
       contact_person: clean(input.contact_person),
@@ -48,7 +53,7 @@ export async function createCustomer(input: CustomerInput): Promise<{
       city: clean(input.city),
       notes: clean(input.notes),
       map_color: input.map_color ?? null,
-      created_by: user.id,
+      created_by: userId,
     })
     .select("id")
     .single();

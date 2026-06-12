@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getOrgAndUser } from "@/lib/supabase/org";
 import type { InstallationType } from "@/lib/types/database";
 import { getServerT } from "@/lib/i18n/server";
 
@@ -41,14 +42,18 @@ export async function createProject(
 ): Promise<{ error?: string; id?: string }> {
   const supabase = await createClient();
   const { t } = await getServerT();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: t("proj_err_not_signed_in") };
+  let orgId: string;
+  let userId: string;
+  try {
+    ({ orgId, userId } = await getOrgAndUser(supabase));
+  } catch {
+    return { error: t("proj_err_not_signed_in") };
+  }
 
   const { data, error } = await supabase
     .from("projects")
     .insert({
+      organization_id: orgId,
       project_number: input.project_number.trim(),
       title: input.title.trim(),
       description: clean(input.description),
@@ -71,7 +76,7 @@ export async function createProject(
       site_postal_code: clean(input.site_postal_code),
       site_city: clean(input.site_city),
       site_ssb_number: clean(input.site_ssb_number),
-      created_by: user.id,
+      created_by: userId,
     })
     .select("id")
     .single();

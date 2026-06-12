@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentOrgId } from "@/lib/supabase/org";
 import { SubstanceForm } from "../../substance-form";
 import { getServerT } from "@/lib/i18n/server";
 
@@ -15,6 +16,7 @@ export default async function EditSubstancePage({ params }: PageProps) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const orgId = await getCurrentOrgId(supabase);
 
   const { data: substance } = await supabase
     .from("substances")
@@ -29,7 +31,7 @@ export default async function EditSubstancePage({ params }: PageProps) {
         <h1 className="text-2xl font-semibold">{t("subs_form_edit_title")}</h1>
         <p className="text-text-2 text-sm">{substance.name}</p>
       </header>
-      <SubstanceForm mode="edit" substance={substance} />
+      <SubstanceForm mode="edit" substance={substance} orgId={orgId} />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getOrgAndUser } from "@/lib/supabase/org";
 import type { DocumentKind } from "@/lib/types/database";
 import { getServerT } from "@/lib/i18n/server";
 
@@ -25,10 +26,13 @@ export async function createStandaloneDocument(input: {
     return { error: t("form_err_custom_needs_template") };
   }
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: t("form_err_not_logged_in") };
+  let orgId: string;
+  let userId: string;
+  try {
+    ({ orgId, userId } = await getOrgAndUser(supabase));
+  } catch {
+    return { error: t("form_err_not_logged_in") };
+  }
 
   const initialData: Record<string, unknown> = {};
   if (input.kind === "custom" && input.customTemplateId) {
@@ -38,12 +42,13 @@ export async function createStandaloneDocument(input: {
   const { data, error } = await supabase
     .from("documents")
     .insert({
+      organization_id: orgId,
       project_id: null,
       kind: input.kind,
       version: 1,
       status: "utkast",
       data: initialData,
-      created_by: user.id,
+      created_by: userId,
     })
     .select("id")
     .single();

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentOrgId } from "@/lib/supabase/org";
 import { getServerT } from "@/lib/i18n/server";
 
 const ALLOWED_ROLES = ["admin", "installator", "bemyndiget", "prosjektleder"] as const;
@@ -60,9 +61,15 @@ export async function upsertOffPeriod(
     revalidatePath("/produksjonsplan");
     return { id: input.id };
   }
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
   const { data, error: insertErr } = await supabase
     .from("schedule_off_periods")
-    .insert({ ...payload, created_by: user?.id })
+    .insert({ ...payload, organization_id: orgId, created_by: user?.id })
     .select("id")
     .single();
   if (insertErr) return { error: insertErr.message };
