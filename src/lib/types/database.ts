@@ -32,9 +32,52 @@ export type DocumentKind =
   | "stikkprovekontroll"
   | "internkontroll"
   | "custom";
-export type DocumentStatus = "utkast" | "signert";
+export type DocumentStatus =
+  | "utkast"
+  | "under_review"
+  | "approved"
+  | "rejected"
+  | "signert";
 export type DeviationSeverity = "lav" | "middels" | "hoey" | "kritisk";
 export type DeviationStatus = "apen" | "under_arbeid" | "lukket";
+export type DeviationRootCauseCategory =
+  | "menneskelig_feil"
+  | "manglende_opplaering"
+  | "utilstrekkelig_prosedyre"
+  | "materiell_svikt"
+  | "feil_verktoey"
+  | "miljoe_forhold"
+  | "kommunikasjon"
+  | "leverandoer"
+  | "design_feil"
+  | "annet";
+export type AuditStatus = "planned" | "in_progress" | "completed" | "cancelled";
+export type AuditFindingSeverity = "observation" | "minor" | "major" | "critical";
+export type ManagementReviewStatus = "scheduled" | "in_progress" | "completed";
+export type ObjectiveKind = "quality" | "environment";
+export type ObjectiveStatus =
+  | "proposed"
+  | "active"
+  | "met"
+  | "missed"
+  | "cancelled";
+export type AspectCategory =
+  | "waste"
+  | "energy"
+  | "water"
+  | "emissions_air"
+  | "chemicals"
+  | "noise"
+  | "soil"
+  | "biodiversity"
+  | "resources"
+  | "other";
+export type AspectLifecycle = "normal" | "abnormal" | "emergency";
+export type ComplianceStatus =
+  | "compliant"
+  | "non_compliant"
+  | "under_review"
+  | "not_applicable";
 export type TaskStatus = "initiated" | "in_progress" | "resolved";
 
 export type CategoryFieldType = "text" | "number" | "dropdown" | "yes_no";
@@ -732,6 +775,15 @@ export type Database = {
           created_at: string;
           updated_at: string;
           organization_id: string | null;
+          approved_by: string | null;
+          approved_at: string | null;
+          approval_notes: string | null;
+          rejected_by: string | null;
+          rejected_at: string | null;
+          rejection_reason: string | null;
+          submitted_for_review_by: string | null;
+          submitted_for_review_at: string | null;
+          change_summary: string | null;
         };
         Insert: {
           id?: string;
@@ -746,6 +798,7 @@ export type Database = {
           signature_snapshot?: string | null;
           created_by: string;
           organization_id?: string | null;
+          change_summary?: string | null;
         };
         Update: {
           status?: DocumentStatus;
@@ -755,6 +808,15 @@ export type Database = {
           signed_at?: string | null;
           signature_snapshot?: string | null;
           organization_id?: string | null;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          approval_notes?: string | null;
+          rejected_by?: string | null;
+          rejected_at?: string | null;
+          rejection_reason?: string | null;
+          submitted_for_review_by?: string | null;
+          submitted_for_review_at?: string | null;
+          change_summary?: string | null;
         };
         Relationships: [
           {
@@ -789,6 +851,18 @@ export type Database = {
           created_at: string;
           updated_at: string;
           organization_id: string | null;
+          // CAPA-felter (migration 045)
+          root_cause_category: DeviationRootCauseCategory | null;
+          root_cause_description: string | null;
+          containment_action: string | null;
+          containment_by: string | null;
+          containment_at: string | null;
+          corrective_action: string | null;
+          responsible_id: string | null;
+          due_date: string | null;
+          verified_by: string | null;
+          verified_at: string | null;
+          verification_evidence: string | null;
         };
         Insert: {
           id?: string;
@@ -803,6 +877,17 @@ export type Database = {
           resolved_by?: string | null;
           resolved_at?: string | null;
           organization_id?: string | null;
+          root_cause_category?: DeviationRootCauseCategory | null;
+          root_cause_description?: string | null;
+          containment_action?: string | null;
+          containment_by?: string | null;
+          containment_at?: string | null;
+          corrective_action?: string | null;
+          responsible_id?: string | null;
+          due_date?: string | null;
+          verified_by?: string | null;
+          verified_at?: string | null;
+          verification_evidence?: string | null;
         };
         Update: {
           title?: string;
@@ -814,6 +899,17 @@ export type Database = {
           resolved_by?: string | null;
           resolved_at?: string | null;
           organization_id?: string | null;
+          root_cause_category?: DeviationRootCauseCategory | null;
+          root_cause_description?: string | null;
+          containment_action?: string | null;
+          containment_by?: string | null;
+          containment_at?: string | null;
+          corrective_action?: string | null;
+          responsible_id?: string | null;
+          due_date?: string | null;
+          verified_by?: string | null;
+          verified_at?: string | null;
+          verification_evidence?: string | null;
         };
         Relationships: [
           {
@@ -1281,6 +1377,390 @@ export type Database = {
         };
         Relationships: [];
       };
+      document_review_events: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          document_id: string;
+          from_status: DocumentStatus | null;
+          to_status: DocumentStatus;
+          actor_id: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          document_id: string;
+          from_status?: DocumentStatus | null;
+          to_status: DocumentStatus;
+          actor_id?: string | null;
+          notes?: string | null;
+        };
+        Update: { notes?: string | null };
+        Relationships: [];
+      };
+      audit_checklist_templates: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          name: string;
+          description: string | null;
+          definition: { sections: Array<{ title: string; items: Array<{ key: string; question: string }> }> } | Record<string, unknown>;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          name: string;
+          description?: string | null;
+          definition?: Record<string, unknown>;
+          is_active?: boolean;
+          created_by?: string | null;
+        };
+        Update: Partial<{
+          name: string;
+          description: string | null;
+          definition: Record<string, unknown>;
+          is_active: boolean;
+        }>;
+        Relationships: [];
+      };
+      audit_plans: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          title: string;
+          scope: string;
+          auditor_id: string | null;
+          external_auditor_name: string | null;
+          planned_date: string;
+          completed_date: string | null;
+          status: AuditStatus;
+          checklist_template_id: string | null;
+          checklist_responses: Record<string, unknown>;
+          summary: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          title: string;
+          scope: string;
+          auditor_id?: string | null;
+          external_auditor_name?: string | null;
+          planned_date: string;
+          completed_date?: string | null;
+          status?: AuditStatus;
+          checklist_template_id?: string | null;
+          checklist_responses?: Record<string, unknown>;
+          summary?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<{
+          title: string;
+          scope: string;
+          auditor_id: string | null;
+          external_auditor_name: string | null;
+          planned_date: string;
+          completed_date: string | null;
+          status: AuditStatus;
+          checklist_template_id: string | null;
+          checklist_responses: Record<string, unknown>;
+          summary: string | null;
+        }>;
+        Relationships: [];
+      };
+      audit_findings: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          audit_plan_id: string;
+          title: string;
+          description: string | null;
+          severity: AuditFindingSeverity;
+          reference: string | null;
+          linked_deviation_id: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          audit_plan_id: string;
+          title: string;
+          description?: string | null;
+          severity?: AuditFindingSeverity;
+          reference?: string | null;
+          linked_deviation_id?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<{
+          title: string;
+          description: string | null;
+          severity: AuditFindingSeverity;
+          reference: string | null;
+          linked_deviation_id: string | null;
+        }>;
+        Relationships: [];
+      };
+      management_reviews: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          title: string;
+          scheduled_date: string;
+          completed_date: string | null;
+          status: ManagementReviewStatus;
+          agenda: Array<{ key: string; title: string; notes?: string }>;
+          inputs_snapshot: Record<string, unknown>;
+          decisions: string | null;
+          participants: string | null;
+          next_review_date: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          title: string;
+          scheduled_date: string;
+          completed_date?: string | null;
+          status?: ManagementReviewStatus;
+          agenda?: Array<{ key: string; title: string; notes?: string }>;
+          inputs_snapshot?: Record<string, unknown>;
+          decisions?: string | null;
+          participants?: string | null;
+          next_review_date?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<{
+          title: string;
+          scheduled_date: string;
+          completed_date: string | null;
+          status: ManagementReviewStatus;
+          agenda: Array<{ key: string; title: string; notes?: string }>;
+          inputs_snapshot: Record<string, unknown>;
+          decisions: string | null;
+          participants: string | null;
+          next_review_date: string | null;
+        }>;
+        Relationships: [];
+      };
+      management_review_actions: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          review_id: string;
+          description: string;
+          responsible_id: string | null;
+          due_date: string | null;
+          linked_task_id: string | null;
+          completed: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          review_id: string;
+          description: string;
+          responsible_id?: string | null;
+          due_date?: string | null;
+          linked_task_id?: string | null;
+          completed?: boolean;
+        };
+        Update: Partial<{
+          description: string;
+          responsible_id: string | null;
+          due_date: string | null;
+          linked_task_id: string | null;
+          completed: boolean;
+        }>;
+        Relationships: [];
+      };
+      iso_objectives: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          kind: ObjectiveKind;
+          title: string;
+          description: string | null;
+          target_value: string | null;
+          unit: string | null;
+          baseline_value: number | null;
+          current_value: number | null;
+          target_numeric: number | null;
+          start_date: string;
+          deadline: string | null;
+          responsible_id: string | null;
+          status: ObjectiveStatus;
+          measurement_method: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          kind: ObjectiveKind;
+          title: string;
+          description?: string | null;
+          target_value?: string | null;
+          unit?: string | null;
+          baseline_value?: number | null;
+          current_value?: number | null;
+          target_numeric?: number | null;
+          start_date?: string;
+          deadline?: string | null;
+          responsible_id?: string | null;
+          status?: ObjectiveStatus;
+          measurement_method?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<{
+          kind: ObjectiveKind;
+          title: string;
+          description: string | null;
+          target_value: string | null;
+          unit: string | null;
+          baseline_value: number | null;
+          current_value: number | null;
+          target_numeric: number | null;
+          start_date: string;
+          deadline: string | null;
+          responsible_id: string | null;
+          status: ObjectiveStatus;
+          measurement_method: string | null;
+        }>;
+        Relationships: [];
+      };
+      iso_objective_measurements: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          objective_id: string;
+          value: number;
+          notes: string | null;
+          measured_at: string;
+          recorded_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          objective_id: string;
+          value: number;
+          notes?: string | null;
+          measured_at?: string;
+          recorded_by?: string | null;
+        };
+        Update: Partial<{ value: number; notes: string | null }>;
+        Relationships: [];
+      };
+      env_aspects: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          title: string;
+          description: string | null;
+          category: AspectCategory;
+          lifecycle: AspectLifecycle;
+          frequency_score: number | null;
+          severity_score: number | null;
+          significance_score: number;
+          is_significant: boolean;
+          control_measures: string | null;
+          linked_substance_id: string | null;
+          responsible_id: string | null;
+          reviewed_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          title: string;
+          description?: string | null;
+          category: AspectCategory;
+          lifecycle?: AspectLifecycle;
+          frequency_score?: number | null;
+          severity_score?: number | null;
+          is_significant?: boolean;
+          control_measures?: string | null;
+          linked_substance_id?: string | null;
+          responsible_id?: string | null;
+          reviewed_at?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<{
+          title: string;
+          description: string | null;
+          category: AspectCategory;
+          lifecycle: AspectLifecycle;
+          frequency_score: number | null;
+          severity_score: number | null;
+          is_significant: boolean;
+          control_measures: string | null;
+          linked_substance_id: string | null;
+          responsible_id: string | null;
+          reviewed_at: string | null;
+        }>;
+        Relationships: [];
+      };
+      compliance_obligations: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          regulation: string;
+          requirement: string;
+          reference_url: string | null;
+          responsible_id: string | null;
+          evidence_url: string | null;
+          evidence_document_id: string | null;
+          status: ComplianceStatus;
+          next_review_date: string | null;
+          notes: string | null;
+          related_aspect_ids: string[];
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          regulation: string;
+          requirement: string;
+          reference_url?: string | null;
+          responsible_id?: string | null;
+          evidence_url?: string | null;
+          evidence_document_id?: string | null;
+          status?: ComplianceStatus;
+          next_review_date?: string | null;
+          notes?: string | null;
+          related_aspect_ids?: string[];
+          created_by?: string | null;
+        };
+        Update: Partial<{
+          regulation: string;
+          requirement: string;
+          reference_url: string | null;
+          responsible_id: string | null;
+          evidence_url: string | null;
+          evidence_document_id: string | null;
+          status: ComplianceStatus;
+          next_review_date: string | null;
+          notes: string | null;
+          related_aspect_ids: string[];
+        }>;
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -1331,6 +1811,17 @@ export type Database = {
       storage_object_org_id: {
         Args: { p_bucket: string; p_name: string };
         Returns: string | null;
+      };
+      management_review_inputs: {
+        Args: { p_org_id: string };
+        Returns: {
+          open_deviations: number;
+          overdue_deviations: number;
+          unresolved_audit_findings: number;
+          expiring_certificates_90d: number;
+          open_objectives: number;
+          snapshot_at: string;
+        };
       };
     };
     Enums: {

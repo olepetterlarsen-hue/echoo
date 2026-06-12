@@ -63,7 +63,7 @@ export default async function AvvikPage({ searchParams }: PageProps) {
               {deviations.map((d) => (
                 <li key={d.id}>
                   <Link
-                    href={`/prosjekter/${d.project_id}`}
+                    href={`/avvik/${d.id}`}
                     className="flex items-center gap-4 px-5 py-3 hover:bg-card-hover"
                   >
                     <Badge

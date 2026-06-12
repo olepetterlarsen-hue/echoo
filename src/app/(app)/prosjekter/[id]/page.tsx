@@ -926,7 +926,7 @@ type ProjectWithLinksParam = {
 interface DocVersion {
   id: string;
   version: number;
-  status: "utkast" | "signert";
+  status: "utkast" | "under_review" | "approved" | "rejected" | "signert";
   pdf_path: string | null;
   signed_at: string | null;
 }

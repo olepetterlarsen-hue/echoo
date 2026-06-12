@@ -76,6 +76,7 @@ const PLANNER_NAV: NavItem[] = [
 const KVALITET_NAV: NavItem[] = [
   { href: "/skjemaer", labelKey: "nav_skjemaer", icon: <FileText className="size-4" /> },
   { href: "/avvik", labelKey: "nav_deviations", icon: <AlertTriangle className="size-4" /> },
+  { href: "/iso", labelKey: "nav_iso", icon: <ShieldCheck className="size-4" /> },
   { href: "/kompetanse", labelKey: "nav_competence", icon: <GraduationCap className="size-4" /> },
   { href: "/stoffkartotek", labelKey: "nav_substances", icon: <FlaskConical className="size-4" /> },
   { href: "/rutiner", labelKey: "nav_routines", icon: <ScrollText className="size-4" /> },
