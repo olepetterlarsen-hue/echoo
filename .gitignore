@@ -2,6 +2,7 @@ node_modules/
 .next/
 .env.local
 .env
+netlify.env
 .DS_Store
 *.log
 tsconfig.tsbuildinfo
