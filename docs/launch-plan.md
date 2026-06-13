@@ -78,6 +78,18 @@ The homepage layout/design is already done (index.html, styles.css, app.js) — 
    - `hreflang`/lang="nb" set correctly; keep everything Norwegian for now.
 3. SSL: automatic via Netlify once the custom domain is connected — verify HTTPS redirect.
 
+## Phase 8 — Echoo AI-assistent (uke 2, etter fase 5–7)
+
+In-app AI-assistent for kundene (Anthropic API, samme nøkkel som mal-generatoren). Bygg som chat-panel tilgjengelig i hele appen, med org-scopet kontekst (RLS gjelder — assistenten ser KUN egen orgs data, hent alltid data via brukerens Supabase-session, aldri service-role). Ferdigheter i prioritert rekkefølge:
+
+1. **Avvik-assistent**: bruker beskriver hendelse (tekst/bilde) → utkast til avvik med alvorlighetsgrad, forslag til årsakskategori og strakstiltak/korrigerende tiltak. Bruker godkjenner før lagring.
+2. **SJA/RUH-generator**: beskriv jobben → utkast til SJA med relevante farer og tiltak for elektroarbeid (FSE-momenter). Alltid review før signering.
+3. **Dokument-Q&A (RAG)**: svar på spørsmål mot orgens egne rutiner, håndbok og stoffkartotek («hva sier rutinen vår om arbeid under spenning?») med kildehenvisning til dokumentet.
+4. **ISO-veileder**: forklar hva ISO 9001/14001 krever i en gitt situasjon og pek på hvilken Echoo-modul som dekker det; foreslå utkast til mål, revisjonssjekklister og agenda for ledelsens gjennomgang.
+5. **Mal-generator** (finnes): utvid til å foreslå forbedringer av eksisterende maler.
+
+Regler: assistenten skriver ALLTID utkast som bruker må godkjenne — aldri direkte lagring av signerbare dokumenter; forsiktige formuleringer om forskrifter (ingen «dette er godkjent»-påstander); logg AI-genererte felt (ai_generated=true) for sporbarhet; norsk UI.
+
 ## Constraints
 
 - Next.js 16 has breaking changes — read `node_modules/next/dist/docs/` per AGENTS.md before writing framework code.

@@ -42,6 +42,7 @@ import type { Profile } from "@/lib/types/database";
 import { getModeFromPath, type AppMode } from "@/lib/app-modes";
 import { MyTasksBadge } from "@/components/app/my-tasks-badge";
 import { ReportIssueButton } from "@/components/app/report-issue-button";
+import { AssistantButton } from "@/components/app/assistant-button";
 
 interface NavItem {
   href: string;
@@ -405,6 +406,7 @@ export function AppShell({ profile, initialLocale, children, locked }: Props) {
           </main>
         </div>
 
+        <AssistantButton />
         <ReportIssueButton />
       </div>
     </LocaleContext.Provider>

@@ -33,9 +33,17 @@ export default async function AvvikPage({ searchParams }: PageProps) {
 
   return (
     <div className="px-6 py-6 max-w-6xl mx-auto space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold">{t("dev_page_title")}</h1>
-        <p className="text-text-2 text-sm">{t("dev_page_subtitle")}</p>
+      <header className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">{t("dev_page_title")}</h1>
+          <p className="text-text-2 text-sm">{t("dev_page_subtitle")}</p>
+        </div>
+        <Link
+          href="/avvik/ny"
+          className="inline-flex items-center gap-1.5 rounded-md bg-orange text-bg px-3 py-2 text-sm font-medium hover:bg-orange/90"
+        >
+          + Nytt avvik
+        </Link>
       </header>
 
       <div className="flex gap-2">

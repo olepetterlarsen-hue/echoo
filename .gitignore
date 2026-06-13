@@ -6,3 +6,6 @@ netlify.env
 .DS_Store
 *.log
 tsconfig.tsbuildinfo
+
+# Local Netlify folder
+.netlify

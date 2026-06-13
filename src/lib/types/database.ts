@@ -887,6 +887,7 @@ export type Database = {
           verified_by: string | null;
           verified_at: string | null;
           verification_evidence: string | null;
+          ai_generated: boolean;
         };
         Insert: {
           id?: string;
@@ -912,6 +913,7 @@ export type Database = {
           verified_by?: string | null;
           verified_at?: string | null;
           verification_evidence?: string | null;
+          ai_generated?: boolean;
         };
         Update: {
           title?: string;
