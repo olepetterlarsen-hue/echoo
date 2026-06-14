@@ -90,6 +90,8 @@ interface UpdateInput {
   id: string;
   role?: UserRole;
   full_name?: string;
+  phone?: string | null;
+  hms_card_number?: string | null;
 }
 
 export async function updateUser(input: UpdateInput): Promise<{
@@ -104,9 +106,17 @@ export async function updateUser(input: UpdateInput): Promise<{
   }
 
   const admin = await createAdminClient();
-  const patch: { role?: UserRole; full_name?: string | null } = {};
+  const patch: {
+    role?: UserRole;
+    full_name?: string | null;
+    phone?: string | null;
+    hms_card_number?: string | null;
+  } = {};
   if (input.role) patch.role = input.role;
   if (input.full_name !== undefined) patch.full_name = input.full_name;
+  if (input.phone !== undefined) patch.phone = input.phone?.trim() || null;
+  if (input.hms_card_number !== undefined)
+    patch.hms_card_number = input.hms_card_number?.trim() || null;
 
   // Org-scope: admin kan kun oppdatere brukere i egen org. Vi bruker
   // admin-client som bypasser RLS, så org-filteret er den eneste

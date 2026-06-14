@@ -164,10 +164,19 @@ function UserRow({
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
   const [role, setRole] = useState<UserRole>(user.role);
+  const [fullName, setFullName] = useState(user.full_name ?? "");
+  const [phone, setPhone] = useState(user.phone ?? "");
+  const [hmsCard, setHmsCard] = useState(user.hms_card_number ?? "");
 
-  function saveRole() {
+  function save() {
     startTransition(async () => {
-      const res = await updateUser({ id: user.id, role });
+      const res = await updateUser({
+        id: user.id,
+        role,
+        full_name: fullName,
+        phone,
+        hms_card_number: hmsCard,
+      });
       if (res.profile) onUpdated(res.profile);
       setEditing(false);
     });
@@ -186,6 +195,65 @@ function UserRow({
     });
   }
 
+  if (editing) {
+    return (
+      <li className="px-5 py-4 space-y-3 bg-card-hover border-l-2 border-orange">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-text-3 mb-1">Navn</label>
+            <input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full h-9 rounded-md px-3 text-sm bg-surface border border-border focus:border-orange focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-text-3 mb-1">Rolle</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as UserRole)}
+              className="w-full h-9 rounded-md px-3 text-sm bg-surface border border-border"
+            >
+              <option value="montor">{tr("adm_user_role_montor", locale)}</option>
+              <option value="elektriker">{tr("adm_user_role_elektriker", locale)}</option>
+              <option value="prosjektleder">{tr("adm_user_role_prosjektleder", locale)}</option>
+              <option value="bemyndiget">{tr("adm_user_role_bemyndiget", locale)}</option>
+              <option value="installator">{tr("adm_user_role_installator", locale)}</option>
+              <option value="admin">{tr("adm_user_role_admin_short", locale)}</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-text-3 mb-1">Telefon</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+47 900 00 000"
+              className="w-full h-9 rounded-md px-3 text-sm bg-surface border border-border focus:border-orange focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-text-3 mb-1">HMS-kort-nr</label>
+            <input
+              value={hmsCard}
+              onChange={(e) => setHmsCard(e.target.value)}
+              placeholder="123456789"
+              className="w-full h-9 rounded-md px-3 text-sm bg-surface border border-border focus:border-orange focus:outline-none"
+            />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" onClick={save} disabled={pending}>
+            {pending ? "Lagrer…" : tr("adm_user_save", locale)}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+            {tr("adm_user_cancel", locale)}
+          </Button>
+        </div>
+      </li>
+    );
+  }
+
   return (
     <li className="px-5 py-4 flex items-center gap-4 flex-wrap">
       <div className="flex-1 min-w-0">
@@ -193,45 +261,37 @@ function UserRow({
           {user.full_name || tr("adm_user_unnamed", locale)}
         </div>
         <div className="text-xs text-text-3 truncate">{user.email}</div>
+        {(user.phone || user.hms_card_number) && (
+          <div className="text-[11px] text-text-3 mt-1 flex flex-wrap gap-x-3">
+            {user.phone && <span>📱 {user.phone}</span>}
+            {user.hms_card_number && (
+              <span>💳 HMS: {user.hms_card_number}</span>
+            )}
+          </div>
+        )}
       </div>
 
-      {editing ? (
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value as UserRole)}
-          className="h-8 rounded px-2 text-xs bg-surface border border-border"
-        >
-          <option value="montor">{tr("adm_user_role_montor", locale)}</option>
-          <option value="elektriker">{tr("adm_user_role_elektriker", locale)}</option>
-          <option value="prosjektleder">{tr("adm_user_role_prosjektleder", locale)}</option>
-          <option value="bemyndiget">{tr("adm_user_role_bemyndiget", locale)}</option>
-          <option value="installator">{tr("adm_user_role_installator", locale)}</option>
-          <option value="admin">{tr("adm_user_role_admin_short", locale)}</option>
-        </select>
-      ) : (
-        <Badge tone={user.role === "admin" ? "orange" : user.role === "prosjektleder" ? "blue" : "neutral"}>
-          {user.role}
-        </Badge>
-      )}
+      <Badge
+        tone={
+          user.role === "admin"
+            ? "orange"
+            : user.role === "prosjektleder"
+              ? "blue"
+              : "neutral"
+        }
+      >
+        {user.role}
+      </Badge>
 
       <Badge tone={user.active ? "green" : "red"}>
         {user.active ? tr("adm_user_active", locale) : tr("adm_user_deactivated", locale)}
       </Badge>
 
       <div className="flex gap-1">
-        {editing ? (
-          <>
-            <Button size="sm" onClick={saveRole} disabled={pending}>
-              {tr("adm_user_save", locale)}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-              {tr("adm_user_cancel", locale)}
-            </Button>
-          </>
-        ) : (
+        {(
           <>
             <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
-              {tr("adm_user_change_role", locale)}
+              Rediger
             </Button>
             <Button size="sm" variant="ghost" onClick={reset} disabled={pending}>
               {tr("adm_user_send_reset", locale)}
