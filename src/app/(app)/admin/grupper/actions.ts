@@ -75,15 +75,23 @@ export async function deleteGroup(input: {
   return {};
 }
 
-const OP_TEAM_COLORS = [
+const TEAM_COLORS = [
   "#F47920", "#3B82F6", "#10B981", "#EC4899", "#7C3AED",
   "#F59E0B", "#EF4444", "#06B6D4", "#84CC16", "#A855F7",
   "#14B8A6", "#F472B6",
 ];
 
-// Generer OP-01 ... OP-22 som team-grupper hvis de ikke allerede finnes.
-// Hver får en konsistent farge basert på nummeret.
-export async function generateOpTeams(): Promise<{
+/**
+ * Generer flere team-grupper i én operasjon, fra et navn-mønster.
+ * Eksempel: prefix="Lag-", count=5, pad=2 → "Lag-01" … "Lag-05".
+ */
+export async function generateTeams(input: {
+  prefix: string;
+  count: number;
+  pad?: number;
+  description_template?: string;
+  start?: number;
+}): Promise<{
   created: number;
   skipped: number;
   error?: string;
@@ -110,33 +118,49 @@ export async function generateOpTeams(): Promise<{
     return { created: 0, skipped: 0, error: (e as Error).message };
   }
 
-  // Hent eksisterende OP-team-navn
+  const prefix = (input.prefix ?? "").trim();
+  if (!prefix) {
+    return { created: 0, skipped: 0, error: "Prefiks må fylles ut." };
+  }
+  const count = Math.max(1, Math.min(100, Math.floor(input.count ?? 0)));
+  if (!count) {
+    return { created: 0, skipped: 0, error: "Antall må være mellom 1 og 100." };
+  }
+  const pad = Math.max(0, Math.min(4, Math.floor(input.pad ?? 2)));
+  const start = Math.max(1, Math.floor(input.start ?? 1));
+  const descTpl = (input.description_template ?? "").trim();
+
+  // Hent eksisterende navn i samme prefiks-rom
   const { data: existing } = await supabase
     .from("groups")
     .select("name")
-    .like("name", "OP-%");
+    .ilike("name", `${prefix}%`);
   const existingNames = new Set((existing ?? []).map((g) => g.name));
 
-  // Bygg liste av OP-01 til OP-22
   const toCreate: Array<{
     organization_id: string;
     name: string;
     color: string;
-    description: string;
+    description: string | null;
   }> = [];
-  for (let i = 1; i <= 22; i++) {
-    const name = `OP-${String(i).padStart(2, "0")}`;
+  for (let n = 0; n < count; n++) {
+    const num = start + n;
+    const name = pad
+      ? `${prefix}${String(num).padStart(pad, "0")}`
+      : `${prefix}${num}`;
     if (existingNames.has(name)) continue;
     toCreate.push({
       organization_id: orgId,
       name,
-      color: OP_TEAM_COLORS[(i - 1) % OP_TEAM_COLORS.length],
-      description: `Team ${name} — feltteam for prosjektutførelse.`,
+      color: TEAM_COLORS[(num - 1) % TEAM_COLORS.length],
+      description: descTpl
+        ? descTpl.replace(/\{name\}/g, name).replace(/\{num\}/g, String(num))
+        : null,
     });
   }
 
   if (toCreate.length === 0) {
-    return { created: 0, skipped: 22 };
+    return { created: 0, skipped: count };
   }
 
   const { error } = await supabase.from("groups").insert(toCreate);
@@ -146,7 +170,7 @@ export async function generateOpTeams(): Promise<{
   revalidatePath("/produksjonsplan");
   return {
     created: toCreate.length,
-    skipped: 22 - toCreate.length,
+    skipped: count - toCreate.length,
   };
 }
 
