@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Input, Field } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { QrCode } from "@/components/app/qr-code";
 import {
   enrollTotp,
   confirmTotp,
@@ -83,12 +84,7 @@ export function MfaSetupForm() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-3 py-2">
-        <div className="bg-white p-3 rounded border border-border">
-          <div
-            className="size-44"
-            dangerouslySetInnerHTML={{ __html: enrollment.qr_svg }}
-          />
-        </div>
+        <QrCode value={enrollment.qr_svg} size={192} />
         <div className="text-center">
           <div className="text-xs text-text-3">
             Eller skriv inn nøkkelen manuelt:

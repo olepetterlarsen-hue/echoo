@@ -26,8 +26,36 @@ export async function enrollTotp(): Promise<{
   error?: string;
 }> {
   const supabase = await createClient();
+
+  // Hent bedriftsnavn så autentiserings-appen viser "Echoo (Bedriftsnavn)"
+  // i stedet for "localhost" (Supabase default fra Site URL).
+  let issuer = "Echoo";
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("id", user.id)
+        .single();
+      if (profile?.organization_id) {
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("firma")
+          .eq("id", profile.organization_id)
+          .single();
+        if (org?.firma) issuer = `Echoo (${org.firma})`;
+      }
+    }
+  } catch {
+    // Fall tilbake på "Echoo" hvis noe feiler
+  }
+
   const { data, error } = await supabase.auth.mfa.enroll({
     factorType: "totp",
+    issuer,
     friendlyName: "Echoo TOTP",
   });
   if (error) return { error: error.message };
