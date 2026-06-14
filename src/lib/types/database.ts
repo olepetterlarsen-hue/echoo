@@ -205,6 +205,7 @@ export type Database = {
           organization_id: string | null;
           created_at: string;
           updated_at: string;
+          hms_card_number: string | null;
         };
         Insert: {
           id: string;
@@ -222,6 +223,7 @@ export type Database = {
           organization_id?: string | null;
           created_at?: string;
           updated_at?: string;
+          hms_card_number?: string | null;
         };
         Update: {
           id?: string;
@@ -237,7 +239,43 @@ export type Database = {
           notify_daily_digest?: boolean;
           active?: boolean;
           organization_id?: string | null;
+          hms_card_number?: string | null;
         };
+        Relationships: [];
+      };
+      required_courses: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          name: string;
+          description: string | null;
+          validity_months: number | null;
+          category: string | null;
+          is_active: boolean;
+          order_index: number;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          name: string;
+          description?: string | null;
+          validity_months?: number | null;
+          category?: string | null;
+          is_active?: boolean;
+          order_index?: number;
+          created_by?: string | null;
+        };
+        Update: Partial<{
+          name: string;
+          description: string | null;
+          validity_months: number | null;
+          category: string | null;
+          is_active: boolean;
+          order_index: number;
+        }>;
         Relationships: [];
       };
       project_categories: {
@@ -974,6 +1012,8 @@ export type Database = {
           created_at: string;
           updated_at: string;
           organization_id: string | null;
+          required_course_id: string | null;
+          ai_generated: boolean;
         };
         Insert: {
           id?: string;
@@ -985,6 +1025,8 @@ export type Database = {
           file_path: string;
           notes?: string | null;
           organization_id?: string | null;
+          required_course_id?: string | null;
+          ai_generated?: boolean;
         };
         Update: {
           name?: string;
@@ -994,6 +1036,8 @@ export type Database = {
           file_path?: string;
           notes?: string | null;
           organization_id?: string | null;
+          required_course_id?: string | null;
+          ai_generated?: boolean;
         };
         Relationships: [
           {
