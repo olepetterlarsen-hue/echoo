@@ -74,7 +74,7 @@ export function AssistantButton() {
         type="button"
         onClick={() => setOpen(true)}
         title="AI-assistent"
-        className="fixed bottom-4 right-44 z-40 inline-flex items-center gap-2 rounded-full bg-orange/20 text-orange border border-orange/40 px-4 py-2.5 text-sm font-semibold shadow-lg hover:bg-orange/30 transition-colors"
+        className="fixed bottom-20 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-orange/20 text-orange border border-orange/40 px-4 py-2.5 text-sm font-semibold shadow-lg hover:bg-orange/30 transition-colors"
       >
         <Sparkles className="size-4" />
         <span className="hidden sm:inline">AI-assistent</span>
