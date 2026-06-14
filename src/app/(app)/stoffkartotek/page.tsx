@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, FlaskConical, FileDown } from "lucide-react";
+import { Plus, Search, FlaskConical, FileDown, Upload } from "lucide-react";
 import { GHS_PICTOGRAMS, type GhsCode } from "@/lib/ghs-pictograms";
 import { getServerT } from "@/lib/i18n/server";
 
@@ -45,12 +45,20 @@ export default async function StoffkartotekPage({ searchParams }: PageProps) {
           </h1>
           <p className="text-text-2 text-sm">{t("subs_page_subtitle")}</p>
         </div>
-        <Link href="/stoffkartotek/ny">
-          <Button>
-            <Plus className="size-4" />
-            {t("subs_new_button")}
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/stoffkartotek/import">
+            <Button variant="secondary">
+              <Upload className="size-4" />
+              Importer
+            </Button>
+          </Link>
+          <Link href="/stoffkartotek/ny">
+            <Button>
+              <Plus className="size-4" />
+              {t("subs_new_button")}
+            </Button>
+          </Link>
+        </div>
       </header>
 
       <form className="flex flex-wrap gap-3 items-center">
