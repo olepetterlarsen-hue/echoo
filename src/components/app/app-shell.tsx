@@ -101,15 +101,9 @@ const ADMIN_NAV: NavItem[] = [
     adminOnly: true,
   },
   {
-    href: "/admin/kategorier",
-    labelKey: "nav_categories",
+    href: "/admin/prosjekt-oppsett",
+    labelKey: "nav_project_setup",
     icon: <Layers className="size-4" />,
-    adminOnly: true,
-  },
-  {
-    href: "/admin/prosjekt-maler",
-    labelKey: "nav_project_templates",
-    icon: <FileStack className="size-4" />,
     adminOnly: true,
   },
   {
