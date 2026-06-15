@@ -45,10 +45,22 @@ interface EnrichedIssue {
   reporter: Reporter | null;
 }
 
-export function IssuesInboxClient({ rows }: { rows: EnrichedIssue[] }) {
-  const [status, setStatus] = useState<"alle" | Status>("apen");
+export function IssuesInboxClient({
+  rows,
+  initialOrgFilter,
+}: {
+  rows: EnrichedIssue[];
+  initialOrgFilter?: string;
+}) {
+  // Når man kommer fra /team/kunder med ?focus=<org_id>, vis alle statuser
+  // for den kunden (ikke bare åpne) — ellers default til "kun åpne".
+  const [status, setStatus] = useState<"alle" | Status>(
+    initialOrgFilter ? "alle" : "apen",
+  );
   const [severity, setSeverity] = useState<"alle" | Severity>("alle");
-  const [orgFilter, setOrgFilter] = useState<string>("alle");
+  const [orgFilter, setOrgFilter] = useState<string>(
+    initialOrgFilter ?? "alle",
+  );
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
 

@@ -1,6 +1,6 @@
 import { staffAdminClient } from "@/lib/team/staff";
 import { Card, CardBody } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { KunderClient } from "./kunder-client";
 
 interface PageProps {
   searchParams: Promise<{ focus?: string; status?: string }>;
@@ -21,9 +21,9 @@ export default async function TeamKunderPage({ searchParams }: PageProps) {
 
   const { data: orgs } = await query;
   const list = orgs ?? [];
-
-  // Hent assignments + selger-info for hver org
   const orgIds = list.map((o) => o.id);
+
+  // Hent assignments + selgere
   const { data: assignments } = orgIds.length
     ? await admin
         .from("sales_assignments")
@@ -41,168 +41,102 @@ export default async function TeamKunderPage({ searchParams }: PageProps) {
           )
       : { data: [] };
 
+  // Hent ALLE medlemmer i alle disse organisasjonene
+  const { data: members } = orgIds.length
+    ? await admin
+        .from("profiles")
+        .select("id, full_name, email, role, organization_id, created_at, active")
+        .in("organization_id", orgIds)
+        .order("created_at", { ascending: false })
+    : { data: [] };
+
+  // Tell åpne feilrapporter per kunde
+  const { data: openIssues } = orgIds.length
+    ? await admin
+        .from("issue_reports")
+        .select("organization_id")
+        .in("organization_id", orgIds)
+        .eq("status", "apen")
+    : { data: [] };
+
   const assignmentMap = new Map(
     (assignments ?? []).map((a) => [a.organization_id, a.salesperson_id]),
   );
   const salespeopleMap = new Map(
     (salespeople ?? []).map((p) => [p.id, p.full_name ?? p.email]),
   );
+  const membersByOrg = new Map<
+    string,
+    Array<{
+      id: string;
+      full_name: string | null;
+      email: string;
+      role: string | null;
+      created_at: string;
+      active: boolean | null;
+    }>
+  >();
+  for (const m of members ?? []) {
+    if (!m.organization_id) continue;
+    const arr = membersByOrg.get(m.organization_id) ?? [];
+    arr.push({
+      id: m.id,
+      full_name: m.full_name,
+      email: m.email,
+      role: m.role,
+      created_at: m.created_at,
+      active: m.active,
+    });
+    membersByOrg.set(m.organization_id, arr);
+  }
+  const openIssuesByOrg = new Map<string, number>();
+  for (const i of openIssues ?? []) {
+    if (!i.organization_id) continue;
+    openIssuesByOrg.set(
+      i.organization_id,
+      (openIssuesByOrg.get(i.organization_id) ?? 0) + 1,
+    );
+  }
+
+  // Bygg radene som passer client-komponenten
+  const rows = list.map((o) => ({
+    id: o.id,
+    firma: o.firma,
+    org_nr: o.org_nr,
+    plan_tier: o.plan_tier,
+    subscription_status: o.subscription_status,
+    has_iso_addon: o.has_iso_addon,
+    trial_ends_at: o.trial_ends_at,
+    created_at: o.created_at,
+    selskap_epost: o.selskap_epost,
+    selskap_telefon: o.selskap_telefon,
+    locked_at: o.locked_at,
+    salesperson:
+      assignmentMap.get(o.id) && salespeopleMap.get(assignmentMap.get(o.id)!)
+        ? (salespeopleMap.get(assignmentMap.get(o.id)!) as string)
+        : null,
+    members: membersByOrg.get(o.id) ?? [],
+    open_issues: openIssuesByOrg.get(o.id) ?? 0,
+  }));
 
   return (
     <div className="px-6 py-6 max-w-6xl mx-auto space-y-6">
       <header>
         <h1 className="text-2xl font-semibold">Kunder ({list.length})</h1>
         <p className="text-text-2 text-sm">
-          Alle organisasjoner på tvers av tenants. Klikk for å se detaljer.
+          Klikk en bedrift for å se medlemmer og åpne feilrapporter.
         </p>
       </header>
 
-      <div className="flex flex-wrap gap-2">
-        <FilterPill href="/team/kunder" active={!status}>
-          Alle
-        </FilterPill>
-        <FilterPill
-          href="/team/kunder?status=active"
-          active={status === "active"}
-        >
-          Aktive
-        </FilterPill>
-        <FilterPill
-          href="/team/kunder?status=trialing"
-          active={status === "trialing"}
-        >
-          Trial
-        </FilterPill>
-        <FilterPill
-          href="/team/kunder?status=past_due"
-          active={status === "past_due"}
-        >
-          Forfalt
-        </FilterPill>
-        <FilterPill
-          href="/team/kunder?status=canceled"
-          active={status === "canceled"}
-        >
-          Kansellert
-        </FilterPill>
-      </div>
-
-      <Card>
-        <CardBody className="!p-0 overflow-x-auto">
-          {list.length === 0 ? (
-            <div className="p-8 text-center text-text-3 text-sm">
-              Ingen kunder funnet.
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-card-hover text-text-3 text-xs uppercase tracking-wider">
-                <tr>
-                  <th className="text-left px-4 py-2.5">Bedrift</th>
-                  <th className="text-left px-4 py-2.5">Status</th>
-                  <th className="text-left px-4 py-2.5">Plan</th>
-                  <th className="text-left px-4 py-2.5">Selger</th>
-                  <th className="text-left px-4 py-2.5">Trial-utløp</th>
-                  <th className="text-left px-4 py-2.5">Signup</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {list.map((o) => {
-                  const isFocused = focus === o.id;
-                  const salespersonId = assignmentMap.get(o.id);
-                  return (
-                    <tr
-                      key={o.id}
-                      className={`${isFocused ? "bg-orange/10" : "hover:bg-card-hover"}`}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-text-1">
-                          {o.firma}
-                        </div>
-                        <div className="text-xs text-text-3 mt-0.5">
-                          {o.org_nr && `${o.org_nr} · `}
-                          {o.selskap_epost ?? "—"}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={o.subscription_status} />
-                      </td>
-                      <td className="px-4 py-3 text-text-2 text-xs">
-                        {o.plan_tier === "elektro_hms"
-                          ? o.has_iso_addon
-                            ? "Elektro+HMS + ISO"
-                            : "Elektro+HMS"
-                          : "Trial"}
-                      </td>
-                      <td className="px-4 py-3 text-text-2 text-xs">
-                        {salespersonId
-                          ? salespeopleMap.get(salespersonId) ?? "—"
-                          : (
-                              <span className="text-text-3 italic">
-                                Ikke tilegnet
-                              </span>
-                            )}
-                      </td>
-                      <td className="px-4 py-3 text-text-2 text-xs">
-                        {o.trial_ends_at
-                          ? new Date(o.trial_ends_at).toLocaleDateString(
-                              "nb-NO",
-                            )
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-text-2 text-xs">
-                        {o.created_at &&
-                          new Date(o.created_at).toLocaleDateString("nb-NO")}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </CardBody>
-      </Card>
+      {list.length === 0 ? (
+        <Card>
+          <CardBody className="text-center text-text-3 py-8 text-sm">
+            Ingen kunder funnet.
+          </CardBody>
+        </Card>
+      ) : (
+        <KunderClient rows={rows} initialFocus={focus} initialStatus={status} />
+      )}
     </div>
   );
-}
-
-import Link from "next/link";
-
-function FilterPill({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`px-3 py-1.5 rounded-md text-sm border ${
-        active
-          ? "bg-orange text-bg border-orange"
-          : "bg-card text-text-2 border-border hover:bg-card-hover"
-      }`}
-    >
-      {children}
-    </Link>
-  );
-}
-
-function StatusBadge({ status }: { status: string | null }) {
-  if (!status) return <Badge tone="neutral">—</Badge>;
-  const map: Record<
-    string,
-    { label: string; tone: "green" | "yellow" | "orange" | "red" | "neutral" }
-  > = {
-    active: { label: "Aktiv", tone: "green" },
-    trialing: { label: "Trial", tone: "orange" },
-    past_due: { label: "Forfalt", tone: "yellow" },
-    canceled: { label: "Kansellert", tone: "red" },
-    incomplete: { label: "Ufullstendig", tone: "yellow" },
-    unpaid: { label: "Ubetalt", tone: "red" },
-  };
-  const m = map[status] ?? { label: status, tone: "neutral" as const };
-  return <Badge tone={m.tone}>{m.label}</Badge>;
 }

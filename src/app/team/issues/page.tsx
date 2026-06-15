@@ -2,6 +2,10 @@ import { staffAdminClient } from "@/lib/team/staff";
 import { Card, CardBody } from "@/components/ui/card";
 import { IssuesInboxClient } from "./issues-inbox-client";
 
+interface PageProps {
+  searchParams: Promise<{ focus?: string }>;
+}
+
 interface IssueRow {
   id: string;
   organization_id: string | null;
@@ -17,7 +21,8 @@ interface IssueRow {
   resolved_at: string | null;
 }
 
-export default async function TeamIssuesPage() {
+export default async function TeamIssuesPage({ searchParams }: PageProps) {
+  const { focus } = await searchParams;
   const admin = await staffAdminClient();
 
   const { data: issues } = await admin
@@ -116,7 +121,7 @@ export default async function TeamIssuesPage() {
           </CardBody>
         </Card>
       ) : (
-        <IssuesInboxClient rows={enriched} />
+        <IssuesInboxClient rows={enriched} initialOrgFilter={focus} />
       )}
     </div>
   );
