@@ -35,6 +35,7 @@ import {
   Bug,
   Sparkles,
   CreditCard,
+  Upload,
 } from "lucide-react";
 import { LocaleContext, type Locale } from "@/lib/i18n";
 import { tr } from "@/lib/i18n/strings";
@@ -140,6 +141,12 @@ const ADMIN_NAV: NavItem[] = [
     href: "/admin/import-wizard",
     labelKey: "nav_import_wizard",
     icon: <Sparkles className="size-4" />,
+    adminOnly: true,
+  },
+  {
+    href: "/admin/bulk-import",
+    labelKey: "nav_bulk_import",
+    icon: <Upload className="size-4" />,
     adminOnly: true,
   },
   {
