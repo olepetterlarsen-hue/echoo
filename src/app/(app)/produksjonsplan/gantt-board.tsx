@@ -86,7 +86,47 @@ const OFF_COLORS: Record<string, string> = {
 
 const DAY_PX = 36;
 const LANE_PX = 56;
+// Når en lane må vise flere parallelle entries, brukes disse for stabling
+const SUB_ROW_PX = 26; // høyde per sub-row når 2+ entries overlapper
+const SUB_PAD_PX = 6; // padding topp/bunn inni lanen
 const VISIBLE_TEAMS_KEY = "opcontrol-gantt-visible-teams";
+
+// Greedy interval-assignment: gir hver entry en sub-row-index slik at to
+// entries som overlapper i tid aldri havner på samme sub-row.
+function assignSubRows<E extends { start_date: string; end_date: string }>(
+  entries: E[],
+): { withRow: Array<E & { subRow: number }>; rowCount: number } {
+  if (entries.length === 0) return { withRow: [], rowCount: 0 };
+  const sorted = [...entries].sort((a, b) => {
+    if (a.start_date < b.start_date) return -1;
+    if (a.start_date > b.start_date) return 1;
+    if (a.end_date < b.end_date) return -1;
+    if (a.end_date > b.end_date) return 1;
+    return 0;
+  });
+  // rowEnd[i] = end_date for siste entry plassert i sub-row i (eller "" hvis ledig)
+  const rowEnd: string[] = [];
+  const withRow: Array<E & { subRow: number }> = [];
+  for (const e of sorted) {
+    let placed = -1;
+    for (let i = 0; i < rowEnd.length; i++) {
+      // Ledig hvis tidligere entry sluttet før denne starter (strikt <, slik at
+      // bar som slutter samme dag som ny bar starter ikke stables)
+      if (rowEnd[i] < e.start_date) {
+        placed = i;
+        break;
+      }
+    }
+    if (placed === -1) {
+      placed = rowEnd.length;
+      rowEnd.push(e.end_date);
+    } else {
+      rowEnd[placed] = e.end_date;
+    }
+    withRow.push({ ...e, subRow: placed });
+  }
+  return { withRow, rowCount: rowEnd.length };
+}
 
 export function GanttBoard({
   groups,
@@ -422,11 +462,21 @@ export function GanttBoard({
             const lane = row;
             const laneEntries = entries.filter((e) => e.group_id === lane.id);
             const laneOff = offPeriods.filter((o) => o.group_id === lane.id);
+            const { withRow: laneEntriesStacked, rowCount } = assignSubRows(
+              laneEntries,
+            );
+            // Lane-høyde vokser med antall parallelle entries. Singel-rad
+            // beholder gammel layout (LANE_PX, høy bar) for å se uendret ut.
+            const isMulti = rowCount > 1;
+            const laneHeight = isMulti
+              ? rowCount * SUB_ROW_PX + 2 * SUB_PAD_PX
+              : LANE_PX;
+            const barHeight = isMulti ? SUB_ROW_PX - 4 : LANE_PX - 16;
             return (
               <div
                 key={lane.id ?? "no-group"}
                 className="flex border-b border-border relative"
-                style={{ height: `${LANE_PX}px` }}
+                style={{ height: `${laneHeight}px` }}
               >
                 {/* Lane-tittel */}
                 <div className="w-[180px] shrink-0 px-3 py-2 bg-surface/30 border-r border-border flex items-center gap-2">
@@ -502,7 +552,7 @@ export function GanttBoard({
                   })}
 
                   {/* Entries (bars) */}
-                  {laneEntries.map((entry) => {
+                  {laneEntriesStacked.map((entry) => {
                     const offset = dayIndex(entry.start_date) * DAY_PX;
                     const width = Math.max(
                       DAY_PX - 4,
@@ -519,6 +569,9 @@ export function GanttBoard({
                     const lockedText = entry.locked
                       ? `\n${tr("gantt_locked_prefix", locale)}${entry.locked_reason || ""}`
                       : "";
+                    const barTop = isMulti
+                      ? SUB_PAD_PX + entry.subRow * SUB_ROW_PX
+                      : 8;
                     return (
                       <button
                         type="button"
@@ -527,8 +580,8 @@ export function GanttBoard({
                         title={`${title}${projNum ? ` (#${projNum})` : ""} — ${entry.start_date} → ${entry.end_date}${lockedText}\n${tr("gantt_tooltip_click", locale)}`}
                         style={{
                           position: "absolute",
-                          top: 8,
-                          height: `${LANE_PX - 16}px`,
+                          top: barTop,
+                          height: `${barHeight}px`,
                           left: `${offset + 2}px`,
                           width: `${width}px`,
                           background: bgColor,
@@ -538,8 +591,8 @@ export function GanttBoard({
                             ? `inset 0 0 0 2px ${colors.ring}, 0 2px 6px rgba(0,0,0,0.25)`
                             : `0 2px 6px rgba(0,0,0,0.25)`,
                           color: "#fff",
-                          padding: "4px 8px",
-                          fontSize: "11px",
+                          padding: isMulti ? "1px 6px" : "4px 8px",
+                          fontSize: isMulti ? "10px" : "11px",
                           fontWeight: 600,
                           display: "flex",
                           alignItems: "center",
