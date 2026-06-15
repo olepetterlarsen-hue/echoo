@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   ArrowRightLeft,
+  Bug,
 } from "lucide-react";
 
 interface StaffUser {
@@ -25,14 +26,22 @@ const NAV = [
   { href: "/team", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/team/kunder", label: "Kunder", icon: Users },
   { href: "/team/salg", label: "Salg", icon: TrendingUp },
+  {
+    href: "/team/issues",
+    label: "Feilrapporter",
+    icon: Bug,
+    badgeKey: "openIssues" as const,
+  },
   { href: "/team/staff", label: "Internt team", icon: UserCog },
 ];
 
 export function TeamShell({
   user,
+  openIssues = 0,
   children,
 }: {
   user: StaffUser;
+  openIssues?: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? "";
@@ -70,6 +79,8 @@ export function TeamShell({
             const active = item.exact
               ? pathname === item.href
               : pathname.startsWith(item.href);
+            const badgeCount =
+              item.badgeKey === "openIssues" ? openIssues : 0;
             return (
               <Link
                 key={item.href}
@@ -82,7 +93,12 @@ export function TeamShell({
                 }`}
               >
                 <Icon className="size-4" />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {badgeCount > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-orange text-bg min-w-[18px] text-center">
+                    {badgeCount}
+                  </span>
+                )}
               </Link>
             );
           })}

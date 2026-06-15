@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { requireEchooStaff } from "@/lib/team/staff";
+import { requireEchooStaff, staffAdminClient } from "@/lib/team/staff";
 import { TeamShell } from "./team-shell";
 
 export default async function TeamLayout({
@@ -13,5 +13,17 @@ export default async function TeamLayout({
   } catch {
     redirect("/dashboard");
   }
-  return <TeamShell user={user}>{children}</TeamShell>;
+
+  // Tell åpne feilrapporter for sidebar-badge
+  const admin = await staffAdminClient();
+  const { count } = await admin
+    .from("issue_reports")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "apen");
+
+  return (
+    <TeamShell user={user} openIssues={count ?? 0}>
+      {children}
+    </TeamShell>
+  );
 }
