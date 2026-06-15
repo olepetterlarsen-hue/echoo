@@ -157,9 +157,16 @@ interface Props {
   initialLocale: Locale;
   children: ReactNode;
   locked?: boolean;
+  isEchooStaff?: boolean;
 }
 
-export function AppShell({ profile, initialLocale, children, locked }: Props) {
+export function AppShell({
+  profile,
+  initialLocale,
+  children,
+  locked,
+  isEchooStaff,
+}: Props) {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   useEffect(() => {
     try {
@@ -393,6 +400,20 @@ export function AppShell({ profile, initialLocale, children, locked }: Props) {
                   className="font-medium underline whitespace-nowrap"
                 >
                   Til abonnement
+                </Link>
+              </div>
+            )}
+            {isEchooStaff && (
+              <div className="bg-orange/10 border-b border-orange/30 px-6 py-2 text-xs text-orange flex items-center justify-between gap-4">
+                <span>
+                  Du har <strong>Echoo-staff-tilgang</strong> — internt CRM er
+                  tilgjengelig.
+                </span>
+                <Link
+                  href="/team"
+                  className="font-medium underline whitespace-nowrap"
+                >
+                  Åpne Team CRM
                 </Link>
               </div>
             )}

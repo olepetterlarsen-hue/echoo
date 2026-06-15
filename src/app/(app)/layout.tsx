@@ -81,9 +81,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     : false;
 
   const locale = await getLocale();
+  const isEchooStaff = profile.is_echoo_staff === true;
 
   return (
-    <AppShell profile={profile} initialLocale={locale} locked={locked}>
+    <AppShell
+      profile={profile}
+      initialLocale={locale}
+      locked={locked}
+      isEchooStaff={isEchooStaff}
+    >
       {children}
     </AppShell>
   );

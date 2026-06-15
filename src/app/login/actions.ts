@@ -39,7 +39,27 @@ export async function signIn({
     }
   }
 
-  redirect(redirectTo && redirectTo.startsWith("/") ? redirectTo : "/dashboard");
+  // Echoo-staff uten kunde-org → /team. Hybrid (har begge) → kunde-app.
+  const dest = await resolveLoginDestination(supabase, redirectTo);
+  redirect(dest);
+}
+
+async function resolveLoginDestination(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  redirectTo?: string,
+): Promise<string> {
+  if (redirectTo && redirectTo.startsWith("/")) return redirectTo;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "/dashboard";
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("organization_id, is_echoo_staff")
+    .eq("id", user.id)
+    .single();
+  if (profile?.is_echoo_staff && !profile.organization_id) return "/team";
+  return "/dashboard";
 }
 
 export async function completeMfaSignIn(args: {
@@ -62,11 +82,7 @@ export async function completeMfaSignIn(args: {
     code,
   });
   if (verErr) return { error: verErr.message };
-  redirect(
-    args.redirectTo && args.redirectTo.startsWith("/")
-      ? args.redirectTo
-      : "/dashboard",
-  );
+  redirect(await resolveLoginDestination(supabase, args.redirectTo));
 }
 
 export async function signOut() {

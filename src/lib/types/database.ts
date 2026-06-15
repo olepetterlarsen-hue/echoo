@@ -206,6 +206,7 @@ export type Database = {
           created_at: string;
           updated_at: string;
           hms_card_number: string | null;
+          is_echoo_staff: boolean;
         };
         Insert: {
           id: string;
@@ -224,6 +225,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           hms_card_number?: string | null;
+          is_echoo_staff?: boolean;
         };
         Update: {
           id?: string;
@@ -240,6 +242,7 @@ export type Database = {
           active?: boolean;
           organization_id?: string | null;
           hms_card_number?: string | null;
+          is_echoo_staff?: boolean;
         };
         Relationships: [];
       };
@@ -275,6 +278,32 @@ export type Database = {
           category: string | null;
           is_active: boolean;
           order_index: number;
+        }>;
+        Relationships: [];
+      };
+      sales_assignments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          salesperson_id: string;
+          assigned_at: string;
+          assigned_by: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          salesperson_id: string;
+          assigned_at?: string;
+          assigned_by?: string | null;
+          notes?: string | null;
+        };
+        Update: Partial<{
+          salesperson_id: string;
+          assigned_by: string | null;
+          notes: string | null;
         }>;
         Relationships: [];
       };
