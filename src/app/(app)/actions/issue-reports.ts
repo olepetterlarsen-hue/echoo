@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrgId } from "@/lib/supabase/org";
 import { getServerT } from "@/lib/i18n/server";
@@ -44,6 +45,10 @@ export async function submitIssueReport(args: SubmitArgs) {
   if (error) {
     return { error: t("issue_send_failed") };
   }
+  // Team-dashboard og /team/issues cacher RSC-data — bust cachen så nye
+  // rapporter dukker opp umiddelbart for Echoo-staff.
+  revalidatePath("/team");
+  revalidatePath("/team/issues");
   return { ok: true };
 }
 
@@ -73,5 +78,7 @@ export async function updateIssueReport(args: {
     .update(patch)
     .eq("id", args.id);
   if (error) return { error: t("issue_send_failed") };
+  revalidatePath("/team");
+  revalidatePath("/team/issues");
   return { ok: true };
 }

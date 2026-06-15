@@ -186,6 +186,93 @@ export default async function TeamDashboardPage() {
         />
       </div>
 
+      {/* Siste feilrapporter — flyttet opp så den er synlig uten å scrolle */}
+      <Card>
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-3">
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <Bug className="size-4 text-orange" />
+            Siste feilrapporter
+            {totalOpen > 0 && (
+              <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-orange/15 text-orange font-medium">
+                {totalOpen} åpne
+              </span>
+            )}
+          </h2>
+          <Link
+            href="/team/issues"
+            className="text-xs text-orange hover:underline flex items-center gap-1"
+          >
+            Alle rapporter <ArrowUpRight className="size-3" />
+          </Link>
+        </div>
+        <CardBody className="!p-0">
+          {issuesList.length === 0 ? (
+            <div className="p-6 text-center text-text-3 text-sm">
+              Ingen åpne feilrapporter. ✓
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {issuesList.map((i) => {
+                let displayPath: string | null = null;
+                if (i.page_url) {
+                  try {
+                    displayPath = new URL(i.page_url).pathname;
+                  } catch {
+                    displayPath = i.page_url;
+                  }
+                }
+                return (
+                  <li key={i.id}>
+                    <Link
+                      href={`/team/issues?focus=${i.organization_id ?? ""}`}
+                      className="flex items-center gap-3 px-5 py-3 hover:bg-card-hover"
+                    >
+                      <span
+                        className={`size-2 rounded-full shrink-0 ${
+                          i.severity === "hoey"
+                            ? "bg-red"
+                            : i.severity === "middels"
+                              ? "bg-yellow"
+                              : "bg-text-3"
+                        }`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-text-1 truncate">
+                          {i.title}
+                        </div>
+                        <div className="text-xs text-text-3 truncate">
+                          <span className="text-orange">
+                            {i.organization_id
+                              ? issueOrgMap.get(i.organization_id) ?? "?"
+                              : "—"}
+                          </span>
+                          {" · "}
+                          {i.reported_by
+                            ? issueReporterMap.get(i.reported_by) ?? "anonym"
+                            : "anonym"}
+                          {displayPath && (
+                            <>
+                              {" · "}
+                              <code className="text-[11px]">{displayPath}</code>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-xs text-text-3 shrink-0">
+                        {new Date(i.created_at).toLocaleDateString("nb-NO", {
+                          day: "2-digit",
+                          month: "short",
+                        })}
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardBody>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent signups */}
         <Card>
@@ -281,92 +368,6 @@ export default async function TeamDashboardPage() {
         </Card>
       </div>
 
-      {/* Siste feilrapporter — inline widget på dashboard */}
-      <Card>
-        <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-3">
-          <h2 className="text-base font-semibold flex items-center gap-2">
-            <Bug className="size-4 text-orange" />
-            Siste feilrapporter
-            {totalOpen > 0 && (
-              <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-orange/15 text-orange font-medium">
-                {totalOpen} åpne
-              </span>
-            )}
-          </h2>
-          <Link
-            href="/team/issues"
-            className="text-xs text-orange hover:underline flex items-center gap-1"
-          >
-            Alle rapporter <ArrowUpRight className="size-3" />
-          </Link>
-        </div>
-        <CardBody className="!p-0">
-          {issuesList.length === 0 ? (
-            <div className="p-6 text-center text-text-3 text-sm">
-              Ingen åpne feilrapporter. ✓
-            </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {issuesList.map((i) => {
-                let displayPath: string | null = null;
-                if (i.page_url) {
-                  try {
-                    displayPath = new URL(i.page_url).pathname;
-                  } catch {
-                    displayPath = i.page_url;
-                  }
-                }
-                return (
-                  <li key={i.id}>
-                    <Link
-                      href={`/team/issues?focus=${i.organization_id ?? ""}`}
-                      className="flex items-center gap-3 px-5 py-3 hover:bg-card-hover"
-                    >
-                      <span
-                        className={`size-2 rounded-full shrink-0 ${
-                          i.severity === "hoey"
-                            ? "bg-red"
-                            : i.severity === "middels"
-                              ? "bg-yellow"
-                              : "bg-text-3"
-                        }`}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm text-text-1 truncate">
-                          {i.title}
-                        </div>
-                        <div className="text-xs text-text-3 truncate">
-                          <span className="text-orange">
-                            {i.organization_id
-                              ? issueOrgMap.get(i.organization_id) ?? "?"
-                              : "—"}
-                          </span>
-                          {" · "}
-                          {i.reported_by
-                            ? issueReporterMap.get(i.reported_by) ?? "anonym"
-                            : "anonym"}
-                          {displayPath && (
-                            <>
-                              {" · "}
-                              <code className="text-[11px]">{displayPath}</code>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-xs text-text-3 shrink-0">
-                        {new Date(i.created_at).toLocaleDateString("nb-NO", {
-                          day: "2-digit",
-                          month: "short",
-                        })}
-                      </div>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </CardBody>
-      </Card>
 
       {past_due.length > 0 && (
         <Card>
