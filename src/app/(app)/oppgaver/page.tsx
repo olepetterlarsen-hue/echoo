@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CheckSquare, ListChecks, LayoutGrid } from "lucide-react";
+import { Plus, CheckSquare, ListChecks, LayoutGrid, Tag } from "lucide-react";
 import { TaskStatusToggle } from "./status-toggle";
 import { TASK_STATUS_LABELS } from "@/lib/types/database";
 import { getServerT } from "@/lib/i18n/server";
@@ -136,6 +136,12 @@ export default async function TasksPage({ searchParams }: PageProps) {
             active={view === "tavle"}
             icon={<LayoutGrid className="size-4" />}
             label={t("task_tab_board")}
+          />
+          <TabLink
+            href="/oppgaver/typer"
+            active={false}
+            icon={<Tag className="size-4" />}
+            label={t("task_tab_types")}
           />
         </nav>
       </div>

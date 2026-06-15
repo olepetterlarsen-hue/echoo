@@ -7,7 +7,8 @@ export type CalendarEventKind =
   | "project_start"
   | "project_end"
   | "deviation"
-  | "doc_signed";
+  | "doc_signed"
+  | "task_due";
 
 export interface CalendarEvent {
   date: string; // YYYY-MM-DD
@@ -23,6 +24,7 @@ const KIND_DOT: Record<CalendarEventKind, string> = {
   project_end: "bg-blue",
   deviation: "bg-yellow",
   doc_signed: "bg-green",
+  task_due: "bg-purple",
 };
 
 interface Props {
@@ -75,8 +77,16 @@ export function CalendarGrid({
   const today = new Date();
   const todayStr = formatDate(today);
 
-  const [selected, setSelected] = useState<string | null>(null);
-  const selectedEvents = selected ? eventsByDate.get(selected) ?? [] : [];
+  // Default: vis dagens dato hvis vi er på inneværende måned, ellers første dag i mnd
+  const defaultSelected = (() => {
+    const inCurrentMonth =
+      today.getFullYear() === year && today.getMonth() + 1 === month;
+    if (inCurrentMonth) return todayStr;
+    return formatDate(new Date(year, month - 1, 1));
+  })();
+
+  const [selected, setSelected] = useState<string>(defaultSelected);
+  const selectedEvents = eventsByDate.get(selected) ?? [];
 
   return (
     <div>
@@ -105,13 +115,13 @@ export function CalendarGrid({
             <button
               key={idx}
               type="button"
-              onClick={() => setSelected(isSelected ? null : dateStr)}
-              className={`relative aspect-square text-left p-2 border-r border-b border-border transition-colors ${
+              onClick={() => setSelected(dateStr)}
+              className={`relative aspect-square text-left p-2 border-r border-b border-border transition-colors cursor-pointer ${
                 cell.isCurrentMonth
                   ? "bg-card hover:bg-card-hover"
-                  : "bg-bg/50 text-text-3"
-              } ${isSelected ? "ring-2 ring-orange ring-inset" : ""} ${
-                isToday ? "bg-orange/10" : ""
+                  : "bg-bg/50 text-text-3 hover:bg-bg/30"
+              } ${isSelected ? "ring-2 ring-orange ring-inset bg-orange/5" : ""} ${
+                isToday && !isSelected ? "bg-orange/10" : ""
               }`}
             >
               <div
@@ -142,16 +152,28 @@ export function CalendarGrid({
         })}
       </div>
 
-      {/* Detaljvisning for valgt dag */}
-      {selected && selectedEvents.length > 0 && (
-        <div className="border-t border-border p-4">
-          <div className="text-xs uppercase tracking-wider text-text-3 mb-2">
-            {formatLong(selected, dateLocale)} —{" "}
-            {eventsCountTemplate.replace(
-              "{n}",
-              String(selectedEvents.length),
-            )}
+      {/* Detaljvisning for valgt dag — alltid synlig */}
+      <div className="border-t border-border p-4 bg-bg/30">
+        <div className="flex items-center justify-between mb-3 gap-2">
+          <div className="text-sm font-medium text-text-1">
+            {formatLong(selected, dateLocale)}
           </div>
+          {selectedEvents.length > 0 && (
+            <div className="text-xs text-text-3">
+              {eventsCountTemplate.replace(
+                "{n}",
+                String(selectedEvents.length),
+              )}
+            </div>
+          )}
+        </div>
+        {selectedEvents.length === 0 ? (
+          <div className="text-sm text-text-3 italic py-2">
+            {dateLocale === "no-NO"
+              ? "Ingen hendelser denne dagen."
+              : "No events on this day."}
+          </div>
+        ) : (
           <ul className="space-y-1">
             {selectedEvents.map((ev, i) => (
               <li key={i}>
@@ -160,7 +182,7 @@ export function CalendarGrid({
                   className="flex items-center gap-3 px-2 py-1.5 rounded hover:bg-card-hover"
                 >
                   <span
-                    className={`size-2 rounded-full shrink-0 ${KIND_DOT[ev.kind]}`}
+                    className={`size-2.5 rounded-full shrink-0 ${KIND_DOT[ev.kind]}`}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm text-text-1 truncate">
@@ -174,8 +196,8 @@ export function CalendarGrid({
               </li>
             ))}
           </ul>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

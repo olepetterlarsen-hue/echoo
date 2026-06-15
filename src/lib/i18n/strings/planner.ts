@@ -67,6 +67,40 @@ export const PLANNER: TranslationDict = {
   task_tab_mine: { no: "Mine oppgaver", en: "My tasks" },
   task_tab_all: { no: "Alle oppgaver", en: "All tasks" },
   task_tab_board: { no: "Tavle", en: "Board" },
+  task_tab_types: { no: "Typer", en: "Types" },
+  task_types_title: { no: "Oppgavetyper", en: "Task types" },
+  task_types_subtitle: {
+    no: "Definér hvilke typer oppgaver virksomheten bruker. Brukes for å kategorisere og rapportere.",
+    en: "Define the types of tasks your organization uses. Used for categorization and reporting.",
+  },
+  task_types_new: { no: "Ny type", en: "New type" },
+  task_types_admin_only: {
+    no: "Bare admin kan opprette og endre oppgavetyper.",
+    en: "Only admins can create and edit task types.",
+  },
+  task_types_col_label: { no: "Navn", en: "Label" },
+  task_types_col_label_en: { no: "Navn (EN)", en: "Label (EN)" },
+  task_types_col_slug: { no: "Slug", en: "Slug" },
+  task_types_col_order: { no: "Rekkefølge", en: "Order" },
+  task_types_col_active: { no: "Aktiv", en: "Active" },
+  task_types_empty: {
+    no: "Ingen oppgavetyper definert ennå.",
+    en: "No task types defined yet.",
+  },
+  task_types_inactive: { no: "Deaktivert", en: "Disabled" },
+  task_types_save: { no: "Lagre", en: "Save" },
+  task_types_delete_confirm: {
+    no: "Slett denne typen? Eksisterende oppgaver beholder typen som tekst.",
+    en: "Delete this type? Existing tasks keep the type as text.",
+  },
+  task_types_in_use: {
+    no: "Brukt i {n} oppgaver",
+    en: "Used in {n} tasks",
+  },
+  task_types_slug_hint: {
+    no: "Kort identifikator (kun små bokstaver, tall, _). Genereres automatisk fra navn.",
+    en: "Short identifier (lowercase letters, numbers, _). Auto-generated from name.",
+  },
   task_stat_open: { no: "Åpne", en: "Open" },
   task_stat_completed: { no: "Fullført", en: "Completed" },
   task_stat_avg_resolve: { no: "Snitt løsetid", en: "Avg. resolve time" },
@@ -241,20 +275,20 @@ export const PLANNER: TranslationDict = {
   cust_err_not_logged_in: { no: "Ikke logget inn.", en: "Not signed in." },
 
   // ----- Sites -----
-  site_title: { no: "Sites", en: "Sites" },
+  site_title: { no: "Anlegg", en: "Sites" },
   site_subtitle: {
     no: "Fysiske lokasjoner med koordinater. Knyttes til kunde og prosjekt.",
     en: "Physical locations with coordinates. Linked to customer and project.",
   },
   site_show_on_map: { no: "Vis på kart", en: "Show on map" },
   site_import_csv: { no: "Importer CSV", en: "Import CSV" },
-  site_new: { no: "Nytt site", en: "New site" },
+  site_new: { no: "Nytt anlegg", en: "New site" },
   site_search_placeholder: {
-    no: "Søk på navn, site-ID, adresse eller sted…",
+    no: "Søk på navn, anlegg-ID, adresse eller sted…",
     en: "Search by name, site ID, address or city…",
   },
   site_filter: { no: "Filtrer", en: "Filter" },
-  site_empty: { no: "Ingen sites ennå.", en: "No sites yet." },
+  site_empty: { no: "Ingen anlegg ennå.", en: "No sites yet." },
   site_empty_create_first: { no: "Opprett det første", en: "Create the first one" },
   site_col_name: { no: "Navn", en: "Name" },
   site_col_site_id: { no: "Site ID", en: "Site ID" },
@@ -265,15 +299,15 @@ export const PLANNER: TranslationDict = {
 
   // Geocode button
   site_geocode_confirm: {
-    no: "Geokode {n} sites uten koordinater? Tar ca. {min} min (bruker OpenStreetMap, 1 req/sek).",
+    no: "Geokode {n} anlegg uten koordinater? Tar ca. {min} min (bruker OpenStreetMap, 1 req/sek).",
     en: "Geocode {n} sites without coordinates? Takes about {min} min (uses OpenStreetMap, 1 req/sec).",
   },
   site_geocode_missing_label: {
-    no: "{n} sites mangler koordinater",
+    no: "{n} anlegg mangler koordinater",
     en: "{n} sites are missing coordinates",
   },
   site_geocode_help: {
-    no: "Trykk for å automatisk hente koordinater fra adresse via OpenStreetMap. Tar ca. 1 sek pr. site.",
+    no: "Trykk for å automatisk hente koordinater fra adresse via OpenStreetMap. Tar ca. 1 sek pr. anlegg.",
     en: "Click to automatically fetch coordinates from the address via OpenStreetMap. Takes about 1 sec per site.",
   },
   site_geocode_running: { no: "Geokoder…", en: "Geocoding…" },
@@ -283,17 +317,23 @@ export const PLANNER: TranslationDict = {
   },
   site_geocode_current: { no: "Nå: {name}", en: "Now: {name}" },
   site_geocode_failed_hint: {
-    no: "{n} adresser ble ikke gjenkjent — sjekk dem manuelt i Sites og oppgi koordinater direkte.",
+    no: "{n} adresser ble ikke gjenkjent — sjekk dem manuelt og oppgi koordinater direkte.",
     en: "{n} addresses were not recognised — check them manually in Sites and provide coordinates directly.",
   },
   site_geocode_now: { no: "Geokod nå", en: "Geocode now" },
+  site_geocode_single: { no: "Geokod fra adresse", en: "Geocode from address" },
+  site_geocode_single_running: { no: "Henter koordinater…", en: "Fetching coordinates…" },
+  site_geocode_single_success: {
+    no: "Koordinater hentet ({lat}, {lon})",
+    en: "Coordinates fetched ({lat}, {lon})",
+  },
 
   // Site form
   site_card_basic: { no: "Grunnleggende info", en: "Basic info" },
-  site_field_name: { no: "Site-navn", en: "Site name" },
+  site_field_name: { no: "Anleggsnavn", en: "Site name" },
   site_field_customer: { no: "Kunde", en: "Customer" },
-  site_field_type: { no: "Site type", en: "Site type" },
-  site_field_external_id: { no: "Site ID (eksternt)", en: "Site ID (external)" },
+  site_field_type: { no: "Anleggstype", en: "Site type" },
+  site_field_external_id: { no: "Anlegg-ID (eksternt)", en: "Site ID (external)" },
   site_field_external_id_hint: {
     no: "Kundens eget ID (Telenor ROT…, etc.)",
     en: "Customer's own ID (Telenor ROT…, etc.)",
@@ -318,11 +358,11 @@ export const PLANNER: TranslationDict = {
   site_card_coords: { no: "Koordinater (for kart-visning)", en: "Coordinates (for map view)" },
   site_field_latitude: { no: "Breddegrad (latitude)", en: "Latitude" },
   site_field_longitude: { no: "Lengdegrad (longitude)", en: "Longitude" },
-  site_lat_hint: { no: "f.eks. 59.9139", en: "e.g. 59.9139" },
-  site_lon_hint: { no: "f.eks. 10.7522", en: "e.g. 10.7522" },
+  site_lat_hint: { no: "f.eks. 59.9139 — kan stå tom", en: "e.g. 59.9139 — can be left empty" },
+  site_lon_hint: { no: "f.eks. 10.7522 — kan stå tom", en: "e.g. 10.7522 — can be left empty" },
   site_coords_tip: {
-    no: "Tip: høyreklikk på Google Maps → første tall er bredde, andre er lengde.",
-    en: "Tip: right-click on Google Maps → first number is latitude, second is longitude.",
+    no: "Har du bare adresse? La koordinatene stå tomme — du kan trykke «Geokod fra adresse» på anlegget etter du har opprettet det.",
+    en: "Only have an address? Leave coordinates empty — you can click \"Geocode from address\" after creating the site.",
   },
   site_card_notes: { no: "Notater", en: "Notes" },
   site_field_internal_notes: { no: "Interne notater", en: "Internal notes" },
@@ -330,22 +370,22 @@ export const PLANNER: TranslationDict = {
     no: "Koordinater må være tall (f.eks. 59.9139)",
     en: "Coordinates must be numbers (e.g. 59.9139)",
   },
-  site_create_btn: { no: "Opprett site", en: "Create site" },
+  site_create_btn: { no: "Opprett anlegg", en: "Create site" },
 
   // New site page
   site_new_subtitle: {
-    no: "Legg til en fysisk lokasjon med koordinater for kartvisning.",
-    en: "Add a physical location with coordinates for map view.",
+    no: "Legg til en fysisk lokasjon. Adresse er nok — koordinater kan hentes automatisk etterpå.",
+    en: "Add a physical location. An address is enough — coordinates can be fetched automatically afterwards.",
   },
 
   // Site detail
-  site_back_all: { no: "← Alle sites", en: "← All sites" },
+  site_back_all: { no: "← Alle anlegg", en: "← All sites" },
   site_label_ssb_inline: { no: "SSB-nr:", en: "SSB no.:" },
   site_open_in_google: { no: "Åpne i Google Maps", en: "Open in Google Maps" },
   site_no_coords: { no: "Ingen koordinater registrert.", en: "No coordinates registered." },
-  site_projects_on_site: { no: "Prosjekter på dette sitet", en: "Projects on this site" },
+  site_projects_on_site: { no: "Prosjekter på dette anlegget", en: "Projects on this site" },
   site_no_projects: {
-    no: "Ingen prosjekter knyttet til dette sitet ennå.",
+    no: "Ingen prosjekter knyttet til dette anlegget ennå.",
     en: "No projects linked to this site yet.",
   },
 

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Pencil, MapPin } from "lucide-react";
 import { getServerT } from "@/lib/i18n/server";
 import { SiteDeleteButton } from "./site-delete-button";
+import { SingleGeocodeButton } from "./single-geocode-button";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -98,7 +99,7 @@ export default async function SiteDetailPage({ params }: PageProps) {
           <CardHeader>
             <CardTitle>{t("site_col_coords")}</CardTitle>
           </CardHeader>
-          <CardBody className="text-sm space-y-2">
+          <CardBody className="text-sm space-y-3">
             {hasCoords ? (
               <>
                 <p className="font-mono">
@@ -113,9 +114,21 @@ export default async function SiteDetailPage({ params }: PageProps) {
                   <MapPin className="size-3" />
                   {t("site_open_in_google")}
                 </a>
+                <div className="pt-2 border-t border-border">
+                  <SingleGeocodeButton
+                    siteId={id}
+                    hasAddress={Boolean(s.address || s.postal_code || s.city)}
+                  />
+                </div>
               </>
             ) : (
-              <p className="text-text-3">{t("site_no_coords")}</p>
+              <>
+                <p className="text-text-3">{t("site_no_coords")}</p>
+                <SingleGeocodeButton
+                  siteId={id}
+                  hasAddress={Boolean(s.address || s.postal_code || s.city)}
+                />
+              </>
             )}
           </CardBody>
         </Card>

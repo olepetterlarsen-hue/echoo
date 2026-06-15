@@ -55,29 +55,42 @@ export default async function CalendarPage({ searchParams }: PageProps) {
   //  - Prosjekter med scheduled_start/end innen måneden
   //  - Avvik registrert i måneden
   //  - Dokumenter signert i måneden
-  const [{ data: scheduled }, { data: deviations }, { data: signedDocs }] =
-    await Promise.all([
-      supabase
-        .from("projects")
-        .select(
-          "id, project_number, title, status, scheduled_start_date, scheduled_end_date, customer:customers(name, map_color)",
-        )
-        .or(
-          `and(scheduled_start_date.gte.${startStr},scheduled_start_date.lte.${endStr}),and(scheduled_end_date.gte.${startStr},scheduled_end_date.lte.${endStr})`,
-        ),
-      supabase
-        .from("deviations")
-        .select("id, project_id, title, severity, status, created_at")
-        .gte("created_at", monthStart.toISOString())
-        .lte("created_at", new Date(monthEnd.getTime() + 86399999).toISOString())
-        .neq("status", "lukket"),
-      supabase
-        .from("documents")
-        .select("id, project_id, kind, signed_at")
-        .eq("status", "signert")
-        .gte("signed_at", monthStart.toISOString())
-        .lte("signed_at", new Date(monthEnd.getTime() + 86399999).toISOString()),
-    ]);
+  //  - Oppgaver med utløpsdato (due_date) i måneden — ikke ferdige
+  const [
+    { data: scheduled },
+    { data: deviations },
+    { data: signedDocs },
+    { data: dueTasks },
+  ] = await Promise.all([
+    supabase
+      .from("projects")
+      .select(
+        "id, project_number, title, status, scheduled_start_date, scheduled_end_date, customer:customers(name, map_color)",
+      )
+      .or(
+        `and(scheduled_start_date.gte.${startStr},scheduled_start_date.lte.${endStr}),and(scheduled_end_date.gte.${startStr},scheduled_end_date.lte.${endStr})`,
+      ),
+    supabase
+      .from("deviations")
+      .select("id, project_id, title, severity, status, created_at")
+      .gte("created_at", monthStart.toISOString())
+      .lte("created_at", new Date(monthEnd.getTime() + 86399999).toISOString())
+      .neq("status", "lukket"),
+    supabase
+      .from("documents")
+      .select("id, project_id, kind, signed_at")
+      .eq("status", "signert")
+      .gte("signed_at", monthStart.toISOString())
+      .lte("signed_at", new Date(monthEnd.getTime() + 86399999).toISOString()),
+    supabase
+      .from("tasks")
+      .select(
+        "id, title, status, due_date, project_id, projects(project_number, title), assignee:profiles!tasks_assigned_to_fkey(full_name, email)",
+      )
+      .gte("due_date", startStr)
+      .lte("due_date", endStr)
+      .neq("status", "resolved"),
+  ]);
 
   // Bygg events per dato (YYYY-MM-DD)
   const events: CalendarEvent[] = [];
@@ -140,6 +153,37 @@ export default async function CalendarPage({ searchParams }: PageProps) {
     });
   }
 
+  for (const task of dueTasks ?? []) {
+    if (!task.due_date) continue;
+    const proj = (
+      task as unknown as {
+        projects?: { project_number: string; title: string } | null;
+      }
+    ).projects;
+    const assignee = (
+      task as unknown as {
+        assignee?: { full_name: string | null; email: string | null } | null;
+      }
+    ).assignee;
+    const assigneeName = assignee?.full_name || assignee?.email || null;
+    const parts: string[] = [];
+    if (proj) parts.push(proj.title);
+    if (assigneeName) parts.push(assigneeName);
+    events.push({
+      date: task.due_date,
+      kind: "task_due",
+      title: task.title,
+      subtitle:
+        parts.length > 0
+          ? parts.join(" · ")
+          : locale === "no"
+            ? "Oppgave-frist"
+            : "Task due",
+      href: `/oppgaver/${task.id}`,
+      color: null,
+    });
+  }
+
   const weekdayLabels: [string, string, string, string, string, string, string] = [
     t("cal_weekday_mon"),
     t("cal_weekday_tue"),
@@ -196,11 +240,15 @@ export default async function CalendarPage({ searchParams }: PageProps) {
         </CardBody>
       </Card>
 
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs text-text-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs text-text-3">
         <LegendItem color="bg-orange/80" label={t("cal_legend_start")} />
         <LegendItem color="bg-blue/80" label={t("cal_legend_end")} />
         <LegendItem color="bg-yellow/80" label={t("cal_legend_deviation")} />
         <LegendItem color="bg-green/80" label={t("cal_legend_signed")} />
+        <LegendItem
+          color="bg-purple/80"
+          label={locale === "no" ? "Oppgave-frist" : "Task due"}
+        />
       </div>
     </div>
   );
