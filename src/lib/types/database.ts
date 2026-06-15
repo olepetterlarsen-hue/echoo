@@ -307,6 +307,42 @@ export type Database = {
         }>;
         Relationships: [];
       };
+      commission_ledger: {
+        Row: {
+          id: string;
+          organization_id: string;
+          salesperson_id: string;
+          stripe_invoice_id: string | null;
+          stripe_payment_amount_ore: number | null;
+          payout_amount_nok: number;
+          policy_snapshot: Record<string, unknown> | null;
+          status: "pending_payout" | "salary_covered" | "paid" | "void";
+          paid_at: string | null;
+          paid_by: string | null;
+          payout_ref: string | null;
+          notes: string | null;
+          confirmed_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          salesperson_id: string;
+          stripe_invoice_id?: string | null;
+          stripe_payment_amount_ore?: number | null;
+          payout_amount_nok?: number;
+          status?: "pending_payout" | "salary_covered" | "paid" | "void";
+        };
+        Update: Partial<{
+          status: "pending_payout" | "salary_covered" | "paid" | "void";
+          paid_at: string | null;
+          paid_by: string | null;
+          payout_ref: string | null;
+          notes: string | null;
+        }>;
+        Relationships: [];
+      };
       project_categories: {
         Row: {
           id: string;
@@ -1910,6 +1946,14 @@ export type Database = {
       storage_object_org_id: {
         Args: { p_bucket: string; p_name: string };
         Returns: string | null;
+      };
+      record_commission_sale: {
+        Args: {
+          p_organization_id: string;
+          p_stripe_invoice_id?: string | null;
+          p_stripe_payment_amount_ore?: number | null;
+        };
+        Returns: "recorded" | "already_recorded" | "no_assignment";
       };
       management_review_inputs: {
         Args: { p_org_id: string };

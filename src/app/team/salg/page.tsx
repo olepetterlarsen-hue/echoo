@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { staffAdminClient } from "@/lib/team/staff";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,16 @@ interface Salesperson {
   email: string;
 }
 
+interface LedgerRow {
+  id: string;
+  organization_id: string;
+  salesperson_id: string;
+  payout_amount_nok: number;
+  status: "pending_payout" | "salary_covered" | "paid" | "void";
+  confirmed_at: string;
+  paid_at: string | null;
+}
+
 export default async function SalgPage() {
   const admin = await staffAdminClient();
 
@@ -37,6 +48,7 @@ export default async function SalgPage() {
     { data: orgs },
     { data: assignments },
     { data: staff },
+    { data: ledger },
   ] = await Promise.all([
     admin
       .from("organizations")
@@ -52,92 +64,98 @@ export default async function SalgPage() {
       .select("id, full_name, email")
       .eq("is_echoo_staff", true)
       .order("full_name"),
+    admin
+      .from("commission_ledger")
+      .select(
+        "id, organization_id, salesperson_id, payout_amount_nok, status, confirmed_at, paid_at",
+      ),
   ]);
 
   const orgList = (orgs ?? []) as OrgRow[];
   const assignmentList = (assignments ?? []) as Assignment[];
   const staffList = (staff ?? []) as Salesperson[];
+  const ledgerList = (ledger ?? []) as LedgerRow[];
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  // Beregn per-selger stats
-  const statsBySalesperson = new Map<
-    string,
-    {
-      pipeline: number;
-      confirmed_total: number;
-      confirmed_this_month: number;
-      cancelled: number;
-      orgs: Array<{
-        org: OrgRow;
-        bucket: "pipeline" | "confirmed" | "cancelled";
-        confirmedAt: Date | null;
-      }>;
-    }
-  >();
-
+  // Per-selger stats — drevet av faktisk ledger, ikke heuristikk
+  interface Stat {
+    pipeline: number; // tilegnet, men ikke betalt ennå
+    confirmed_total: number; // ledger entries for all time
+    confirmed_this_month: number; // ledger entries this month
+    cancelled: number;
+    pending_payout_nok: number; // sum unpaid commission
+    paid_this_month_nok: number; // sum paid out this month
+  }
+  const statsBySalesperson = new Map<string, Stat>();
   for (const s of staffList) {
     statsBySalesperson.set(s.id, {
       pipeline: 0,
       confirmed_total: 0,
       confirmed_this_month: 0,
       cancelled: 0,
-      orgs: [],
+      pending_payout_nok: 0,
+      paid_this_month_nok: 0,
     });
   }
 
+  // Tell ledger-rader (= bekreftede salg med betaling)
+  for (const row of ledgerList) {
+    const stat = statsBySalesperson.get(row.salesperson_id);
+    if (!stat) continue;
+    if (row.status === "void") continue;
+    stat.confirmed_total++;
+    const confirmedAt = new Date(row.confirmed_at);
+    if (confirmedAt >= monthStart) stat.confirmed_this_month++;
+    if (row.status === "pending_payout") {
+      stat.pending_payout_nok += Number(row.payout_amount_nok);
+    }
+    if (row.status === "paid" && row.paid_at) {
+      const paidAt = new Date(row.paid_at);
+      if (paidAt >= monthStart) {
+        stat.paid_this_month_nok += Number(row.payout_amount_nok);
+      }
+    }
+  }
+
+  // Tell pipeline (tilegnet, men ikke betalt = ikke i ledger) og kansellert
   const assignmentMap = new Map(
     assignmentList.map((a) => [a.organization_id, a]),
   );
-
+  const ledgerOrgIds = new Set(ledgerList.map((l) => l.organization_id));
   for (const a of assignmentList) {
     const org = orgList.find((o) => o.id === a.organization_id);
     if (!org) continue;
     const stat = statsBySalesperson.get(a.salesperson_id);
     if (!stat) continue;
-
-    let bucket: "pipeline" | "confirmed" | "cancelled" = "pipeline";
-    let confirmedAt: Date | null = null;
-
+    if (ledgerOrgIds.has(org.id)) continue; // allerede telt over
     if (org.subscription_status === "canceled") {
-      bucket = "cancelled";
       stat.cancelled++;
-    } else if (
-      org.subscription_status === "active" ||
-      org.subscription_status === "trialing"
-    ) {
-      const signup = org.created_at ? new Date(org.created_at) : null;
-      if (
-        signup &&
-        signup.getTime() + TRIAL_DAYS * 86400000 < now.getTime()
-      ) {
-        bucket = "confirmed";
-        confirmedAt = new Date(signup.getTime() + TRIAL_DAYS * 86400000);
-        stat.confirmed_total++;
-        if (confirmedAt >= monthStart) stat.confirmed_this_month++;
-      } else {
-        bucket = "pipeline";
-        stat.pipeline++;
-      }
     } else {
-      bucket = "pipeline";
       stat.pipeline++;
     }
-
-    stat.orgs.push({ org, bucket, confirmedAt });
   }
 
   return (
     <div className="px-6 py-6 max-w-6xl mx-auto space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold">Salg og provisjon</h1>
-        <p className="text-text-2 text-sm">
-          Bedriften som ikke kansellerer innen {TRIAL_DAYS} dager teller som
-          bekreftet salg. Fra salg {SALES_INCLUDED_IN_SALARY + 1}+ per måned er
-          provisjonen <strong>{COMMISSION_PER_SALE_NOK} kr</strong> per salg
-          (de første {SALES_INCLUDED_IN_SALARY} er inkludert i fastlønn).
-        </p>
+      <header className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold">Salg og provisjon</h1>
+          <p className="text-text-2 text-sm max-w-3xl">
+            Provisjonen bokføres automatisk i ledgeren ved første betaling
+            (Stripe webhook). De første {SALES_INCLUDED_IN_SALARY} salg per
+            måned per selger er dekket av fastlønn; fra salg{" "}
+            {SALES_INCLUDED_IN_SALARY + 1}+ utløser hver bokføring{" "}
+            <strong>{COMMISSION_PER_SALE_NOK} kr</strong>.
+          </p>
+        </div>
+        <Link
+          href="/team/salg/utbetalinger"
+          className="px-4 py-2 bg-orange text-bg rounded-md text-sm font-medium hover:opacity-90"
+        >
+          Utbetalinger →
+        </Link>
       </header>
 
       {/* Per-selger oversikt */}
@@ -154,12 +172,6 @@ export default async function SalgPage() {
           {staffList.map((s) => {
             const stat = statsBySalesperson.get(s.id);
             if (!stat) return null;
-            const commissionableThisMonth = Math.max(
-              0,
-              stat.confirmed_this_month - SALES_INCLUDED_IN_SALARY,
-            );
-            const commission =
-              commissionableThisMonth * COMMISSION_PER_SALE_NOK;
             return (
               <Card key={s.id}>
                 <div className="px-5 py-3 border-b border-border">
@@ -173,7 +185,7 @@ export default async function SalgPage() {
                     <Stat
                       label="Pipeline"
                       value={stat.pipeline}
-                      sub="< 14 dager"
+                      sub="ikke betalt"
                     />
                     <Stat
                       label="Bekreftet i mnd"
@@ -183,29 +195,32 @@ export default async function SalgPage() {
                           ? "green"
                           : undefined
                       }
+                      sub={`av ${SALES_INCLUDED_IN_SALARY} i lønn`}
                     />
                     <Stat
                       label="Provisjon"
-                      value={`${commission.toLocaleString("nb-NO")} kr`}
-                      tone={commission > 0 ? "green" : undefined}
+                      value={`${stat.pending_payout_nok.toLocaleString("nb-NO")} kr`}
+                      tone={stat.pending_payout_nok > 0 ? "green" : undefined}
+                      sub="ikke utbetalt"
                     />
                   </div>
-                  <div className="text-xs text-text-3 text-center">
-                    {stat.confirmed_this_month < SALES_INCLUDED_IN_SALARY ? (
-                      <>
-                        {SALES_INCLUDED_IN_SALARY - stat.confirmed_this_month} salg
-                        igjen til provisjonen begynner å løpe.
-                      </>
-                    ) : (
-                      <>
-                        {commissionableThisMonth} salg over basen ×{" "}
-                        {COMMISSION_PER_SALE_NOK} kr
-                      </>
-                    )}
-                  </div>
+                  {stat.paid_this_month_nok > 0 && (
+                    <div className="text-xs text-text-3 text-center">
+                      Allerede utbetalt i mnd:{" "}
+                      <span className="text-text-1 font-medium">
+                        {stat.paid_this_month_nok.toLocaleString("nb-NO")} kr
+                      </span>
+                    </div>
+                  )}
+                  {stat.confirmed_this_month < SALES_INCLUDED_IN_SALARY ? (
+                    <div className="text-xs text-text-3 text-center">
+                      {SALES_INCLUDED_IN_SALARY - stat.confirmed_this_month}{" "}
+                      betalende salg til før provisjonen begynner å løpe.
+                    </div>
+                  ) : null}
                   {stat.cancelled > 0 && (
                     <div className="text-xs text-red text-center">
-                      {stat.cancelled} kansellert (teller ikke)
+                      {stat.cancelled} kansellert før betaling (teller ikke)
                     </div>
                   )}
                 </CardBody>
@@ -215,16 +230,21 @@ export default async function SalgPage() {
         </div>
       )}
 
-      {/* Tildeling-grensesnitt */}
       <SalgClient
         orgs={orgList}
         assignmentMap={assignmentMap}
         staff={staffList}
       />
 
-      <div className="text-xs text-text-3 text-center">
-        Periode: {now.toLocaleString("nb-NO", { month: "long", year: "numeric" })}.
-        Provisjon-utbetaling skjer typisk på etterskudd basert på denne tellingen.
+      <div className="text-xs text-text-3 text-center space-y-1">
+        <div>
+          Periode:{" "}
+          {now.toLocaleString("nb-NO", { month: "long", year: "numeric" })}.
+        </div>
+        <div>
+          Trial: {TRIAL_DAYS} dager i Stripe — først ved første betaling
+          opprettes en ledger-rad.
+        </div>
       </div>
     </div>
   );
@@ -256,5 +276,4 @@ function Stat({
   );
 }
 
-// re-export Badge for child usage
 export { Badge };

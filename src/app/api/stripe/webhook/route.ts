@@ -140,6 +140,31 @@ export async function POST(req: NextRequest) {
               locked_at: null,
             })
             .eq("id", org.id);
+
+          // Provisjons-bokføring: idempotent. Returnerer 'already_recorded'
+          // ved alle senere betalinger; UNIQUE(organization_id) i ledger-en
+          // gjør funksjonen trygg å kalle for hver invoice.payment_succeeded.
+          const { data: ledgerResult, error: ledgerErr } = await admin.rpc(
+            "record_commission_sale",
+            {
+              p_organization_id: org.id,
+              p_stripe_invoice_id: inv.id ?? null,
+              p_stripe_payment_amount_ore: inv.amount_paid ?? null,
+            },
+          );
+          if (ledgerErr) {
+            console.error(
+              "[stripe-webhook] commission ledger feil:",
+              ledgerErr.message,
+            );
+          } else if (ledgerResult === "recorded") {
+            console.log(
+              "[stripe-webhook] commission bokført for org",
+              org.id,
+              "invoice",
+              inv.id,
+            );
+          }
         }
         break;
       }
