@@ -88,6 +88,10 @@ export async function startCheckout(args: {
     const session = await stripe().checkout.sessions.create({
       mode: "subscription",
       ...customerArgs,
+      // Vis "Add promotion code"-felt i Checkout. Aktive promo-koder
+      // (f.eks. 60DAGER for 60 dager gratis) opprettes i Stripe Dashboard
+      // eller via API.
+      allow_promotion_codes: true,
       line_items: lineItems,
       success_url: `${origin}/admin/abonnement?status=success`,
       cancel_url: `${origin}/admin/abonnement?status=cancel`,
