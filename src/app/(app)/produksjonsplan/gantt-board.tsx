@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "@/lib/i18n";
 import { tr } from "@/lib/i18n/strings";
@@ -14,6 +14,7 @@ import {
   assignGroupToSection,
   moveGroup,
 } from "./sections-actions";
+import { moveScheduleEntry } from "./actions";
 
 interface Group {
   id: string;
@@ -144,6 +145,28 @@ export function GanttBoard({
   const router = useRouter();
   // Valgt entry til popup
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
+  // Drag-and-drop-tilstand. dragRef holder den autoritative state-en
+  // (oppdateres synkront i pointermove uten å forårsake re-render-loop),
+  // dragState speiler den for rendering. moved = true så snart pointeren har
+  // flyttet seg over 5-px-terskelen — bestemmer om slipp er et klikk
+  // (åpner popup) eller et drag (lagrer flytt).
+  type DragState = {
+    entryId: string;
+    originStartDayIdx: number;
+    originEndDayIdx: number;
+    originGroupId: string | null;
+    startMouseX: number;
+    startMouseY: number;
+    dayDelta: number;
+    hoverGroupId: string | null | undefined;
+    moved: boolean;
+  };
+  const dragRef = useRef<DragState | null>(null);
+  const [dragState, setDragState] = useState<DragState | null>(null);
+  function commitDrag(next: DragState | null) {
+    dragRef.current = next;
+    setDragState(next);
+  }
   const [editMode, setEditMode] = useState(false);
   // Persisterer edit-modus så reload (etter handling) ikke kaster oss ut
   useEffect(() => {
@@ -365,6 +388,86 @@ export function GanttBoard({
   function spanDays(s: string, e: string): number {
     return dayIndex(e) - dayIndex(s) + 1;
   }
+  function dateFromDayIdx(idx: number): string {
+    const ms = new Date(startDate).getTime() + idx * 86400000;
+    return formatDate(new Date(ms));
+  }
+
+  // Drag-and-drop pointer-håndtering. Listeners registreres globalt og leser
+  // alltid fra dragRef.current — dermed re-registreres de ikke for hver
+  // mus-bevegelse.
+  useEffect(() => {
+    function onMove(e: PointerEvent) {
+      const curr = dragRef.current;
+      if (!curr) return;
+      const dx = e.clientX - curr.startMouseX;
+      const dy = e.clientY - curr.startMouseY;
+      const moved = curr.moved || dx * dx + dy * dy > 25;
+      const dayDelta = Math.round(dx / DAY_PX);
+      let hoverGroupId: string | null | undefined = curr.hoverGroupId;
+      if (moved) {
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const laneEl = (el as HTMLElement | null)?.closest<HTMLElement>(
+          "[data-lane-key]",
+        );
+        if (laneEl) {
+          const key = laneEl.dataset.laneKey;
+          hoverGroupId = key === "__no_group__" ? null : (key ?? undefined);
+        } else {
+          hoverGroupId = undefined;
+        }
+      }
+      if (
+        dayDelta === curr.dayDelta &&
+        moved === curr.moved &&
+        hoverGroupId === curr.hoverGroupId
+      ) {
+        return;
+      }
+      const next: DragState = { ...curr, dayDelta, moved, hoverGroupId };
+      dragRef.current = next;
+      setDragState(next);
+    }
+    function onUp() {
+      const curr = dragRef.current;
+      if (!curr) return;
+      // Rydd cursor og state først, så popup/refresh fyrer på neste tick
+      dragRef.current = null;
+      setDragState(null);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      if (curr.moved) {
+        const newGroupId =
+          curr.hoverGroupId !== undefined
+            ? curr.hoverGroupId
+            : curr.originGroupId;
+        const newStart = dateFromDayIdx(curr.originStartDayIdx + curr.dayDelta);
+        const newEnd = dateFromDayIdx(curr.originEndDayIdx + curr.dayDelta);
+        const sameDates =
+          curr.dayDelta === 0 && newGroupId === curr.originGroupId;
+        if (!sameDates) {
+          runAction(() =>
+            moveScheduleEntry({
+              id: curr.entryId,
+              start_date: newStart,
+              end_date: newEnd,
+              group_id: newGroupId,
+            }),
+          );
+        }
+      } else {
+        const entry = entries.find((e) => e.id === curr.entryId);
+        if (entry) setSelectedEntry(entry);
+      }
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries, startDate]);
 
   return (
     <>
@@ -475,6 +578,7 @@ export function GanttBoard({
             return (
               <div
                 key={lane.id ?? "no-group"}
+                data-lane-key={lane.id ?? "__no_group__"}
                 className="flex border-b border-border relative"
                 style={{ height: `${laneHeight}px` }}
               >
@@ -572,24 +676,48 @@ export function GanttBoard({
                     const barTop = isMulti
                       ? SUB_PAD_PX + entry.subRow * SUB_ROW_PX
                       : 8;
+                    const isDragging =
+                      dragState?.entryId === entry.id && dragState.moved;
+                    const dragLeftDelta = isDragging
+                      ? dragState!.dayDelta * DAY_PX
+                      : 0;
                     return (
                       <button
                         type="button"
                         key={entry.id}
-                        onClick={() => setSelectedEntry(entry)}
+                        onPointerDown={(e) => {
+                          if (entry.locked) return;
+                          if (e.button !== 0) return; // bare venstreklikk
+                          e.preventDefault();
+                          commitDrag({
+                            entryId: entry.id,
+                            originStartDayIdx: dayIndex(entry.start_date),
+                            originEndDayIdx: dayIndex(entry.end_date),
+                            originGroupId: entry.group_id,
+                            startMouseX: e.clientX,
+                            startMouseY: e.clientY,
+                            dayDelta: 0,
+                            hoverGroupId: undefined,
+                            moved: false,
+                          });
+                          document.body.style.cursor = "grabbing";
+                          document.body.style.userSelect = "none";
+                        }}
                         title={`${title}${projNum ? ` (#${projNum})` : ""} — ${entry.start_date} → ${entry.end_date}${lockedText}\n${tr("gantt_tooltip_click", locale)}`}
                         style={{
                           position: "absolute",
                           top: barTop,
                           height: `${barHeight}px`,
-                          left: `${offset + 2}px`,
+                          left: `${offset + 2 + dragLeftDelta}px`,
                           width: `${width}px`,
                           background: bgColor,
                           borderRadius: "6px",
                           border: "none",
                           boxShadow: entry.locked
                             ? `inset 0 0 0 2px ${colors.ring}, 0 2px 6px rgba(0,0,0,0.25)`
-                            : `0 2px 6px rgba(0,0,0,0.25)`,
+                            : isDragging
+                              ? `0 4px 12px rgba(0,0,0,0.45), 0 0 0 2px rgba(255,255,255,0.35)`
+                              : `0 2px 6px rgba(0,0,0,0.25)`,
                           color: "#fff",
                           padding: isMulti ? "1px 6px" : "4px 8px",
                           fontSize: isMulti ? "10px" : "11px",
@@ -598,11 +726,23 @@ export function GanttBoard({
                           alignItems: "center",
                           gap: "4px",
                           textAlign: "left",
-                          cursor: "pointer",
+                          cursor: entry.locked
+                            ? "not-allowed"
+                            : isDragging
+                              ? "grabbing"
+                              : "grab",
                           overflow: "hidden",
                           whiteSpace: "nowrap",
                           textOverflow: "ellipsis",
-                          opacity: entry.status === "done" ? 0.65 : 1,
+                          opacity: isDragging
+                            ? 0.85
+                            : entry.status === "done"
+                              ? 0.65
+                              : 1,
+                          zIndex: isDragging ? 20 : 1,
+                          touchAction: "none",
+                          transition: isDragging ? "none" : "left 0.12s ease",
+                          userSelect: "none",
                         }}
                       >
                         {entry.locked && <span>🔒</span>}
