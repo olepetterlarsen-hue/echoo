@@ -1,5 +1,4 @@
-// Next.js 16 client-side instrumentation entry point.
-// Initialiserer Sentry i nettleseren hvis NEXT_PUBLIC_SENTRY_DSN er satt.
+// Sentry-init for browser/klient. Kjøres av Next.js på sidens første load.
 
 import * as Sentry from "@sentry/nextjs";
 
@@ -9,12 +8,13 @@ if (dsn) {
   Sentry.init({
     dsn,
     environment: process.env.NODE_ENV ?? "development",
+    integrations: [Sentry.replayIntegration()],
     tracesSampleRate: 0.1,
-    // Echoo håndterer norsk persondata — ingen automatisk PII-fangst
-    sendDefaultPii: false,
-    // Lavere replay-frekvens i prod — vi vil bare ha det ved feil
+    // Session replay: kun ved errors (10% av feil-sessions), aldri proaktivt
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 0.1,
+    // Echoo håndterer norsk persondata — ikke automatisk fang PII
+    sendDefaultPii: false,
   });
 }
 
