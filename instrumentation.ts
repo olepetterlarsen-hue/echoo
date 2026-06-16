@@ -7,8 +7,13 @@ export async function register() {
     try {
       const dsn = process.env.SENTRY_DSN;
       if (!dsn) return;
-      // @ts-expect-error - opt-in dependency
-      const Sentry = await import("@sentry/nextjs");
+      // Skjul spesifikatoren fra Turbopack static analysis — uten dette
+      // feiler bundleren med "Module not found" når pakka ikke er installert
+      // (Sentry er opt-in).
+      const dyn = new Function("m", "return import(m)") as (
+        m: string,
+      ) => Promise<{ init?: (o: Record<string, unknown>) => void }>;
+      const Sentry = await dyn("@sentry/nextjs");
       Sentry.init?.({
         dsn,
         environment: process.env.NODE_ENV ?? "development",

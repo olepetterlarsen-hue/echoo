@@ -44,14 +44,19 @@ export async function createAdminClient() {
       "SUPABASE_SERVICE_ROLE_KEY mangler. Sjekk Netlify Environment variables.",
     );
   }
-  const cookieStore = await cookies();
+  // KRITISK: ikke videreformidle brukerens cookies. Når en innlogget bruker
+  // har en sb-access-token-cookie og vi sender den til Supabase sammen med
+  // service-role-nøkkelen, evaluerer Supabase RLS som om brukeren er auth'et
+  // — service-role-bypassen forsvinner. Det førte til at /team-dashbordet
+  // bare viste data fra Ole Petters egen OPCOM-org i stedet for cross-tenant.
+  // Returner tom cookies-array så klienten kjører ren service-role.
   return createServerClient<Database>(
     url,
     serviceKey,
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll();
+          return [];
         },
         setAll() {
           // Admin client doesn't manage user sessions.
