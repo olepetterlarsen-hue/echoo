@@ -28,10 +28,26 @@ export async function createClient() {
 }
 
 export async function createAdminClient() {
+  // Eksplisitt sjekk så vi får tydelig feilmelding hvis env-varen mangler i
+  // prod (Netlify). Uten denne ville Supabase-klienten bli initialisert med
+  // undefined, og alle queries returnerer stille tomme resultater — som tar
+  // timesvis å feilsøke.
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url) {
+    throw new Error(
+      "NEXT_PUBLIC_SUPABASE_URL mangler. Sjekk Netlify Environment variables.",
+    );
+  }
+  if (!serviceKey) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY mangler. Sjekk Netlify Environment variables.",
+    );
+  }
   const cookieStore = await cookies();
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    url,
+    serviceKey,
     {
       cookies: {
         getAll() {
