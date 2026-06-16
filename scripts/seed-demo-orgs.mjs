@@ -163,6 +163,105 @@ const RORLEGGER = {
   ],
 };
 
+// ============================================================================
+// Felles utvidelser — kursbevis, stoffkartotek, avvik, ISO
+// ============================================================================
+
+// Felles kursbevis-mal — assignes til hver bruker med variert utløpsdato
+const CERTIFICATES_TEMPLATE = [
+  { name: "FSE 2024", issuer: "Trainor", validMonths: 12, daysFromIssue: -180 },
+  { name: "Førstehjelp", issuer: "Røde Kors", validMonths: 36, daysFromIssue: -200 },
+  { name: "Varme arbeider", issuer: "Norsk Brannvern", validMonths: 60, daysFromIssue: -400 },
+  { name: "Arbeid i høyden", issuer: "Trainor", validMonths: 24, daysFromIssue: -300 },
+];
+
+// Stoffkartotek-eksempler per bransje
+const SUBSTANCES_ELEKTRO = [
+  { name: "Kontaktrens KR-505", manufacturer: "CRC Industries", cas_number: "64742-49-0", usage_area: "Service og vedlikehold", storage_location: "Verkstedsbil", ghs_pictograms: ["GHS02","GHS07"], hazard_statements: "H222: Ekstremt brannfarlig aerosol. H319: Gir alvorlig øyeirritasjon.", precautionary_measures: "Bruk vernebriller. Ikke spray mot åpen flamme." },
+  { name: "Loddetinn 60/40", manufacturer: "Stannol", cas_number: "7440-31-5", usage_area: "Loddearbeid på el-anlegg", storage_location: "Verksted hylle B3", ghs_pictograms: ["GHS08","GHS09"], hazard_statements: "H360: Kan skade forplantningsevne eller foster. H410: Meget giftig for vannlevende organismer.", precautionary_measures: "Bruk avtrekk. Hudkontakt unngås." },
+  { name: "Isolerolje Shell Diala S4 ZX-I", manufacturer: "Shell", cas_number: "64742-54-7", usage_area: "Transformatorer", storage_location: "Container utenfor verksted", ghs_pictograms: ["GHS07","GHS09"], hazard_statements: "H315: Gir hudirritasjon. H411: Giftig for vannlevende organismer.", precautionary_measures: "Bruk hansker. Forhindre utslipp i avløp." },
+  { name: "Silikon spray WD-40", manufacturer: "WD-40 Company", cas_number: "64742-47-8", usage_area: "Smøring av låser og bevegelige deler", storage_location: "Verkstedsbil", ghs_pictograms: ["GHS02","GHS07"], hazard_statements: "H222: Ekstremt brannfarlig aerosol.", precautionary_measures: "Beholder under trykk — beskytt mot sollys." },
+];
+
+const SUBSTANCES_TOMRER = [
+  { name: "Trelim PVAc D3", manufacturer: "Casco", cas_number: "9003-20-7", usage_area: "Sammenfesting av treverk", storage_location: "Verksted lager", ghs_pictograms: [], hazard_statements: "Ikke klassifisert som farlig.", precautionary_measures: "Oppbevares utilgjengelig for barn." },
+  { name: "Tre-impregnering Sioo", manufacturer: "Sioo Wood Protection", cas_number: "1310-58-3", usage_area: "Utvendig kledning", storage_location: "Garasje", ghs_pictograms: ["GHS05","GHS07"], hazard_statements: "H315: Hudirritasjon. H318: Alvorlig øyeskade.", precautionary_measures: "Bruk vernebriller og hansker." },
+  { name: "Treolje gulv Trip Trap", manufacturer: "Trip Trap", cas_number: "8001-26-1", usage_area: "Innvendige tregulv", storage_location: "Hylle inne i bil", ghs_pictograms: ["GHS02"], hazard_statements: "H226: Brannfarlig væske og damp.", precautionary_measures: "Selvantenningsfare ved kluter — kluter i vann." },
+];
+
+const SUBSTANCES_RORLEGGER = [
+  { name: "Loddepasta CU-XSn", manufacturer: "Sanha", cas_number: "7440-50-8", usage_area: "Lodding av kobberør", storage_location: "Verkstedsbil", ghs_pictograms: ["GHS07"], hazard_statements: "H315: Hudirritasjon. H319: Øyeirritasjon.", precautionary_measures: "Vask hender etter bruk." },
+  { name: "Gjengetape PTFE", manufacturer: "Würth", usage_area: "Tetning av gjenger", storage_location: "Verkstedsbil", ghs_pictograms: [], hazard_statements: "Ikke klassifisert.", precautionary_measures: "Ingen særlige tiltak." },
+  { name: "Avløpsåpner Klorinator", manufacturer: "Lilleborg", cas_number: "1310-73-2", usage_area: "Åpning av tette avløp", storage_location: "Garasje låst skap", ghs_pictograms: ["GHS05","GHS08"], hazard_statements: "H290: Korrosivt for metaller. H314: Gir alvorlige etseskader på hud og øyne.", precautionary_measures: "Bruk fullt verneutstyr. Aldri bland med syre." },
+  { name: "Silikon-tetningsmasse våtrom", manufacturer: "Sika", cas_number: "70131-67-8", usage_area: "Bad og kjøkken", storage_location: "Verkstedsbil", ghs_pictograms: ["GHS07"], hazard_statements: "H317: Kan forårsake allergisk hudreaksjon.", precautionary_measures: "Bruk hansker." },
+];
+
+// Avvik-eksempler per org
+const DEVIATIONS_ELEKTRO = [
+  { projectNum: "2026-1003", title: "Feil dimensjonert kabel på kurs K14", severity: "hoey", status: "apen", description: "Under installasjon ble det oppdaget at kabel er 2,5mm² der det er prosjektert 4mm². Må byttes." },
+  { projectNum: "2026-1001", title: "Manglende jordfeilbryter på utebelysning", severity: "middels", status: "under_arbeid", description: "Befaring viser at utebelysningskurs ikke har jordfeilbryter installert. Må ettermonteres før idriftsetting." },
+  { projectNum: "2026-1007", title: "Feilbestilt UPS-modul", severity: "lav", status: "lukket", description: "Bestilte 5kVA, men behovet er 10kVA. Returnert til leverandør, ny på vei.", resolution: "Bestilling endret til 10kVA, leveringstid 2 uker." },
+];
+
+const DEVIATIONS_TOMRER = [
+  { projectNum: "2026-2001", title: "Feil i tegninger — vindusplassering", severity: "middels", status: "apen", description: "Arkitekttegning viser vindu 120cm fra hjørne, men byggemelding er 150cm. Avklart med arkitekt." },
+];
+
+const DEVIATIONS_RORLEGGER = [
+  { projectNum: "2026-3003", title: "Lekkasje i hovedstigerør gymsal — vannskade på rom under", severity: "hoey", status: "under_arbeid", description: "Stort vannutslipp pga sprukken kobberrør. Stengeventil var defekt. Vannskade meldt til forsikring." },
+  { projectNum: "2026-3001", title: "Asbest oppdaget i isolering rundt rør", severity: "hoey", status: "apen", description: "Under demontering av gammelt rør ble det funnet asbestholdig isolering. Arbeid stoppet. Asbestsanering må gjennomføres først." },
+];
+
+// Required courses (org-spesifikke)
+const REQUIRED_COURSES_ELEKTRO = [
+  { name: "FSE 2024", description: "Forskrift om sikkerhet ved arbeid i og drift av elektriske anlegg", validity_months: 12, category: "Elsikkerhet" },
+  { name: "Førstehjelp", description: "Grunnleggende førstehjelp", validity_months: 36, category: "HMS" },
+  { name: "Varme arbeider", description: "Sertifikat for varme arbeider", validity_months: 60, category: "HMS" },
+  { name: "Arbeid i høyden", description: "Fallsikring og arbeid i høyden", validity_months: 24, category: "HMS" },
+];
+
+const REQUIRED_COURSES_TOMRER = [
+  { name: "Varme arbeider", description: "Sertifikat for varme arbeider", validity_months: 60, category: "HMS" },
+  { name: "Arbeid i høyden", description: "Fallsikring og stillas", validity_months: 24, category: "HMS" },
+  { name: "Førstehjelp", description: "Grunnleggende førstehjelp", validity_months: 36, category: "HMS" },
+];
+
+const REQUIRED_COURSES_RORLEGGER = [
+  { name: "Sentralvarme grunnkurs", description: "Grunnleggende sentralvarmeanlegg", validity_months: null, category: "Fag" },
+  { name: "Førstehjelp", description: "Grunnleggende førstehjelp", validity_months: 36, category: "HMS" },
+  { name: "Varme arbeider", description: "Sertifikat for varme arbeider", validity_months: 60, category: "HMS" },
+];
+
+// ISO-data kun for Elektro (har has_iso_addon = true)
+const ISO_OBJECTIVES_ELEKTRO = [
+  { kind: "quality", title: "Reduser kundeklager med 20%", description: "Bedre rutinene for sluttkontroll og innkjøp.", target_value: "≤ 4 klager", unit: "antall", baseline_value: 5 },
+  { kind: "environment", title: "Reduser energiforbruk på verksted 10%", description: "LED-konvertering + smart styring.", target_value: "≤ 9 000 kWh/år", unit: "kWh", baseline_value: 10000 },
+  { kind: "quality", title: "100% av FSE-kurs gyldig hos alle elektrikere", description: "Følge opp utløpsdatoer månedlig.", target_value: "100%", unit: "%", baseline_value: 80 },
+];
+
+const ENV_ASPECTS_ELEKTRO = [
+  { title: "Avhending av kabelrester", description: "Kobber + plast — restavfall fra installasjoner.", category: "waste", lifecycle: "normal", frequency_score: 5, severity_score: 2 },
+  { title: "Drivstoffbruk firmabiler", description: "12 kjøretøy, hovedsakelig dieselbiler.", category: "energy", lifecycle: "normal", frequency_score: 5, severity_score: 4 },
+  { title: "Utslipp av kjølemiddel ved varmepumpe-arbeid", description: "Skjer ved demontering — sertifisert personell håndterer.", category: "emissions_air", lifecycle: "abnormal", frequency_score: 2, severity_score: 5 },
+];
+
+ELEKTRO.certificates = CERTIFICATES_TEMPLATE;
+ELEKTRO.substances = SUBSTANCES_ELEKTRO;
+ELEKTRO.deviations = DEVIATIONS_ELEKTRO;
+ELEKTRO.required_courses = REQUIRED_COURSES_ELEKTRO;
+ELEKTRO.iso_objectives = ISO_OBJECTIVES_ELEKTRO;
+ELEKTRO.env_aspects = ENV_ASPECTS_ELEKTRO;
+
+TOMRER.certificates = CERTIFICATES_TEMPLATE.slice(1); // ingen FSE
+TOMRER.substances = SUBSTANCES_TOMRER;
+TOMRER.deviations = DEVIATIONS_TOMRER;
+TOMRER.required_courses = REQUIRED_COURSES_TOMRER;
+
+RORLEGGER.certificates = CERTIFICATES_TEMPLATE.slice(1); // ingen FSE
+RORLEGGER.substances = SUBSTANCES_RORLEGGER;
+RORLEGGER.deviations = DEVIATIONS_RORLEGGER;
+RORLEGGER.required_courses = REQUIRED_COURSES_RORLEGGER;
+
 const DEMO_ORGS = [ELEKTRO, TOMRER, RORLEGGER];
 
 // ============================================================================
@@ -412,6 +511,132 @@ async function seedOrg(demo) {
     taskCount++;
   }
   console.log(`  ✓ ${taskCount} oppgaver`);
+
+  // 9. Kursbevis (certificates) — alle profiler får et komplett sett
+  const allProfileIds = [adminUserId, ...teamUserIds.map((t) => t.id)];
+  let certCount = 0;
+  for (const profileId of allProfileIds) {
+    for (const c of demo.certificates ?? []) {
+      const issuedDate = isoDate(c.daysFromIssue);
+      const expiresDate = c.validMonths
+        ? isoDate(c.daysFromIssue + c.validMonths * 30)
+        : null;
+      const { error } = await admin.from("certificates").insert({
+        organization_id: orgId,
+        profile_id: profileId,
+        name: c.name,
+        issuer: c.issuer,
+        issued_date: issuedDate,
+        expires_date: expiresDate,
+        file_path: `demo/${profileId}/${c.name.replace(/\s+/g, "-")}.pdf`,
+      });
+      if (error) throw new Error(`cert ${c.name}: ${error.message}`);
+      certCount++;
+    }
+  }
+  console.log(`  ✓ ${certCount} kursbevis (${allProfileIds.length} brukere × ${(demo.certificates ?? []).length} kurs)`);
+
+  // 10. Required courses (kompetansematrise)
+  let rcCount = 0;
+  for (const rc of demo.required_courses ?? []) {
+    const { error } = await admin.from("required_courses").insert({
+      organization_id: orgId,
+      name: rc.name,
+      description: rc.description,
+      validity_months: rc.validity_months,
+      category: rc.category,
+      is_active: true,
+      created_by: adminUserId,
+    });
+    if (error) throw new Error(`required_course ${rc.name}: ${error.message}`);
+    rcCount++;
+  }
+  console.log(`  ✓ ${rcCount} obligatoriske kurs`);
+
+  // 11. Stoffkartotek
+  let substCount = 0;
+  for (const s of demo.substances ?? []) {
+    const { error } = await admin.from("substances").insert({
+      organization_id: orgId,
+      name: s.name,
+      manufacturer: s.manufacturer ?? null,
+      cas_number: s.cas_number ?? null,
+      usage_area: s.usage_area ?? null,
+      storage_location: s.storage_location ?? null,
+      ghs_pictograms: s.ghs_pictograms ?? [],
+      hazard_statements: s.hazard_statements ?? null,
+      precautionary_measures: s.precautionary_measures ?? null,
+      created_by: adminUserId,
+    });
+    if (error) throw new Error(`substance ${s.name}: ${error.message}`);
+    substCount++;
+  }
+  console.log(`  ✓ ${substCount} stoffer i kartotek`);
+
+  // 12. Avvik
+  let devCount = 0;
+  for (const d of demo.deviations ?? []) {
+    const { error } = await admin.from("deviations").insert({
+      organization_id: orgId,
+      project_id: projectIds[d.projectNum],
+      title: d.title,
+      description: d.description,
+      severity: d.severity,
+      status: d.status,
+      resolution: d.resolution ?? null,
+      reported_by: adminUserId,
+      assigned_to:
+        teamUserIds.length > 0 ? teamUserIds[0].id : adminUserId,
+    });
+    if (error) throw new Error(`deviation ${d.title}: ${error.message}`);
+    devCount++;
+  }
+  if (devCount > 0) console.log(`  ✓ ${devCount} avvik`);
+
+  // 13. ISO — kun for orgs med has_iso_addon
+  if (demo.has_iso_addon) {
+    let isoCount = 0;
+    for (const obj of demo.iso_objectives ?? []) {
+      const { error } = await admin.from("iso_objectives").insert({
+        organization_id: orgId,
+        kind: obj.kind,
+        title: obj.title,
+        description: obj.description,
+        target_value: obj.target_value,
+        unit: obj.unit,
+        baseline_value: obj.baseline_value,
+        created_by: adminUserId,
+      });
+      if (error) throw new Error(`iso_obj ${obj.title}: ${error.message}`);
+      isoCount++;
+    }
+    for (const a of demo.env_aspects ?? []) {
+      const { error } = await admin.from("env_aspects").insert({
+        organization_id: orgId,
+        title: a.title,
+        description: a.description,
+        category: a.category,
+        lifecycle: a.lifecycle,
+        frequency_score: a.frequency_score,
+        severity_score: a.severity_score,
+        created_by: adminUserId,
+      });
+      if (error) throw new Error(`env_aspect ${a.title}: ${error.message}`);
+      isoCount++;
+    }
+    // En planlagt internrevisjon
+    const { error: auditErr } = await admin.from("audit_plans").insert({
+      organization_id: orgId,
+      title: "Internrevisjon Q3 2026 — Dokumentstyring",
+      scope: "ISO 9001 punkt 7.5: kontroll av dokumenter og registreringer",
+      auditor_id: adminUserId,
+      planned_date: isoDate(45),
+      created_by: adminUserId,
+    });
+    if (auditErr) throw new Error(`audit_plan: ${auditErr.message}`);
+    isoCount++;
+    console.log(`  ✓ ${isoCount} ISO-elementer (mål, miljøaspekter, internrevisjon)`);
+  }
 
   return { orgId, adminEmail: demo.email };
 }
