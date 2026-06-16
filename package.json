@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test:isolation": "node scripts/tenant-isolation-test.mjs",
-    "stripe:setup": "node scripts/setup-stripe-products.mjs"
+    "stripe:setup": "node scripts/setup-stripe-products.mjs",
+    "seed:demo": "node scripts/seed-demo-orgs.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
