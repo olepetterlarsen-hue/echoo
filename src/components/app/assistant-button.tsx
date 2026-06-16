@@ -11,26 +11,33 @@ import {
   HardHat,
   BookOpen,
   Send,
+  Rocket,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   askAvvikAssistant,
   askSjaAssistant,
   askIsoVeileder,
+  askOnboarding,
 } from "@/app/(app)/actions/assistant";
 import type { AvvikDraft } from "@/lib/ai/skills/avvik";
 import type { SjaDraft } from "@/lib/ai/skills/sja";
 import type { IsoMessage } from "@/lib/ai/skills/iso";
+import type {
+  OnboardingMessage,
+  OnboardingProgress,
+} from "@/lib/ai/skills/onboarding";
 import { MarkdownMini } from "@/components/app/markdown-mini";
 
-type Skill = "avvik" | "sja" | "iso";
+type Skill = "onboarding" | "avvik" | "sja" | "iso";
 
 const AVVIK_DRAFT_KEY = "echoo:avvik_draft";
 
 export function AssistantButton() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [skill, setSkill] = useState<Skill>("avvik");
+  const [skill, setSkill] = useState<Skill>("onboarding");
   const [input, setInput] = useState("");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +46,10 @@ export function AssistantButton() {
   const [avvikDraft, setAvvikDraft] = useState<AvvikDraft | null>(null);
   const [sjaDraft, setSjaDraft] = useState<SjaDraft | null>(null);
   const [isoMessages, setIsoMessages] = useState<IsoMessage[]>([]);
+  const [onboardingMessages, setOnboardingMessages] = useState<OnboardingMessage[]>([]);
+  const [onboardingProgress, setOnboardingProgress] = useState<OnboardingProgress | null>(null);
   const isoBottomRef = useRef<HTMLDivElement | null>(null);
+  const onboardingBottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -53,8 +63,10 @@ export function AssistantButton() {
   useEffect(() => {
     if (skill === "iso") {
       isoBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    } else if (skill === "onboarding") {
+      onboardingBottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [isoMessages, skill]);
+  }, [isoMessages, onboardingMessages, skill]);
 
   function onSubmit() {
     setError(null);
@@ -88,7 +100,7 @@ export function AssistantButton() {
         }
         setSjaDraft(res.draft);
         setInput("");
-      } else {
+      } else if (skill === "iso") {
         if (!text) return;
         const newMessages: IsoMessage[] = [
           ...isoMessages,
@@ -102,6 +114,29 @@ export function AssistantButton() {
           return;
         }
         setIsoMessages([
+          ...newMessages,
+          { role: "assistant", content: res.reply },
+        ]);
+      } else {
+        // onboarding
+        if (!text && onboardingMessages.length > 0) return;
+        const userMsg: OnboardingMessage = {
+          role: "user",
+          content: text || "Hjelp meg komme i gang.",
+        };
+        const newMessages: OnboardingMessage[] = [
+          ...onboardingMessages,
+          userMsg,
+        ];
+        setOnboardingMessages(newMessages);
+        setInput("");
+        const res = await askOnboarding({ messages: newMessages });
+        if (res.error || !res.reply) {
+          setError(res.error ?? "Klarte ikke svare.");
+          return;
+        }
+        if (res.progress) setOnboardingProgress(res.progress);
+        setOnboardingMessages([
           ...newMessages,
           { role: "assistant", content: res.reply },
         ]);
@@ -125,7 +160,11 @@ export function AssistantButton() {
     setInput("");
     if (skill === "avvik") setAvvikDraft(null);
     else if (skill === "sja") setSjaDraft(null);
-    else setIsoMessages([]);
+    else if (skill === "iso") setIsoMessages([]);
+    else if (skill === "onboarding") {
+      setOnboardingMessages([]);
+      setOnboardingProgress(null);
+    }
   }
 
   const placeholder = (() => {
@@ -139,11 +178,16 @@ export function AssistantButton() {
         ? "Hva vil du justere? (f.eks. \"legg til at det er trangt arbeidsrom\")"
         : "Beskriv jobben: hva, hvor, energistatus…";
     }
-    return "Spør ISO-veilederen… (f.eks. \"hva kreves for ledelsens gjennomgang?\")";
+    if (skill === "iso") {
+      return "Spør ISO-veilederen… (f.eks. \"hva kreves for ledelsens gjennomgang?\")";
+    }
+    return onboardingMessages.length === 0
+      ? "Start her, eller skriv litt om bransjen din…"
+      : "Skriv tilbake…";
   })();
 
   const submitLabel = (() => {
-    if (pending) return skill === "iso" ? "Sender…" : "Genererer…";
+    if (pending) return skill === "avvik" || skill === "sja" ? "Genererer…" : "Sender…";
     if (skill === "avvik") return avvikDraft ? "Oppdater utkast" : "Lag utkast";
     if (skill === "sja") return sjaDraft ? "Oppdater SJA" : "Lag SJA-utkast";
     return "Send";
@@ -187,6 +231,12 @@ export function AssistantButton() {
 
             <div className="flex border-b border-border">
               <SkillTab
+                active={skill === "onboarding"}
+                onClick={() => setSkill("onboarding")}
+                icon={<Rocket className="size-3.5" />}
+                label="Kom-i-gang"
+              />
+              <SkillTab
                 active={skill === "avvik"}
                 onClick={() => setSkill("avvik")}
                 icon={<AlertTriangle className="size-3.5" />}
@@ -207,6 +257,14 @@ export function AssistantButton() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {skill === "onboarding" && (
+                <OnboardingContent
+                  messages={onboardingMessages}
+                  progress={onboardingProgress}
+                  pending={pending}
+                  bottomRef={onboardingBottomRef}
+                />
+              )}
               {skill === "avvik" && <AvvikContent draft={avvikDraft} />}
               {skill === "sja" && <SjaContent draft={sjaDraft} />}
               {skill === "iso" && (
@@ -615,6 +673,95 @@ function ClarifyingQuestions({ list }: { list: string[] }) {
           <li key={i}>{q}</li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+const ONBOARDING_STEPS_UI: { id: string; label: string }[] = [
+  { id: "kunde", label: "Opprett din første kunde" },
+  { id: "prosjekt", label: "Opprett ditt første prosjekt" },
+  { id: "team", label: "Inviter en kollega" },
+  { id: "kompetanse", label: "Last opp et kursbevis" },
+  { id: "rutine", label: "Aktiver HMS-rutiner" },
+  { id: "dokument", label: "Lag første dokument-utkast" },
+];
+
+function OnboardingContent({
+  messages,
+  progress,
+  pending,
+  bottomRef,
+}: {
+  messages: OnboardingMessage[];
+  progress: OnboardingProgress | null;
+  pending: boolean;
+  bottomRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const completed = progress?.completed_steps ?? [];
+  const doneCount = completed.length;
+  const totalCount = ONBOARDING_STEPS_UI.length;
+  return (
+    <div className="space-y-4">
+      {/* Progress-bar med stegene */}
+      <div className="border border-border rounded-md p-3 bg-card/50 space-y-2">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-medium text-text-1">Din fremgang</span>
+          <span className="text-text-3">
+            {doneCount} / {totalCount} fullført
+          </span>
+        </div>
+        <div className="h-1.5 rounded-full bg-card overflow-hidden">
+          <div
+            className="h-full bg-orange transition-all"
+            style={{ width: `${(doneCount / totalCount) * 100}%` }}
+          />
+        </div>
+        <ul className="text-xs space-y-0.5 mt-2">
+          {ONBOARDING_STEPS_UI.map((s) => {
+            const done = completed.includes(s.id as never);
+            return (
+              <li
+                key={s.id}
+                className={`flex items-center gap-1.5 ${done ? "text-text-3 line-through" : "text-text-2"}`}
+              >
+                {done ? (
+                  <CheckCircle2 className="size-3 text-green shrink-0" />
+                ) : (
+                  <span className="size-3 rounded-full border border-text-3 shrink-0" />
+                )}
+                <span className="truncate">{s.label}</span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      {messages.length === 0 ? (
+        <div className="text-sm text-text-2 space-y-2">
+          <p>
+            <strong>Velkommen til Echoo</strong> 👋
+          </p>
+          <p>
+            Jeg er din kom-i-gang-veileder. Trykk Send for å starte, eller
+            skriv litt om bedriften din først — bransje, antall ansatte,
+            hva som er viktigst å få på plass. Jeg foreslår steg etter steg
+            tilpasset deg.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {messages.map((m, i) => (
+            <MessageBubble key={i} message={m} />
+          ))}
+          {pending && (
+            <div className="text-xs text-text-3 italic flex items-center gap-2">
+              <span className="size-1.5 rounded-full bg-orange animate-pulse" />
+              Tenker…
+            </div>
+          )}
+        </div>
+      )}
+      <div ref={bottomRef} />
     </div>
   );
 }
