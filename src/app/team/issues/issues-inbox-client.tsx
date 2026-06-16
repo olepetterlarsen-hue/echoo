@@ -262,7 +262,7 @@ function IssueRow({
   const [notes, setNotes] = useState(row.admin_notes ?? "");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [savedAt, setSavedAt] = useState<number>(0);
+  const [justSaved, setJustSaved] = useState(false);
 
   function save(nextStatus?: Status) {
     setError(null);
@@ -278,7 +278,8 @@ function IssueRow({
         return;
       }
       if (nextStatus) setStatus(nextStatus);
-      setSavedAt(Date.now());
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 3000);
       router.refresh();
     });
   }
@@ -475,7 +476,7 @@ function IssueRow({
                 Åpne igjen
               </button>
             )}
-            {savedAt > 0 && Date.now() - savedAt < 3000 && (
+            {justSaved && (
               <span className="text-sm text-green">Lagret ✓</span>
             )}
           </div>

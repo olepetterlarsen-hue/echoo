@@ -86,10 +86,11 @@ export default async function TeamIssuesPage({ searchParams }: PageProps) {
   const highOpen = rows.filter(
     (r) => r.status !== "lukket" && r.severity === "hoey",
   ).length;
+  // Server component — Date.now() er trygg (kjører én gang per request).
+  // eslint-disable-next-line react-hooks/purity
+  const sevenDaysAgoMs = Date.now() - 7 * 24 * 3600 * 1000;
   const last7d = rows.filter(
-    (r) =>
-      new Date(r.created_at).getTime() >
-      Date.now() - 7 * 24 * 3600 * 1000,
+    (r) => new Date(r.created_at).getTime() > sevenDaysAgoMs,
   ).length;
 
   return (

@@ -167,15 +167,17 @@ export function GanttBoard({
     dragRef.current = next;
     setDragState(next);
   }
-  const [editMode, setEditMode] = useState(false);
-  // Persisterer edit-modus så reload (etter handling) ikke kaster oss ut
-  useEffect(() => {
+  // Persisterer edit-modus så reload (etter handling) ikke kaster oss ut.
+  // Bruker lazy useState-initializer istedet for useEffect — leser
+  // sessionStorage én gang på mount uten cascade-render.
+  const [editMode, setEditMode] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
     try {
-      if (sessionStorage.getItem("opcontrol-gantt-edit") === "1") setEditMode(true);
+      return sessionStorage.getItem("opcontrol-gantt-edit") === "1";
     } catch {
-      /* ignore */
+      return false;
     }
-  }, []);
+  });
   useEffect(() => {
     try {
       if (editMode) sessionStorage.setItem("opcontrol-gantt-edit", "1");
@@ -192,12 +194,11 @@ export function GanttBoard({
   function runAction(fn: () => Promise<{ error?: string; ok?: boolean } | undefined>) {
     setEditError(null);
     setEditInfo(null);
-    const t0 = Date.now();
     startTransition(async () => {
+      const t0 = Date.now();
       try {
         const res = await fn();
         const dt = Date.now() - t0;
-        // eslint-disable-next-line no-console
         console.log("[gantt action] result", { dt, res });
         if (res && "error" in res && res.error) {
           setEditError(res.error);
@@ -216,24 +217,28 @@ export function GanttBoard({
           router.refresh();
         }
       } catch (e) {
-        // eslint-disable-next-line no-console
         console.error("[gantt action] threw", e);
         setEditError("EXCEPTION: " + (e instanceof Error ? e.message : String(e)));
       }
     });
   }
 
-  // Persistente synlige team (lagres pr browser)
-  const [visibleTeams, setVisibleTeams] = useState<Set<string>>(
-    () => new Set(groups.map((g) => g.id).concat("__no_group__")),
-  );
-  useEffect(() => {
+  // Persistente synlige team (lagres pr browser). Lazy useState-initializer
+  // leser sessionStorage på mount uten å trigge en setState-i-effect-cascade.
+  const [visibleTeams, setVisibleTeams] = useState<Set<string>>(() => {
+    const fallback = new Set(groups.map((g) => g.id).concat("__no_group__"));
+    if (typeof window === "undefined") return fallback;
     try {
       const saved = sessionStorage.getItem(VISIBLE_TEAMS_KEY);
-      if (saved) {
-        const arr = JSON.parse(saved) as string[];
-        setVisibleTeams(new Set(arr));
-      }
+      if (!saved) return fallback;
+      return new Set(JSON.parse(saved) as string[]);
+    } catch {
+      return fallback;
+    }
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
       // Restore scroll-posisjon etter Gantt-reload (rediger rekkefølge)
       const savedY = sessionStorage.getItem("opcontrol-gantt-scroll-y");
       if (savedY) {

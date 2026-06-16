@@ -10,7 +10,6 @@ import {
   Circle,
   Phone,
   CreditCard,
-  Mail,
 } from "lucide-react";
 
 interface Profile {

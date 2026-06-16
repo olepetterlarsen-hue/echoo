@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardBody } from "@/components/ui/card";
@@ -66,44 +66,45 @@ export function NewDeviationForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>({
-    project_id: "",
-    title: "",
-    description: "",
-    severity: "middels",
-    assigned_to: "",
-    root_cause_category: "",
-    root_cause_description: "",
-    containment_action: "",
-    corrective_action: "",
-    responsible_id: "",
-    due_date: "",
-    ai_generated: false,
-  });
-
-  // Last AI-utkast fra localStorage hvis vi kom fra assistenten
-  useEffect(() => {
-    if (!fromAi) return;
+  // Initial form-state — last AI-utkast fra localStorage via useState-
+  // initializer hvis vi kom fra assistenten. Lazy init kjører kun på mount,
+  // ikke i en useEffect — det unngår cascade-render og lint-warning.
+  const [form, setForm] = useState<FormState>(() => {
+    const base: FormState = {
+      project_id: "",
+      title: "",
+      description: "",
+      severity: "middels",
+      assigned_to: "",
+      root_cause_category: "",
+      root_cause_description: "",
+      containment_action: "",
+      corrective_action: "",
+      responsible_id: "",
+      due_date: "",
+      ai_generated: false,
+    };
+    if (!fromAi || typeof window === "undefined") return base;
     try {
       const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
-      if (!raw) return;
+      if (!raw) return base;
       const draft = JSON.parse(raw) as AvvikDraft;
-      setForm((f) => ({
-        ...f,
-        title: draft.title || f.title,
-        description: draft.description || f.description,
-        severity: draft.severity || f.severity,
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      return {
+        ...base,
+        title: draft.title || base.title,
+        description: draft.description || base.description,
+        severity: draft.severity || base.severity,
         root_cause_category: draft.root_cause_category || "",
         root_cause_description: draft.root_cause_description || "",
         containment_action: draft.containment_action || "",
         corrective_action: draft.corrective_action || "",
         ai_generated: true,
-      }));
-      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      };
     } catch {
-      // ignore
+      return base;
     }
-  }, [fromAi]);
+  });
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();

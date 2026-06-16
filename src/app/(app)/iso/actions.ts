@@ -15,22 +15,6 @@ import type {
   ManagementReviewStatus,
 } from "@/lib/types/database";
 
-/**
- * Server-side guard for ISO actions: hver server action under /iso/ kaller
- * dette først. Returnerer en feilmelding hvis ISO-tilgang ikke er gyldig
- * (manglende add-on, locked, etc.). Vi pakker som returverdi i stedet for
- * throw for å holde mønsteret konsistent med eksisterende actions.
- */
-async function guardIsoOrThrow(): Promise<{
-  supabase: Awaited<ReturnType<typeof createClient>>;
-  orgId: string;
-  userId: string;
-}> {
-  const supabase = await createClient();
-  const { orgId, userId } = await getOrgAndUser(supabase);
-  await requireIsoPlan(supabase, orgId);
-  return { supabase, orgId, userId };
-}
 
 /* ============================================================
    ISO 9001 7.5 — Dokumentstyring (godkjenningsflyt)

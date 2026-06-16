@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { DEFAULT_MAP_COLOR } from "@/lib/customer-colors";
 import { useLocale } from "@/lib/i18n";
 import { tr } from "@/lib/i18n/strings";
@@ -194,9 +195,9 @@ export function MapClient({ markers }: Props) {
     return (
       <div className="flex items-center justify-center h-full text-text-3 text-sm">
         {tr("map_empty", locale)}{" "}
-        <a href="/sites/ny" className="text-orange hover:underline ml-1">
+        <Link href="/sites/ny" className="text-orange hover:underline ml-1">
           {tr("map_empty_create", locale)}
-        </a>
+        </Link>
         .
       </div>
     );

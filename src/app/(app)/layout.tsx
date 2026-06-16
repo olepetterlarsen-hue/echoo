@@ -72,12 +72,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .eq("id", profile.organization_id)
     .single();
 
+  // Server component — Date.now() er trygg her (kjører én gang per request).
+  // eslint-disable-next-line react-hooks/purity
+  const nowMs = Date.now();
   const locked = orgFull
     ? !!orgFull.locked_at ||
       ((orgFull.subscription_status !== "active" &&
         orgFull.subscription_status !== "trialing") &&
         orgFull.trial_ends_at !== null &&
-        new Date(orgFull.trial_ends_at).getTime() < Date.now())
+        new Date(orgFull.trial_ends_at).getTime() < nowMs)
     : false;
 
   const locale = await getLocale();

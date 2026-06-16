@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Bug,
   Users,
-  ExternalLink,
 } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

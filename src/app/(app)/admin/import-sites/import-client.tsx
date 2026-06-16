@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -140,12 +141,12 @@ export function ImportSitesClient() {
                 </details>
               )}
               <div className="flex gap-3 mt-2">
-                <a href="/kunder" className="text-orange hover:underline text-sm">
+                <Link href="/kunder" className="text-orange hover:underline text-sm">
                   {tr("adm_imp_see_customers", locale)}
-                </a>
-                <a href="/sites" className="text-orange hover:underline text-sm">
+                </Link>
+                <Link href="/sites" className="text-orange hover:underline text-sm">
                   {tr("adm_imp_see_sites", locale)}
-                </a>
+                </Link>
               </div>
             </div>
           </CardBody>

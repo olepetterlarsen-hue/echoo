@@ -32,21 +32,24 @@ export function NewScheduleForm({
     { value: "revisit", label: tr("gantt_status_revisit", locale) },
   ];
 
-  const today = new Date().toISOString().split("T")[0];
-  const inOneWeek = new Date(Date.now() + 7 * 86400000)
-    .toISOString()
-    .split("T")[0];
-
-  const [form, setForm] = useState({
-    project_id: defaultProjectId ?? "",
-    group_id: "",
-    title: "",
-    start_date: today,
-    end_date: inOneWeek,
-    status: "planned",
-    locked: false,
-    locked_reason: "",
-    notes: "",
+  // Brukes som default-verdier til state-en under — capture én gang via
+  // useState-initializer så Date.now() ikke kalles på hver render.
+  const [form, setForm] = useState(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const inOneWeek = new Date(Date.now() + 7 * 86400000)
+      .toISOString()
+      .split("T")[0];
+    return {
+      project_id: defaultProjectId ?? "",
+      group_id: "",
+      title: "",
+      start_date: today,
+      end_date: inOneWeek,
+      status: "planned",
+      locked: false,
+      locked_reason: "",
+      notes: "",
+    };
   });
 
   function update<K extends keyof typeof form>(

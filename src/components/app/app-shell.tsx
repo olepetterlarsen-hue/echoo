@@ -30,7 +30,6 @@ import {
   Mail,
   ListChecks,
   Layers,
-  FileStack,
   FlaskConical,
   Bug,
   Sparkles,
@@ -189,17 +188,29 @@ export function AppShell({
   const router = useRouter();
 
   // Aktiv modus utledes først fra URL (hvis ruten er modus-eksklusiv),
-  // ellers fra localStorage. Default: planner.
+  // ellers fra localStorage. Default: planner. Lazy initializer leser
+  // localStorage på mount uten setState-in-effect.
   const pathMode = getModeFromPath(pathname);
-  const [storedMode, setStoredMode] = useState<AppMode>("planner");
+  const [storedMode, setStoredMode] = useState<AppMode>(() => {
+    if (typeof window === "undefined") return "planner";
+    try {
+      const saved = localStorage.getItem(MODE_STORAGE_KEY);
+      if (saved === "planner" || saved === "kvalitet") return saved;
+    } catch {
+      /* ignore */
+    }
+    return "planner";
+  });
+  // Når URL endrer modus, oppdater storedMode + persistens. Pathname-change
+  // er ekstern signal — setState er korrekt her, lint-rule er for streng.
   useEffect(() => {
-    const saved = localStorage.getItem(MODE_STORAGE_KEY);
-    if (saved === "planner" || saved === "kvalitet") setStoredMode(saved);
-  }, []);
-  useEffect(() => {
-    if (pathMode) {
-      setStoredMode(pathMode);
+    if (!pathMode) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStoredMode((curr) => (curr === pathMode ? curr : pathMode));
+    try {
       localStorage.setItem(MODE_STORAGE_KEY, pathMode);
+    } catch {
+      /* ignore */
     }
   }, [pathMode]);
 

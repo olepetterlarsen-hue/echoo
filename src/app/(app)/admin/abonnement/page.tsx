@@ -63,12 +63,14 @@ export default async function AbonnementPage({ searchParams }: PageProps) {
     // Hvis Checkout feilet, fall gjennom til normal side med feilmelding.
   }
 
+  // Server component — Date.now() er trygg her (kjører én gang per request).
+  // eslint-disable-next-line react-hooks/purity
+  const nowMs = Date.now();
   const trialRemainingDays = org.trial_ends_at
     ? Math.max(
         0,
         Math.ceil(
-          (new Date(org.trial_ends_at).getTime() - Date.now()) /
-            (24 * 3600 * 1000),
+          (new Date(org.trial_ends_at).getTime() - nowMs) / (24 * 3600 * 1000),
         ),
       )
     : 0;

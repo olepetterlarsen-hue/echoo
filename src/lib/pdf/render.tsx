@@ -31,7 +31,6 @@ import type {
   YnaResponse,
 } from "@/lib/document-templates/types";
 
-const ORANGE = "#F47920";
 const SECTION_BG = "#F4F4F4";
 const BORDER = "#D0D0D0";
 const TEXT_DARK = "#111111";

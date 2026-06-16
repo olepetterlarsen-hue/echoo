@@ -32,11 +32,14 @@ export default async function IsoLayout({
     .eq("id", orgId)
     .single();
 
+  // Server component — Date.now() er trygg her (kjører én gang per request).
+  // eslint-disable-next-line react-hooks/purity
+  const nowMs = Date.now();
   const trialActive =
     org?.subscription_status === "trialing" ||
     (org?.plan_tier === "trial" &&
       org.trial_ends_at &&
-      new Date(org.trial_ends_at).getTime() > Date.now());
+      new Date(org.trial_ends_at).getTime() > nowMs);
 
   const isoAvailable =
     !!org && !org.locked_at && (trialActive || !!org.has_iso_addon);

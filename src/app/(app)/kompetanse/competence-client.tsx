@@ -300,10 +300,11 @@ function CertCard({
 }) {
   const { locale } = useLocale();
   const [pending, startTransition] = useTransition();
-  const expiresAt = cert.expires_date ? new Date(cert.expires_date) : null;
-  const daysLeft = expiresAt
-    ? Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-    : null;
+  const daysLeft = useMemo(() => {
+    if (!cert.expires_date) return null;
+    const exp = new Date(cert.expires_date);
+    return Math.ceil((exp.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  }, [cert.expires_date]);
 
   function onDownload() {
     startTransition(async () => {
