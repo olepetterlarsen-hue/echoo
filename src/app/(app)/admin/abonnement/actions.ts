@@ -93,7 +93,7 @@ export async function startCheckout(args: {
       // eller via API.
       allow_promotion_codes: true,
       line_items: lineItems,
-      success_url: `${origin}/admin/abonnement?status=success`,
+      success_url: `${origin}/onboarding/velkommen`,
       cancel_url: `${origin}/admin/abonnement?status=cancel`,
       metadata: { organization_id: ctx.orgId },
       subscription_data: {

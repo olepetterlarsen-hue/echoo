@@ -10,6 +10,7 @@ import {
   FolderOpen,
   CheckCircle2,
   CheckSquare,
+  Plus,
 } from "lucide-react";
 import { TASK_STATUS_LABELS } from "@/lib/types/database";
 import { getServerT } from "@/lib/i18n/server";
@@ -92,13 +93,22 @@ export default async function MyTasksPage() {
 
   return (
     <div className="px-6 py-6 max-w-5xl mx-auto space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold">{t("task_my_title")}</h1>
-        <p className="text-text-2 text-sm">
-          {totalTasks === 0
-            ? t("task_my_nothing_subtitle")
-            : t("task_my_count_subtitle").replace("{n}", String(totalTasks))}
-        </p>
+      <header className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold">{t("task_my_title")}</h1>
+          <p className="text-text-2 text-sm">
+            {totalTasks === 0
+              ? t("task_my_nothing_subtitle")
+              : t("task_my_count_subtitle").replace("{n}", String(totalTasks))}
+          </p>
+        </div>
+        <Link
+          href="/oppgaver/ny"
+          className="inline-flex items-center gap-2 px-4 h-10 rounded-md bg-orange text-bg font-medium text-sm hover:bg-orange/90"
+        >
+          <Plus className="size-4" />
+          {t("task_new")}
+        </Link>
       </header>
 
       {totalTasks === 0 ? (

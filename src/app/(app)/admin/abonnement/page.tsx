@@ -79,6 +79,11 @@ export default async function AbonnementPage({ searchParams }: PageProps) {
     org.subscription_status === "active" ||
     org.subscription_status === "trialing";
 
+  const inTrial =
+    !org.stripe_customer_id &&
+    org.subscription_status !== "active" &&
+    trialRemainingDays > 0;
+
   return (
     <div className="px-6 py-6 max-w-3xl mx-auto space-y-6">
       <header>
@@ -93,6 +98,23 @@ export default async function AbonnementPage({ searchParams }: PageProps) {
           <CheckCircle2 className="size-4 mt-0.5 shrink-0" />
           Takk! Status oppdateres når Stripe-webhook bekrefter.
         </div>
+      )}
+
+      {/* Trial-banner: fremhever at bruker har full tilgang gratis i prøveperioden */}
+      {inTrial && (
+        <Card>
+          <CardBody className="bg-orange/5 border-l-4 border-orange space-y-1">
+            <div className="text-base font-semibold text-orange">
+              Du tester Echoo gratis i {trialRemainingDays}{" "}
+              {trialRemainingDays === 1 ? "dag" : "dager"} til
+            </div>
+            <p className="text-sm text-text-2">
+              Du har full tilgang til alt i prøveperioden — ingen betaling
+              kreves før du velger å fortsette. Du kan abonnere når som helst
+              med knappene nederst på siden.
+            </p>
+          </CardBody>
+        </Card>
       )}
 
       <Card>
@@ -112,11 +134,6 @@ export default async function AbonnementPage({ searchParams }: PageProps) {
               </div>
             </div>
             <div className="text-right">
-              {trialRemainingDays > 0 && !hasActiveSub && (
-                <div className="text-sm text-orange">
-                  {trialRemainingDays} dager igjen av prøveperioden
-                </div>
-              )}
               {org.has_iso_addon && (
                 <Badge tone="orange">ISO 9001-modul</Badge>
               )}
@@ -136,48 +153,68 @@ export default async function AbonnementPage({ searchParams }: PageProps) {
         </CardBody>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardBody className="space-y-2">
-            <h3 className="font-semibold">Echoo Elektro + HMS</h3>
-            <div className="text-2xl font-semibold">
-              2 990 kr<span className="text-sm font-normal text-text-3">/mnd</span>
-            </div>
-            <ul className="text-sm text-text-2 space-y-1 list-disc list-inside">
-              <li>Prosjekter, avvik, dokumentsignering</li>
-              <li>Kompetanse og stoffkartotek</li>
-              <li>Rutiner og HMS-håndbok</li>
-              <li>Ubegrenset antall brukere</li>
-            </ul>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody className="space-y-2">
-            <h3 className="font-semibold">
-              ISO 9001-modul{" "}
-              <span className="text-xs text-text-3">(add-on)</span>
-            </h3>
-            <div className="text-2xl font-semibold">
-              +2 000 kr<span className="text-sm font-normal text-text-3">/mnd</span>
-            </div>
-            <ul className="text-sm text-text-2 space-y-1 list-disc list-inside">
-              <li>Dokumentstyringsflyt (under_review → approved)</li>
-              <li>CAPA-prosess på avvik</li>
-              <li>Internrevisjon + ledelsens gjennomgang</li>
-              <li>Mål-/KPI-register + miljøaspekter + etterlevelse</li>
-            </ul>
-          </CardBody>
-        </Card>
+      {/* Pakkene — bevisst lagt opp som "basis-pakke" + "valgfritt tillegg"
+          for at brukerne skal forstå at ISO ikke er obligatorisk */}
+      <div className="space-y-3">
+        <div className="text-sm text-text-2">
+          Echoo har én basis-pakke som dekker det daglige elektroarbeidet, og
+          en valgfri ISO-modul du kan slå på når du har behov for et formelt
+          kvalitetssystem.
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardBody className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Basis-pakke</h3>
+                <Badge tone="orange">Anbefalt for alle</Badge>
+              </div>
+              <div className="text-xs text-text-3">Echoo Elektro + HMS</div>
+              <div className="text-2xl font-semibold">
+                2 990 kr<span className="text-sm font-normal text-text-3">/mnd</span>
+              </div>
+              <ul className="text-sm text-text-2 space-y-1 list-disc list-inside">
+                <li>Prosjekter, avvik, dokumentsignering</li>
+                <li>Kompetanse og stoffkartotek</li>
+                <li>Rutiner og HMS-håndbok</li>
+                <li>Ubegrenset antall brukere</li>
+              </ul>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">
+                  ISO 9001-modul
+                </h3>
+                <Badge tone="neutral">Valgfritt tillegg</Badge>
+              </div>
+              <div className="text-xs text-text-3">
+                Krever basis-pakke. Kan slås på/av når som helst.
+              </div>
+              <div className="text-2xl font-semibold">
+                +2 000 kr<span className="text-sm font-normal text-text-3">/mnd</span>
+              </div>
+              <ul className="text-sm text-text-2 space-y-1 list-disc list-inside">
+                <li>Dokumentstyringsflyt (under_review → approved)</li>
+                <li>CAPA-prosess på avvik</li>
+                <li>Internrevisjon + ledelsens gjennomgang</li>
+                <li>Mål-/KPI-register + miljøaspekter + etterlevelse</li>
+              </ul>
+            </CardBody>
+          </Card>
+        </div>
       </div>
 
       <Card>
         <CardBody className="space-y-3">
-          <h3 className="font-semibold">Handlinger</h3>
+          <h3 className="font-semibold">
+            {!org.stripe_customer_id ? "Klar til å abonnere?" : "Endre abonnement"}
+          </h3>
           {!org.stripe_customer_id ? (
             <>
               <p className="text-sm text-text-2">
-                Du er på 14 dagers prøveperiode. Velg abonnement før
-                prøveperioden utløper for å beholde tilgang.
+                Velg om du vil starte med basis-pakken alene eller inkludere
+                ISO-modulen fra dag én. Du kan endre dette når som helst senere.
               </p>
               <div className="flex flex-wrap gap-2">
                 <form action={checkoutAndRedirect}>
@@ -185,7 +222,7 @@ export default async function AbonnementPage({ searchParams }: PageProps) {
                     type="submit"
                     variant={prefill === "iso" ? "secondary" : "primary"}
                   >
-                    Start Echoo Elektro + HMS
+                    Abonner — kun basis-pakke
                   </Button>
                 </form>
                 <form action={checkoutAndRedirect}>
@@ -194,7 +231,7 @@ export default async function AbonnementPage({ searchParams }: PageProps) {
                     type="submit"
                     variant={prefill === "iso" ? "primary" : "secondary"}
                   >
-                    Start med ISO-modul
+                    Abonner — basis + ISO-modul
                   </Button>
                 </form>
               </div>
