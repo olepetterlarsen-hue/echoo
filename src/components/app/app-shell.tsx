@@ -43,6 +43,8 @@ import { getModeFromPath, type AppMode } from "@/lib/app-modes";
 import { MyTasksBadge } from "@/components/app/my-tasks-badge";
 import { ReportIssueButton } from "@/components/app/report-issue-button";
 import { AssistantButton } from "@/components/app/assistant-button";
+import { ThemeToggle } from "@/components/app/theme-toggle";
+import type { Theme } from "@/lib/theme/actions";
 
 interface NavItem {
   href: string;
@@ -161,6 +163,7 @@ const MODE_STORAGE_KEY = "echoo-app-mode";
 interface Props {
   profile: Profile;
   initialLocale: Locale;
+  initialTheme: Theme;
   children: ReactNode;
   locked?: boolean;
   isEchooStaff?: boolean;
@@ -169,6 +172,7 @@ interface Props {
 export function AppShell({
   profile,
   initialLocale,
+  initialTheme,
   children,
   locked,
   isEchooStaff,
@@ -351,6 +355,7 @@ export function AppShell({
           </nav>
 
           <div className="border-t border-border p-3 space-y-1">
+            <ThemeToggle initialTheme={initialTheme} />
             <button
               onClick={toggleLocale}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-text-2 hover:text-text-1 hover:bg-card"

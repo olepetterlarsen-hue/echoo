@@ -1,6 +1,50 @@
 @import "tailwindcss";
 
+/*
+  Tema-system: Lin (lys, default) og Dark (mørk, valgbart).
+  Aktivt tema styres av data-theme-attributt på <html>. Default er Lin —
+  uten data-theme-attributt brukes :root-verdiene.
+
+  Semantiske status-farger (blue, green, red, yellow, purple) er like i
+  begge tema. Bare bg/surface/card/border/text/orange-aksenten endres.
+*/
+
 @theme {
+  /* Default-tema er Lin — disse verdiene gjelder med mindre brukeren har
+     aktivt valgt Dark. Tailwind v4 bruker @theme-verdier som default for
+     bg-/text-/border-utility-klassene. */
+
+  --color-bg: #dcd7ca;
+  --color-surface: #e7e3d8;
+  --color-card: #f5f2ea;
+  --color-card-hover: #efebe1;
+  --color-border: #cdc6b4;
+  --color-border-strong: #bcb4a0;
+
+  --color-orange: #a4682f;
+  --color-orange-soft: #b8814a;
+  --color-orange-dim: rgba(164, 104, 47, 0.12);
+
+  /* Semantiske farger — like i begge tema */
+  --color-blue: #3B82F6;
+  --color-blue-soft: #60A5FA;
+  --color-green: #10B981;
+  --color-red: #EF4444;
+  --color-yellow: #F59E0B;
+  --color-purple: #A855F7;
+
+  --color-text-1: #211f1a;
+  --color-text-2: #5b574c;
+  --color-text-3: #8c8676;
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-archivo), var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+}
+
+/* Dark-tema: aktiveres når brukeren har valgt mørk via toggle.
+   Overskriver alle de visuelle tokens — semantiske farger er uendret. */
+[data-theme="dark"] {
   --color-bg: #0D0D0D;
   --color-surface: #131316;
   --color-card: #18181C;
@@ -11,21 +55,17 @@
   --color-orange: #F47920;
   --color-orange-soft: #FF8F3F;
   --color-orange-dim: rgba(244, 121, 32, 0.12);
-  --color-blue: #3B82F6;
-  --color-blue-soft: #60A5FA;
-  --color-green: #10B981;
-  --color-red: #EF4444;
-  --color-yellow: #F59E0B;
-  --color-purple: #A855F7;
 
   --color-text-1: #F2F2F2;
   --color-text-2: #9A9AA4;
   --color-text-3: #58585F;
-
-  --font-sans: var(--font-inter), system-ui, sans-serif;
 }
 
 :root {
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
   color-scheme: dark;
 }
 
@@ -54,7 +94,7 @@ input, textarea, select {
 input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--color-orange);
-  box-shadow: 0 0 0 3px rgba(244, 121, 32, 0.15);
+  box-shadow: 0 0 0 3px var(--color-orange-dim);
 }
 
 input::placeholder, textarea::placeholder {

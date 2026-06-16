@@ -85,11 +85,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const locale = await getLocale();
   const isEchooStaff = profile.is_echoo_staff === true;
+  // Tema fra profil — fallback til "lin" hvis kolonnen mangler (før migration 062)
+  const profileTheme = (profile as { theme_preference?: "lin" | "dark" })
+    .theme_preference;
+  const initialTheme: "lin" | "dark" = profileTheme === "dark" ? "dark" : "lin";
 
   return (
     <AppShell
       profile={profile}
       initialLocale={locale}
+      initialTheme={initialTheme}
       locked={locked}
       isEchooStaff={isEchooStaff}
     >
