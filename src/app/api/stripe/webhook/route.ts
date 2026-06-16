@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/server";
 import { stripe, planFromSubscriptionItems } from "@/lib/stripe";
+import { captureException } from "@/lib/observability";
 
 /**
  * Stripe webhook. Raw body brukes til signaturverifisering.
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe().webhooks.constructEvent(body, sig, whSecret);
   } catch (e) {
-    console.error("[stripe-webhook] signaturfeil:", (e as Error).message);
+    captureException(e, { context: "stripe-webhook-signature" });
     return new Response("Invalid signature", { status: 400 });
   }
 
@@ -153,10 +154,11 @@ export async function POST(req: NextRequest) {
             },
           );
           if (ledgerErr) {
-            console.error(
-              "[stripe-webhook] commission ledger feil:",
-              ledgerErr.message,
-            );
+            captureException(ledgerErr, {
+              context: "stripe-webhook-commission-ledger",
+              orgId: org.id,
+              invoiceId: inv.id,
+            });
           } else if (ledgerResult === "recorded") {
             console.log(
               "[stripe-webhook] commission bokført for org",
@@ -174,7 +176,11 @@ export async function POST(req: NextRequest) {
         break;
     }
   } catch (e) {
-    console.error("[stripe-webhook] feil ved håndtering:", e);
+    captureException(e, {
+      context: "stripe-webhook-handler",
+      eventType: event.type,
+      eventId: event.id,
+    });
     return new Response("Handler error", { status: 500 });
   }
 

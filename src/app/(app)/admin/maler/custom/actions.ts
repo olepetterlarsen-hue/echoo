@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrgId } from "@/lib/supabase/org";
 import { guardOrgWritable } from "@/lib/billing";
 import { getServerT } from "@/lib/i18n/server";
+import { captureException } from "@/lib/observability";
 import type { CustomTemplate } from "@/lib/types/database";
 import type { TemplateDef, SectionDef } from "@/lib/document-templates/types";
 
@@ -223,7 +224,10 @@ REGLER:
 
     const textBlock = message.content.find((b) => b.type === "text");
     if (!textBlock || textBlock.type !== "text") {
-      console.error("[AI] Ingen tekst i respons:", JSON.stringify(message.content));
+      captureException(new Error("AI response missing text block"), {
+        context: "ai-template-generation",
+        content: JSON.stringify(message.content).slice(0, 500),
+      });
       return { error: t("adm_tpl_cust_ai_no_text") };
     }
     let raw = textBlock.text.trim();
@@ -240,13 +244,19 @@ REGLER:
     try {
       parsed = JSON.parse(raw);
     } catch (parseErr) {
-      console.error("[AI] JSON-parse feilet. Rå respons:", raw.slice(0, 500));
+      captureException(parseErr, {
+        context: "ai-template-json-parse",
+        raw: raw.slice(0, 500),
+      });
       const msg = parseErr instanceof Error ? parseErr.message : "ukjent";
       return { error: t("adm_tpl_cust_ai_bad_json").replace("{msg}", msg) };
     }
 
     if (!parsed.title || !Array.isArray(parsed.sections)) {
-      console.error("[AI] Mangler title eller sections:", parsed);
+      captureException(new Error("AI response missing title or sections"), {
+        context: "ai-template-format",
+        parsed: JSON.stringify(parsed).slice(0, 500),
+      });
       return { error: t("adm_tpl_cust_ai_bad_format") };
     }
 
@@ -260,7 +270,7 @@ REGLER:
     };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Ukjent feil";
-    console.error("[AI] Generering feilet:", e);
+    captureException(e, { context: "ai-template-generation-outer" });
     return { error: t("adm_tpl_cust_ai_failed").replace("{msg}", msg) };
   }
 }

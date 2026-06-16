@@ -1,77 +1,40 @@
 /**
- * Tynn wrapper rundt Sentry. Bruker dynamisk import slik at appen
- * fungerer uten at @sentry/nextjs er installert — Sentry er opt-in:
+ * Tynn wrapper rundt Sentry. Hvis SENTRY_DSN ikke er satt blir alle
+ * kallene no-ops — trygt å kalle fra både server actions og klient.
  *
- *   npm install @sentry/nextjs
- *   sett SENTRY_DSN i .env / Netlify
- *
- * Hvis SENTRY_DSN ikke er satt eller pakka mangler, er alle kallene
- * no-ops. Det betyr at vi kan kalle captureException/captureMessage
- * trygt fra både server actions og klient.
+ * Init skjer i instrumentation.ts (server-side) og sentry.client.config.ts.
  */
 
-type SentryLike = {
-  init?: (options: Record<string, unknown>) => void;
-  captureException?: (e: unknown, ctx?: Record<string, unknown>) => string | void;
-  captureMessage?: (msg: string, level?: string) => string | void;
-  setUser?: (user: { id?: string; email?: string } | null) => void;
-};
+import * as Sentry from "@sentry/nextjs";
 
-let _sentry: SentryLike | null = null;
-let _loaded = false;
+const hasDsn = !!(
+  process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN
+);
 
-async function load(): Promise<SentryLike | null> {
-  if (_loaded) return _sentry;
-  _loaded = true;
-  const dsn = process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN;
-  if (!dsn) return null;
-  try {
-    // Skjul import fra bundleren — `import("@sentry/nextjs")` analyseres
-    // statisk av Turbopack/webpack og feiler ved build-tid hvis pakka ikke
-    // er installert, selv inni en try/catch. Function-constructor-trikset
-    // gjør spesifikatoren usynlig for static analysis.
-    const dyn = new Function("m", "return import(m)") as (
-      m: string,
-    ) => Promise<SentryLike>;
-    const mod = await dyn("@sentry/nextjs");
-    _sentry = mod as SentryLike;
-    if (typeof _sentry.init === "function") {
-      _sentry.init({
-        dsn,
-        environment: process.env.NODE_ENV ?? "development",
-        tracesSampleRate: 0.1,
-        // Echoo håndterer norsk persondata — vi vil ikke at PII skal lekke
-        sendDefaultPii: false,
-      });
-    }
-    return _sentry;
-  } catch {
-    return null;
-  }
-}
-
-export async function captureException(
+export function captureException(
   e: unknown,
   context?: Record<string, unknown>,
-): Promise<void> {
-  const s = await load();
-  s?.captureException?.(e, context);
+): void {
+  if (hasDsn) {
+    Sentry.captureException(e, context ? { extra: context } : undefined);
+  }
   // Også logg til stderr så Netlify/Vercel-loggene har det
   console.error("[capture]", e, context ?? "");
 }
 
-export async function captureMessage(
+export function captureMessage(
   message: string,
   level: "info" | "warning" | "error" = "info",
-): Promise<void> {
-  const s = await load();
-  s?.captureMessage?.(message, level);
+): void {
+  if (hasDsn) {
+    Sentry.captureMessage(message, level);
+  }
 }
 
-export async function setUser(user: {
-  id?: string;
-  email?: string;
-} | null): Promise<void> {
-  const s = await load();
-  s?.setUser?.(user);
+export function setUser(
+  user: { id?: string; email?: string } | null,
+): void {
+  if (hasDsn) {
+    Sentry.setUser(user);
+  }
 }
