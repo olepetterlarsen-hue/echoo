@@ -26,8 +26,14 @@ async function load(): Promise<SentryLike | null> {
   const dsn = process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN;
   if (!dsn) return null;
   try {
-    // @ts-expect-error - dynamisk import, pakka kan mangle
-    const mod = await import("@sentry/nextjs");
+    // Skjul import fra bundleren — `import("@sentry/nextjs")` analyseres
+    // statisk av Turbopack/webpack og feiler ved build-tid hvis pakka ikke
+    // er installert, selv inni en try/catch. Function-constructor-trikset
+    // gjør spesifikatoren usynlig for static analysis.
+    const dyn = new Function("m", "return import(m)") as (
+      m: string,
+    ) => Promise<SentryLike>;
+    const mod = await dyn("@sentry/nextjs");
     _sentry = mod as SentryLike;
     if (typeof _sentry.init === "function") {
       _sentry.init({
