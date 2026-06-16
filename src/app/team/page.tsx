@@ -89,20 +89,22 @@ export default async function TeamDashboardPage() {
   // Siste 5 signups
   const recent = all.slice(0, 5);
 
-  // Feilrapporter — siste åpne på tvers av kunder
-  const { data: latestIssues } = await admin
+  // Feilrapporter — siste på tvers av kunder, uansett status. Vi viser
+  // status-badge på hver rad og en total-fordeling i headeren, slik at
+  // åpne rapporter aldri "forsvinner" hvis noen flytter dem til
+  // under_arbeid/lukket.
+  const { data: latestIssues, error: issuesErr } = await admin
     .from("issue_reports")
     .select(
       "id, title, severity, status, page_url, created_at, organization_id, reported_by",
     )
-    .eq("status", "apen")
     .order("created_at", { ascending: false })
-    .limit(8);
+    .limit(10);
   const issuesList = (latestIssues ?? []) as Array<{
     id: string;
     title: string;
     severity: "lav" | "middels" | "hoey";
-    status: string;
+    status: "apen" | "under_arbeid" | "lukket";
     page_url: string | null;
     created_at: string;
     organization_id: string | null;
@@ -142,11 +144,27 @@ export default async function TeamDashboardPage() {
       ],
     ),
   );
-  const { count: totalOpenIssues } = await admin
-    .from("issue_reports")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "apen");
+  const [
+    { count: totalOpenIssues },
+    { count: totalInProgressIssues },
+    { count: totalClosedIssues },
+  ] = await Promise.all([
+    admin
+      .from("issue_reports")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "apen"),
+    admin
+      .from("issue_reports")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "under_arbeid"),
+    admin
+      .from("issue_reports")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "lukket"),
+  ]);
   const totalOpen = totalOpenIssues ?? 0;
+  const totalInProgress = totalInProgressIssues ?? 0;
+  const totalClosed = totalClosedIssues ?? 0;
 
   return (
     <div className="px-6 py-6 max-w-6xl mx-auto space-y-6">
@@ -188,15 +206,21 @@ export default async function TeamDashboardPage() {
 
       {/* Siste feilrapporter — flyttet opp så den er synlig uten å scrolle */}
       <Card>
-        <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-3">
-          <h2 className="text-base font-semibold flex items-center gap-2">
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-3 flex-wrap">
+          <h2 className="text-base font-semibold flex items-center gap-2 flex-wrap">
             <Bug className="size-4 text-orange" />
             Siste feilrapporter
-            {totalOpen > 0 && (
-              <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-orange/15 text-orange font-medium">
-                {totalOpen} åpne
+            <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-orange/15 text-orange font-medium">
+              {totalOpen} åpne
+            </span>
+            {totalInProgress > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-xs bg-yellow/15 text-yellow font-medium">
+                {totalInProgress} under arbeid
               </span>
             )}
+            <span className="px-2 py-0.5 rounded-full text-xs bg-card text-text-3 font-medium">
+              {totalClosed} lukket
+            </span>
           </h2>
           <Link
             href="/team/issues"
@@ -206,9 +230,13 @@ export default async function TeamDashboardPage() {
           </Link>
         </div>
         <CardBody className="!p-0">
-          {issuesList.length === 0 ? (
+          {issuesErr ? (
+            <div className="p-6 text-sm text-red bg-red/10">
+              Klarte ikke laste feilrapporter: {issuesErr.message}
+            </div>
+          ) : issuesList.length === 0 ? (
             <div className="p-6 text-center text-text-3 text-sm">
-              Ingen åpne feilrapporter. ✓
+              Ingen feilrapporter i databasen ennå.
             </div>
           ) : (
             <ul className="divide-y divide-border">
@@ -221,6 +249,18 @@ export default async function TeamDashboardPage() {
                     displayPath = i.page_url;
                   }
                 }
+                const statusLabel =
+                  i.status === "apen"
+                    ? "Åpen"
+                    : i.status === "under_arbeid"
+                      ? "Under arbeid"
+                      : "Lukket";
+                const statusClass =
+                  i.status === "apen"
+                    ? "bg-orange/15 text-orange"
+                    : i.status === "under_arbeid"
+                      ? "bg-yellow/15 text-yellow"
+                      : "bg-card text-text-3";
                 return (
                   <li key={i.id}>
                     <Link
@@ -237,8 +277,13 @@ export default async function TeamDashboardPage() {
                         }`}
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm text-text-1 truncate">
-                          {i.title}
+                        <div className="text-sm text-text-1 truncate flex items-center gap-2">
+                          <span className="truncate">{i.title}</span>
+                          <span
+                            className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${statusClass}`}
+                          >
+                            {statusLabel}
+                          </span>
                         </div>
                         <div className="text-xs text-text-3 truncate">
                           <span className="text-orange">
