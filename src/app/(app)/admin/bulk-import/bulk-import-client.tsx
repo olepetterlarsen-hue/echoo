@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/input";
 import {
   Download,
   Upload,
@@ -15,81 +14,102 @@ import {
   Users,
   FolderOpen,
   UserPlus,
+  FileSpreadsheet,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import {
   bulkImportCustomers,
   bulkImportProjects,
   bulkInviteUsers,
 } from "./actions";
-import { parseExcelOrCsv, indexFor } from "@/lib/import/tsv-parser";
 
-type Mode = "kunder" | "prosjekter" | "brukere";
+// ============================================================================
+// Felt-mapping per fane — header i Excel → felt i database
+// ============================================================================
 
-const MODES: { id: Mode; label: string; icon: typeof Users; help: string }[] = [
-  {
-    id: "kunder",
-    label: "Kunder",
-    icon: Users,
-    help:
-      "Importer kunder. Eneste obligatoriske felt er name. Eksisterende kunder med samme navn hoppes over.",
-  },
-  {
-    id: "prosjekter",
-    label: "Prosjekter",
-    icon: FolderOpen,
-    help:
-      "Importer prosjekter. project_number og title er obligatorisk. Eksisterende prosjektnumre hoppes over. Hvis customer_name matcher en kunde, knyttes prosjektet til den.",
-  },
-  {
-    id: "brukere",
-    label: "Brukere",
-    icon: UserPlus,
-    help:
-      "Inviter brukere på e-post. Hver bruker får en invitasjon. Tildelt rolle styres av role-kolonnen (default: elektriker).",
-  },
+const CUSTOMER_HEADERS = [
+  "customer_type",
+  "name",
+  "first_name",
+  "last_name",
+  "org_number",
+  "contact_person",
+  "email",
+  "phone",
+  "address",
+  "postal_code",
+  "city",
+  "notes",
 ];
 
-const HEADERS: Record<Mode, string[]> = {
-  kunder: [
-    "name",
-    "org_number",
-    "contact_person",
-    "email",
-    "phone",
-    "address",
-    "postal_code",
-    "city",
-    "notes",
-  ],
-  prosjekter: [
-    "project_number",
-    "title",
-    "customer_name",
-    "customer_org_number",
-    "customer_contact",
-    "customer_email",
-    "customer_phone",
-    "site_address",
-    "site_postal_code",
-    "site_city",
-    "status",
-    "scheduled_start_date",
-    "scheduled_end_date",
-    "notes",
-  ],
-  brukere: ["email", "full_name", "role", "phone"],
-};
+const PROJECT_HEADERS = [
+  "project_number",
+  "title",
+  "customer_name",
+  "customer_org_number",
+  "customer_contact",
+  "customer_email",
+  "customer_phone",
+  "site_address",
+  "site_postal_code",
+  "site_city",
+  "status",
+  "scheduled_start_date",
+  "scheduled_end_date",
+  "notes",
+];
+
+const USER_HEADERS = ["email", "first_name", "last_name", "role", "phone"];
+
+// Navn på sheets i den nedlastede malen
+const SHEET_NAMES = {
+  kunder: "Kunder",
+  prosjekter: "Prosjekter",
+  brukere: "Brukere",
+} as const;
+
+// ============================================================================
+// Types
+// ============================================================================
 
 interface ParsedRow {
   values: Record<string, string>;
   rowNum: number;
 }
 
+interface ParsedSheet {
+  rows: ParsedRow[];
+  expectedHeaders: string[];
+  headerWarning?: string;
+}
+
+interface ParsedFile {
+  kunder?: ParsedSheet;
+  prosjekter?: ParsedSheet;
+  brukere?: ParsedSheet;
+  fileError?: string;
+}
+
 interface RunResult {
   ok: true;
-  summary: string;
-  details: string[];
-  errors: string[];
+  summary: {
+    customers?: {
+      created: number;
+      skipped: number;
+      errors: string[];
+    };
+    projects?: {
+      created: number;
+      skipped: number;
+      customers_linked: number;
+      errors: string[];
+    };
+    users?: {
+      invited: number;
+      already_member: number;
+      errors: string[];
+    };
+  };
 }
 
 interface RunError {
@@ -97,91 +117,127 @@ interface RunError {
   error: string;
 }
 
-function parseTable(
-  text: string,
+// ============================================================================
+// Parser
+// ============================================================================
+
+function normalizeHeader(h: string): string {
+  return h.toLowerCase().trim().replace(/[\s./-]+/g, "_");
+}
+
+function parseSheet(
+  ws: XLSX.WorkSheet,
   expectedHeaders: string[],
-): { rows: ParsedRow[]; headerWarning?: string; error?: string } {
-  const trimmed = text.trim();
-  if (!trimmed) return { rows: [], error: "Ingen data." };
+): ParsedSheet | undefined {
+  const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, {
+    header: 1,
+    defval: "",
+    raw: false,
+  }) as string[][];
+  if (aoa.length === 0) return undefined;
 
-  const { headers, rows: rawRows } = parseExcelOrCsv(text);
-  if (headers.length === 0) return { rows: [], error: "Ingen rader." };
-
-  // Map header → kolonneindeks, fleksibelt
+  const rawHeaders = aoa[0].map((c) => normalizeHeader(String(c ?? "")));
+  // Map header-index → expected-felt
   const indexByField = new Map<string, number>();
   for (const field of expectedHeaders) {
-    const idx = indexFor(headers, [field]);
+    const idx = rawHeaders.indexOf(field);
     if (idx !== -1) indexByField.set(field, idx);
   }
-
-  if (indexByField.size === 0) {
-    return {
-      rows: [],
-      error:
-        "Fant ingen gyldige kolonneoverskrifter. Forventet en eller flere av: " +
-        expectedHeaders.join(", "),
-    };
-  }
+  if (indexByField.size === 0) return undefined;
 
   const usedIndices = new Set(indexByField.values());
-  const unknown = headers
+  const unknown = rawHeaders
     .map((h, i) => ({ h, i }))
     .filter(({ h, i }) => h && !usedIndices.has(i))
     .map(({ h }) => h);
   const headerWarning =
     unknown.length > 0
-      ? `Ukjente kolonner ignoreres: ${unknown.join(", ")}`
+      ? `Ukjente kolonner i fanen ignoreres: ${unknown.join(", ")}`
       : undefined;
 
-  const rows: ParsedRow[] = rawRows.map((cols, i) => {
+  const rows: ParsedRow[] = [];
+  for (let i = 1; i < aoa.length; i++) {
+    const cols = aoa[i];
+    if (!cols || cols.every((c) => !c || !String(c).trim())) continue;
     const values: Record<string, string> = {};
+    let hasAny = false;
     for (const [field, idx] of indexByField) {
-      values[field] = (cols[idx] ?? "").trim();
+      const v = String(cols[idx] ?? "").trim();
+      values[field] = v;
+      if (v) hasAny = true;
     }
-    return { values, rowNum: i + 2 }; // +1 for header, +1 for 1-indexed
-  });
+    if (hasAny) rows.push({ values, rowNum: i + 1 });
+  }
 
-  return { rows, headerWarning };
+  return { rows, expectedHeaders, headerWarning };
 }
+
+async function parseFile(file: File): Promise<ParsedFile> {
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: "array" });
+
+    const kunderSheet = wb.Sheets[SHEET_NAMES.kunder];
+    const prosjekterSheet = wb.Sheets[SHEET_NAMES.prosjekter];
+    const brukereSheet = wb.Sheets[SHEET_NAMES.brukere];
+
+    return {
+      kunder: kunderSheet ? parseSheet(kunderSheet, CUSTOMER_HEADERS) : undefined,
+      prosjekter: prosjekterSheet
+        ? parseSheet(prosjekterSheet, PROJECT_HEADERS)
+        : undefined,
+      brukere: brukereSheet ? parseSheet(brukereSheet, USER_HEADERS) : undefined,
+    };
+  } catch (e) {
+    return { fileError: (e as Error).message };
+  }
+}
+
+// ============================================================================
+// Komponent
+// ============================================================================
 
 export function BulkImportClient() {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("kunder");
-  const [text, setText] = useState("");
+  const [parsed, setParsed] = useState<ParsedFile | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<RunResult | RunError | null>(null);
 
-  const current = MODES.find((m) => m.id === mode)!;
-  const expectedHeaders = HEADERS[mode];
-  const parsed = text.trim() ? parseTable(text, expectedHeaders) : null;
-
-  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setText(String(reader.result ?? ""));
-      setResult(null);
-    };
-    reader.readAsText(file, "utf-8");
+    setFileName(file.name);
+    setResult(null);
+    const p = await parseFile(file);
+    setParsed(p);
     e.target.value = "";
   }
 
-  function onModeChange(m: Mode) {
-    setMode(m);
-    setText("");
+  function reset() {
+    setParsed(null);
+    setFileName(null);
     setResult(null);
   }
 
+  const totalRows =
+    (parsed?.kunder?.rows.length ?? 0) +
+    (parsed?.prosjekter?.rows.length ?? 0) +
+    (parsed?.brukere?.rows.length ?? 0);
+  const canImport = totalRows > 0 && !pending;
+
   function onImport() {
-    if (!parsed || parsed.error || parsed.rows.length === 0) return;
+    if (!parsed || totalRows === 0) return;
     setResult(null);
     startTransition(async () => {
-      try {
-        if (mode === "kunder") {
+      const summary: RunResult["summary"] = {};
+
+      // Kunder først — prosjekter kan så koble seg til
+      if (parsed.kunder && parsed.kunder.rows.length > 0) {
+        try {
           const res = await bulkImportCustomers({
-            rows: parsed.rows.map((r) => ({
-              name: r.values.name ?? "",
+            rows: parsed.kunder.rows.map((r) => ({
+              name: r.values.name ?? deriveNameFromPrivat(r.values),
               org_number: r.values.org_number,
               contact_person: r.values.contact_person,
               email: r.values.email,
@@ -193,18 +249,28 @@ export function BulkImportClient() {
             })),
           });
           if (res.error || !res.result) {
-            setResult({ ok: false, error: res.error ?? "Ukjent feil" });
-            return;
+            summary.customers = {
+              created: 0,
+              skipped: 0,
+              errors: [res.error ?? "Ukjent feil"],
+            };
+          } else {
+            summary.customers = res.result;
           }
-          setResult({
-            ok: true,
-            summary: `Opprettet ${res.result.created}, hoppet over ${res.result.skipped} duplikater.`,
-            details: [],
-            errors: res.result.errors,
-          });
-        } else if (mode === "prosjekter") {
+        } catch (e) {
+          summary.customers = {
+            created: 0,
+            skipped: 0,
+            errors: [(e as Error).message],
+          };
+        }
+      }
+
+      // Prosjekter
+      if (parsed.prosjekter && parsed.prosjekter.rows.length > 0) {
+        try {
           const res = await bulkImportProjects({
-            rows: parsed.rows.map((r) => ({
+            rows: parsed.prosjekter.rows.map((r) => ({
               project_number: r.values.project_number ?? "",
               title: r.values.title ?? "",
               customer_name: r.values.customer_name,
@@ -222,122 +288,139 @@ export function BulkImportClient() {
             })),
           });
           if (res.error || !res.result) {
-            setResult({ ok: false, error: res.error ?? "Ukjent feil" });
-            return;
+            summary.projects = {
+              created: 0,
+              skipped: 0,
+              customers_linked: 0,
+              errors: [res.error ?? "Ukjent feil"],
+            };
+          } else {
+            summary.projects = res.result;
           }
-          setResult({
-            ok: true,
-            summary: `Opprettet ${res.result.created} prosjekter, hoppet over ${res.result.skipped} duplikater, knyttet ${res.result.customers_linked} til eksisterende kunde.`,
-            details: [],
-            errors: res.result.errors,
-          });
-        } else {
+        } catch (e) {
+          summary.projects = {
+            created: 0,
+            skipped: 0,
+            customers_linked: 0,
+            errors: [(e as Error).message],
+          };
+        }
+      }
+
+      // Brukere SIST — failet bruker-import skal IKKE blokke kunder/prosjekter
+      // som allerede er kjørt. Vi merker feil og fortsetter.
+      if (parsed.brukere && parsed.brukere.rows.length > 0) {
+        try {
           const res = await bulkInviteUsers({
-            rows: parsed.rows.map((r) => ({
+            rows: parsed.brukere.rows.map((r) => ({
               email: r.values.email ?? "",
-              full_name: r.values.full_name,
+              full_name:
+                [r.values.first_name, r.values.last_name]
+                  .filter(Boolean)
+                  .join(" ") || undefined,
               role: r.values.role,
               phone: r.values.phone,
             })),
           });
           if (res.error || !res.result) {
-            setResult({ ok: false, error: res.error ?? "Ukjent feil" });
-            return;
+            summary.users = {
+              invited: 0,
+              already_member: 0,
+              errors: [res.error ?? "Ukjent feil"],
+            };
+          } else {
+            summary.users = res.result;
           }
-          setResult({
-            ok: true,
-            summary: `Invitert ${res.result.invited} brukere, ${res.result.already_member} var allerede medlem.`,
-            details: [],
-            errors: res.result.errors,
-          });
+        } catch (e) {
+          summary.users = {
+            invited: 0,
+            already_member: 0,
+            errors: [
+              `Bruker-invitasjoner feilet: ${(e as Error).message}. Kunder/prosjekter ble importert.`,
+            ],
+          };
         }
-        router.refresh();
-      } catch (e) {
-        setResult({ ok: false, error: (e as Error).message });
       }
+
+      setResult({ ok: true, summary });
+      router.refresh();
     });
   }
 
-  const canImport =
-    parsed && !parsed.error && parsed.rows.length > 0 && !pending;
-
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {MODES.map((m) => {
-          const Icon = m.icon;
-          const active = m.id === mode;
-          return (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => onModeChange(m.id)}
-              className={`inline-flex items-center gap-2 px-3 h-9 rounded-md text-sm border transition-colors ${
-                active
-                  ? "bg-orange text-bg border-orange"
-                  : "bg-card hover:bg-card-hover text-text-1 border-border"
-              }`}
-            >
-              <Icon className="size-4" />
-              {m.label}
-            </button>
-          );
-        })}
-      </div>
-
       <Card>
         <CardBody className="space-y-3">
-          <div className="text-sm text-text-2">{current.help}</div>
+          <p className="text-sm text-text-2">
+            Last ned malen (ett Excel-dokument med 3 faner: Kunder, Prosjekter,
+            Brukere). Fyll ut i Excel og last opp samme fil tilbake — alt
+            importeres i én operasjon. Tomme faner ignoreres.
+          </p>
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              href={`/admin/bulk-import/template/${mode}`}
+              href="/admin/bulk-import/template"
               className="inline-flex items-center gap-2 px-3 h-9 rounded-md text-sm bg-card hover:bg-card-hover text-text-1 border border-border"
             >
               <Download className="size-4" />
-              Last ned CSV-mal
+              Last ned Excel-mal (.xlsx)
             </Link>
-            <label className="inline-flex items-center gap-2 px-3 h-9 rounded-md text-sm bg-card hover:bg-card-hover text-text-1 border border-border cursor-pointer">
+            <label className="inline-flex items-center gap-2 px-3 h-9 rounded-md text-sm bg-orange/15 hover:bg-orange/25 text-orange border border-orange/30 cursor-pointer">
               <Upload className="size-4" />
-              Last opp CSV-fil
+              Last opp utfylt Excel-fil
               <input
                 type="file"
-                accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values"
+                accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 className="hidden"
                 onChange={onFileChange}
               />
             </label>
-            <span className="text-xs text-text-3">
-              Eller lim inn CSV / TSV under (kopier rett fra Excel).
-            </span>
+            {fileName && (
+              <span className="text-xs text-text-3 inline-flex items-center gap-1">
+                <FileSpreadsheet className="size-3.5" />
+                {fileName}
+              </span>
+            )}
           </div>
-          <Textarea
-            value={text}
-            onChange={(e) => {
-              setText(e.target.value);
-              setResult(null);
-            }}
-            rows={8}
-            placeholder={`${expectedHeaders.join(",")}\n…`}
-            className="font-mono text-xs"
-          />
         </CardBody>
       </Card>
 
-      {parsed && parsed.error && (
+      {parsed?.fileError && (
         <div className="text-sm text-red bg-red/10 border border-red/30 rounded px-3 py-2 flex items-start gap-2">
           <AlertCircle className="size-4 mt-0.5 shrink-0" />
-          <span>{parsed.error}</span>
+          <span>Klarte ikke lese filen: {parsed.fileError}</span>
         </div>
       )}
 
-      {parsed && !parsed.error && (
-        <Card>
-          <CardBody className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm">
-                <span className="font-medium">{parsed.rows.length}</span> rader
-                klar for import.
-              </div>
+      {parsed && !parsed.fileError && (
+        <>
+          <SheetSummary
+            icon={<Users className="size-4 text-orange" />}
+            label="Kunder"
+            sheet={parsed.kunder}
+            expectedHeaders={CUSTOMER_HEADERS}
+          />
+          <SheetSummary
+            icon={<FolderOpen className="size-4 text-orange" />}
+            label="Prosjekter"
+            sheet={parsed.prosjekter}
+            expectedHeaders={PROJECT_HEADERS}
+          />
+          <SheetSummary
+            icon={<UserPlus className="size-4 text-orange" />}
+            label="Brukere"
+            sheet={parsed.brukere}
+            expectedHeaders={USER_HEADERS}
+          />
+
+          <div className="flex items-center justify-between flex-wrap gap-3 pt-2">
+            <span className="text-sm text-text-2">
+              Totalt <span className="font-medium text-text-1">{totalRows}</span>{" "}
+              rader klar for import.
+            </span>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={reset} disabled={pending}>
+                Avbryt
+              </Button>
               <Button onClick={onImport} disabled={!canImport}>
                 {pending ? (
                   <>
@@ -347,49 +430,40 @@ export function BulkImportClient() {
                 ) : (
                   <>
                     <Upload className="size-4" />
-                    Importer
+                    Importer alt
                   </>
                 )}
               </Button>
             </div>
-            {parsed.headerWarning && (
-              <div className="text-xs text-text-3 italic">
-                {parsed.headerWarning}
-              </div>
-            )}
-            <PreviewTable
-              headers={expectedHeaders}
-              rows={parsed.rows.slice(0, 20)}
-            />
-            {parsed.rows.length > 20 && (
-              <div className="text-xs text-text-3">
-                Viser første 20 av {parsed.rows.length} rader.
-              </div>
-            )}
-          </CardBody>
-        </Card>
+          </div>
+        </>
       )}
 
       {result && (
         <Card>
-          <CardBody className="space-y-2">
+          <CardBody className="space-y-3">
             {result.ok ? (
               <>
-                <div className="flex items-start gap-2 text-sm">
-                  <CheckCircle2 className="size-4 text-green mt-0.5 shrink-0" />
-                  <span>{result.summary}</span>
-                </div>
-                {result.errors.length > 0 && (
-                  <div className="border-t border-border pt-2 space-y-1">
-                    <div className="text-xs font-medium text-text-2">
-                      Feil ({result.errors.length}):
-                    </div>
-                    <ul className="text-xs text-red space-y-0.5 max-h-48 overflow-auto">
-                      {result.errors.map((e, idx) => (
-                        <li key={idx}>{e}</li>
-                      ))}
-                    </ul>
-                  </div>
+                {result.summary.customers && (
+                  <ResultLine
+                    label="Kunder"
+                    summary={`Opprettet ${result.summary.customers.created}, hoppet over ${result.summary.customers.skipped} duplikater.`}
+                    errors={result.summary.customers.errors}
+                  />
+                )}
+                {result.summary.projects && (
+                  <ResultLine
+                    label="Prosjekter"
+                    summary={`Opprettet ${result.summary.projects.created}, hoppet over ${result.summary.projects.skipped} duplikater, koblet ${result.summary.projects.customers_linked} til eksisterende kunde.`}
+                    errors={result.summary.projects.errors}
+                  />
+                )}
+                {result.summary.users && (
+                  <ResultLine
+                    label="Brukere"
+                    summary={`Invitert ${result.summary.users.invited}, ${result.summary.users.already_member} var allerede medlem.`}
+                    errors={result.summary.users.errors}
+                  />
                 )}
               </>
             ) : (
@@ -405,6 +479,82 @@ export function BulkImportClient() {
   );
 }
 
+function deriveNameFromPrivat(v: Record<string, string>): string {
+  // Privatkunder kan ha tom 'name' og fornavn/etternavn fylt ut.
+  // Vi bygger visningsnavn fra dem for å oppfylle NOT NULL på customers.name.
+  const first = v.first_name?.trim();
+  const last = v.last_name?.trim();
+  if (first || last) return [first, last].filter(Boolean).join(" ");
+  return "";
+}
+
+function SheetSummary({
+  icon,
+  label,
+  sheet,
+  expectedHeaders,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  sheet: ParsedSheet | undefined;
+  expectedHeaders: string[];
+}) {
+  if (!sheet) {
+    return (
+      <Card>
+        <CardBody className="flex items-center justify-between gap-3 text-sm">
+          <div className="flex items-center gap-2 text-text-3">
+            {icon}
+            <span>
+              <span className="font-medium text-text-2">{label}</span> — fanen
+              mangler eller ble ikke gjenkjent
+            </span>
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
+  if (sheet.rows.length === 0) {
+    return (
+      <Card>
+        <CardBody className="flex items-center justify-between gap-3 text-sm">
+          <div className="flex items-center gap-2 text-text-3">
+            {icon}
+            <span>
+              <span className="font-medium text-text-2">{label}</span> — fanen
+              er tom, ingen rader å importere
+            </span>
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
+  return (
+    <Card>
+      <CardBody className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm">
+            {icon}
+            <span className="font-medium text-text-1">{label}</span>
+            <span className="text-text-3">
+              {sheet.rows.length} rader
+            </span>
+          </div>
+        </div>
+        {sheet.headerWarning && (
+          <div className="text-xs text-text-3 italic">{sheet.headerWarning}</div>
+        )}
+        <PreviewTable headers={expectedHeaders} rows={sheet.rows.slice(0, 5)} />
+        {sheet.rows.length > 5 && (
+          <div className="text-xs text-text-3">
+            Viser første 5 av {sheet.rows.length} rader.
+          </div>
+        )}
+      </CardBody>
+    </Card>
+  );
+}
+
 function PreviewTable({
   headers,
   rows,
@@ -413,7 +563,7 @@ function PreviewTable({
   rows: ParsedRow[];
 }) {
   return (
-    <div className="overflow-auto border border-border rounded-md max-h-96">
+    <div className="overflow-auto border border-border rounded-md max-h-48">
       <table className="w-full text-xs">
         <thead className="bg-card sticky top-0">
           <tr>
@@ -437,7 +587,7 @@ function PreviewTable({
               {headers.map((h) => (
                 <td
                   key={h}
-                  className="px-2 py-1.5 text-text-1 whitespace-nowrap max-w-[200px] truncate"
+                  className="px-2 py-1.5 text-text-1 whitespace-nowrap max-w-[160px] truncate"
                   title={r.values[h] ?? ""}
                 >
                   {r.values[h] ?? ""}
@@ -447,6 +597,40 @@ function PreviewTable({
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function ResultLine({
+  label,
+  summary,
+  errors,
+}: {
+  label: string;
+  summary: string;
+  errors: string[];
+}) {
+  const hasErrors = errors.length > 0;
+  return (
+    <div className="border border-border rounded-md p-3 space-y-1">
+      <div className="flex items-start gap-2 text-sm">
+        {hasErrors ? (
+          <AlertCircle className="size-4 text-yellow mt-0.5 shrink-0" />
+        ) : (
+          <CheckCircle2 className="size-4 text-green mt-0.5 shrink-0" />
+        )}
+        <div className="min-w-0">
+          <div className="font-medium text-text-1">{label}</div>
+          <div className="text-text-2 text-xs">{summary}</div>
+        </div>
+      </div>
+      {hasErrors && (
+        <ul className="text-xs text-red space-y-0.5 mt-1 ml-6 max-h-32 overflow-auto">
+          {errors.map((e, idx) => (
+            <li key={idx}>{e}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
