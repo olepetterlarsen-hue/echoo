@@ -7,6 +7,49 @@
 -- Fix: seed default-typene for hver eksisterende org, og pakk seed-logikken
 -- i en funksjon som signup_organization() kaller for hver ny org.
 
+-- 1. Rydd ut alle gamle global-rader (organization_id IS NULL) FØR vi
+-- legger til per-org-unique-constraint, så vi ikke får (NULL, slug)-duplikater.
+delete from public.task_types where organization_id is null;
+
+-- 2. Drop gammel global unique på task_types.slug med CASCADE.
+-- CASCADE fjerner også den avhengige FK-en tasks.task_type_slug →
+-- task_types.slug. Den FK-en er ikke lenger gyldig design siden slug
+-- nå er unik per (org, slug). Eventuell rebygging som FK mot task_types.id
+-- kan tas i en senere migrasjon.
+do $$
+declare
+  c text;
+begin
+  for c in
+    select conname from pg_constraint pc
+    where conrelid = 'public.task_types'::regclass
+      and contype = 'u'
+      and (
+        select array_agg(attname::text order by attnum) from pg_attribute
+        where attrelid = pc.conrelid and attnum = any(pc.conkey)
+      ) = array['slug']::text[]
+  loop
+    execute format(
+      'alter table public.task_types drop constraint %I cascade', c
+    );
+  end loop;
+
+  for c in
+    select indexname from pg_indexes
+    where tablename = 'task_types'
+      and schemaname = 'public'
+      and indexdef ilike '%create unique index%(slug)%'
+  loop
+    execute format('drop index public.%I cascade', c);
+  end loop;
+end $$;
+
+-- 3. Sørg for at vi har riktig unique på (organization_id, slug).
+-- Bruker IF NOT EXISTS så det er trygt om 040 allerede laget den.
+create unique index if not exists task_types_org_slug_key
+  on public.task_types(organization_id, slug);
+
+-- 4. Seed-funksjon — brukes for både backfill og fremtidige signups.
 create or replace function public.seed_default_task_types_for_org(p_org_id uuid)
 returns void
 language plpgsql
@@ -28,21 +71,7 @@ begin
   on conflict (organization_id, slug) do nothing;
 end $$;
 
--- Sørg for at unique-constraint matcher (organization_id, slug). Migration 029
--- hadde unique(slug) globalt, men i en multi-tenant verden må slugen være unik
--- per org, ikke globalt.
-do $$ begin
-  alter table public.task_types drop constraint if exists task_types_slug_key;
-exception when others then null; end $$;
-
-do $$ begin
-  alter table public.task_types
-    add constraint task_types_org_slug_unique
-    unique (organization_id, slug);
-exception when duplicate_object then null;
-         when duplicate_table then null; end $$;
-
--- Backfill: seed defaults for alle eksisterende orgs som mangler task_types.
+-- 5. Backfill: seed for alle eksisterende orgs som mangler task_types.
 do $$
 declare
   org_row record;
@@ -52,12 +81,7 @@ begin
   end loop;
 end $$;
 
--- Rydd opp i de gamle globale (organization_id = NULL) rader. De var
--- usynlige uansett etter 039 og er nå erstattet av per-org-kopier.
-delete from public.task_types where organization_id is null;
-
--- Koble seed inn i signup_organization. Re-deklarerer funksjonen med samme
--- signatur og body, men med et ekstra perform-kall på slutten.
+-- 6. Koble seed inn i signup_organization for fremtidige orgs.
 create or replace function public.signup_organization(
   p_user_id uuid,
   p_firma text,
@@ -97,7 +121,7 @@ begin
     active = true,
     full_name = coalesce(excluded.full_name, public.profiles.full_name);
 
-  -- Seed default-data for ny org (legges til etter hvert som vi får flere seeds)
+  -- Seed default-data for ny org
   perform public.seed_default_task_types_for_org(v_org_id);
 
   return v_org_id;
