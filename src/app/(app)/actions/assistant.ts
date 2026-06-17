@@ -206,5 +206,7 @@ export async function markOnboardingFinished(): Promise<{
   if (error) return { error: error.message };
   return { ok: true };
 }
-
-export { ONBOARDING_STEPS };
+// MERK: Ingen non-async-eksport her (ONBOARDING_STEPS, types osv.).
+// "use server"-filer i Next 16 kan KUN eksportere async functions.
+// Import ONBOARDING_STEPS direkte fra @/lib/ai/skills/onboarding hvis du
+// trenger det i andre filer.

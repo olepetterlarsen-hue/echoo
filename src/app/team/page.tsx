@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { staffAdminClient } from "@/lib/team/staff";
 import {
   STRIPE_PRICE_BASE,
@@ -19,7 +20,15 @@ const BASE_PRICE_NOK = 2990;
 const ISO_PRICE_NOK = 2000;
 
 export default async function TeamDashboardPage() {
-  const admin = await staffAdminClient();
+  // Defensiv: layout.tsx redirecter ved manglende staff, men i RSC-prefetch
+  // og noen edge cases kan page.tsx kjøres uavhengig. Fang og redirect
+  // istedet for å la requireEchooStaff kaste opp som ufanget server-feil.
+  let admin: Awaited<ReturnType<typeof staffAdminClient>>;
+  try {
+    admin = await staffAdminClient();
+  } catch {
+    redirect("/dashboard");
+  }
 
   const { data: orgs } = await admin
     .from("organizations")
