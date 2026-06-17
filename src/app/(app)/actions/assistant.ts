@@ -7,7 +7,6 @@ import { generateSjaDraft, type SjaDraft } from "@/lib/ai/skills/sja";
 import { isoVeilederTurn, type IsoMessage } from "@/lib/ai/skills/iso";
 import {
   onboardingTurn,
-  ONBOARDING_STEPS,
   type OnboardingMessage,
   type OnboardingProgress,
   type OnboardingStepId,

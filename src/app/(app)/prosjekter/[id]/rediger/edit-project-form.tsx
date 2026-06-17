@@ -22,6 +22,15 @@ interface Option {
   id: string;
   name: string;
 }
+interface CustomerOption extends Option {
+  org_number: string | null;
+  contact_person: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  postal_code: string | null;
+  city: string | null;
+}
 interface SiteOption extends Option {
   customer_id: string | null;
 }
@@ -38,7 +47,7 @@ interface CategoryOption {
 
 interface Props {
   project: Project;
-  customers: Option[];
+  customers: CustomerOption[];
   sites: SiteOption[];
   stages: StageOption[];
   categories: CategoryOption[];
@@ -93,6 +102,26 @@ export function EditProjectForm({
 
   function update<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  // Importer kundedata til de fritekst-baserte customer_*-feltene fra en
+  // eksisterende kunde i registeret. Tomme felter på kunden overskriver
+  // ikke felter som allerede er fylt ut, slik at brukeren kan kombinere.
+  function importFromCustomer(customerId: string) {
+    const c = customers.find((x) => x.id === customerId);
+    if (!c) return;
+    setForm((f) => ({
+      ...f,
+      customer_id: c.id,
+      customer_name: c.name ?? f.customer_name,
+      customer_org_number: c.org_number ?? f.customer_org_number,
+      customer_contact: c.contact_person ?? f.customer_contact,
+      customer_email: c.email ?? f.customer_email,
+      customer_phone: c.phone ?? f.customer_phone,
+      customer_address: c.address ?? f.customer_address,
+      customer_postal_code: c.postal_code ?? f.customer_postal_code,
+      customer_city: c.city ?? f.customer_city,
+    }));
   }
 
   // Category-data — JSON-object med verdier per kategori-felt
@@ -298,7 +327,31 @@ export function EditProjectForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>{tr("proj_edit_section_client_freetext", locale)}</CardTitle>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <CardTitle>
+              {tr("proj_edit_section_client_freetext", locale)}
+            </CardTitle>
+            {customers.length > 0 && (
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-text-3">Importer fra kunde:</label>
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) importFromCustomer(e.target.value);
+                    e.target.value = "";
+                  }}
+                  className="h-8 rounded-md px-2 text-xs bg-card border border-border focus:border-orange focus:outline-none"
+                >
+                  <option value="">— Velg eksisterende kunde —</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardBody className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

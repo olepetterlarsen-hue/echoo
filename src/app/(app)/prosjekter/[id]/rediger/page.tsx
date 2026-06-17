@@ -30,7 +30,9 @@ export default async function EditProjectPage({ params }: PageProps) {
     supabase.from("projects").select("*").eq("id", id).single(),
     supabase
       .from("customers")
-      .select("id, name")
+      .select(
+        "id, name, org_number, contact_person, email, phone, address, postal_code, city",
+      )
       .eq("active", true)
       .order("name"),
     supabase

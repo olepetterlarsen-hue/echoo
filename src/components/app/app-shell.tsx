@@ -27,13 +27,11 @@ import {
   ShieldCheck,
   CheckSquare,
   Calendar,
-  Mail,
   ListChecks,
   Layers,
   FlaskConical,
   Bug,
   Sparkles,
-  CreditCard,
   Upload,
 } from "lucide-react";
 import { LocaleContext, type Locale } from "@/lib/i18n";
@@ -88,48 +86,14 @@ const KVALITET_NAV: NavItem[] = [
   { href: "/handbok", labelKey: "nav_handbook", icon: <BookOpen className="size-4" /> },
 ];
 
-// Admin-meny vises uavhengig av modus
+// Admin-meny — konsolidert til 5 hovedinngangspunkter. Grupper er en fane
+// inne i /admin/brukere. Dokumentmaler, prosjektoppsett, bedrift, e-post og
+// abonnement er tilgjengelig fra /admin/innstillinger-hubben.
 const ADMIN_NAV: NavItem[] = [
   {
     href: "/admin/brukere",
     labelKey: "nav_users",
     icon: <Users className="size-4" />,
-    adminOnly: true,
-  },
-  {
-    href: "/admin/grupper",
-    labelKey: "nav_groups",
-    icon: <Users className="size-4" />,
-    adminOnly: true,
-  },
-  {
-    href: "/admin/prosjekt-oppsett",
-    labelKey: "nav_project_setup",
-    icon: <Layers className="size-4" />,
-    adminOnly: true,
-  },
-  {
-    href: "/admin/maler",
-    labelKey: "nav_templates",
-    icon: <FileText className="size-4" />,
-    adminOnly: true,
-  },
-  {
-    href: "/admin/epost",
-    labelKey: "nav_email",
-    icon: <Mail className="size-4" />,
-    adminOnly: true,
-  },
-  {
-    href: "/admin/bedrift",
-    labelKey: "nav_org",
-    icon: <Building2 className="size-4" />,
-    adminOnly: true,
-  },
-  {
-    href: "/admin/abonnement",
-    labelKey: "nav_subscription",
-    icon: <CreditCard className="size-4" />,
     adminOnly: true,
   },
   {
@@ -254,9 +218,11 @@ export function AppShell({
   return (
     <LocaleContext.Provider value={{ locale, setLocale }}>
       <div className="min-h-screen flex">
-        {/* Sidebar */}
+        {/* Sidebar — sticky top på desktop så bunn-elementer (språk, profil,
+            logg ut) alltid er synlig nederst i viewporten uansett scroll-
+            posisjon på siden. */}
         <aside
-          className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-surface border-r border-border flex flex-col transition-transform ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+          className={`fixed lg:sticky lg:top-0 inset-y-0 left-0 z-40 w-64 lg:h-screen bg-surface border-r border-border flex flex-col transition-transform ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
         >
           <div className="px-5 py-4 border-b border-border flex items-center gap-3">
             <Image src="/echoo-wordmark.svg" alt="Echoo" width={110} height={31} />
