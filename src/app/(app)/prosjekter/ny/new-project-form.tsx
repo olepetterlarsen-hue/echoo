@@ -294,9 +294,11 @@ export function NewProjectForm({
         </CardBody>
       </Card>
 
-      <details>
-        <summary className="text-sm text-text-3 cursor-pointer hover:text-text-1">
-          {tr("proj_new_legacy_fields", locale)}
+      <details open={!form.site_id}>
+        <summary className="text-sm text-text-2 cursor-pointer hover:text-text-1 font-medium">
+          {form.site_id
+            ? tr("proj_new_legacy_fields", locale)
+            : "Skriv adresse direkte (uten å opprette eget anlegg)"}
         </summary>
         <div className="space-y-6 mt-4">
           <Card>

@@ -16,6 +16,7 @@ import {
   Kanban,
   CheckSquare,
   GraduationCap,
+  Plus,
 } from "lucide-react";
 
 export default async function DashboardPage() {
@@ -141,6 +142,8 @@ export default async function DashboardPage() {
             label={t("dash_active_projects")}
             value={activeProjects ?? 0}
             href="/prosjekter"
+            addHref="/prosjekter/ny"
+            addTitle="Opprett nytt prosjekt"
           />
           <StatCard
             icon={<Kanban className="size-5" />}
@@ -153,12 +156,16 @@ export default async function DashboardPage() {
             label={t("nav_customers")}
             value={customerCount ?? 0}
             href="/kunder"
+            addHref="/kunder/ny"
+            addTitle="Opprett ny kunde"
           />
           <StatCard
             icon={<MapPin className="size-5" />}
             label={t("nav_sites")}
             value={siteCount ?? 0}
             href="/sites"
+            addHref="/sites/ny"
+            addTitle="Opprett nytt anlegg"
           />
         </div>
       </section>
@@ -176,19 +183,25 @@ export default async function DashboardPage() {
             label={t("dash_open_deviations")}
             value={openDeviations ?? 0}
             href="/avvik"
+            addHref="/avvik/ny"
+            addTitle="Meld nytt avvik"
             tone={openDeviations && openDeviations > 0 ? "yellow" : "neutral"}
           />
           <StatCard
             icon={<ClipboardList className="size-5" />}
             label={t("dash_document_drafts")}
             value={draftDocs ?? 0}
-            href="/prosjekter"
+            href="/skjemaer"
+            addHref="/skjemaer"
+            addTitle="Nytt dokument-utkast"
           />
           <StatCard
             icon={<FileCheck className="size-5" />}
             label={t("dash_my_competence")}
             value={t("see_overview")}
             href="/kompetanse"
+            addHref="/kompetanse"
+            addTitle="Last opp kursbevis"
           />
           <StatCard
             icon={<ShieldCheck className="size-5" />}
@@ -208,12 +221,22 @@ export default async function DashboardPage() {
               <Badge tone="orange">{myTaskTotal}</Badge>
             )}
           </h2>
-          <Link
-            href="/mine-oppgaver"
-            className="text-xs text-orange hover:underline"
-          >
-            {t("see_full_list")} →
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/oppgaver/ny"
+              title="Opprett ny oppgave"
+              aria-label="Opprett ny oppgave"
+              className="size-7 grid place-items-center rounded-md bg-orange/15 text-orange hover:bg-orange hover:text-bg transition-colors"
+            >
+              <Plus className="size-4" />
+            </Link>
+            <Link
+              href="/mine-oppgaver"
+              className="text-xs text-orange hover:underline"
+            >
+              {t("see_full_list")} →
+            </Link>
+          </div>
         </div>
         <CardBody>
           {myTaskTotal === 0 ? (
@@ -259,12 +282,22 @@ export default async function DashboardPage() {
         <Card>
           <div className="px-5 py-4 border-b border-border flex items-center justify-between">
             <h2 className="text-base font-semibold">{t("dash_recent_projects")}</h2>
-            <Link
-              href="/prosjekter"
-              className="text-xs text-orange hover:underline"
-            >
-              {t("see_all")} →
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/prosjekter/ny"
+                title="Opprett nytt prosjekt"
+                aria-label="Opprett nytt prosjekt"
+                className="size-7 grid place-items-center rounded-md bg-orange/15 text-orange hover:bg-orange hover:text-bg transition-colors"
+              >
+                <Plus className="size-4" />
+              </Link>
+              <Link
+                href="/prosjekter"
+                className="text-xs text-orange hover:underline"
+              >
+                {t("see_all")} →
+              </Link>
+            </div>
           </div>
           <CardBody className="!p-0">
             {recentProjects && recentProjects.length > 0 ? (
@@ -306,12 +339,22 @@ export default async function DashboardPage() {
         <Card>
           <div className="px-5 py-4 border-b border-border flex items-center justify-between">
             <h2 className="text-base font-semibold">{t("dash_my_open_deviations")}</h2>
-            <Link
-              href="/mine-oppgaver"
-              className="text-xs text-orange hover:underline"
-            >
-              {t("dash_my_all")} →
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/avvik/ny"
+                title="Meld nytt avvik"
+                aria-label="Meld nytt avvik"
+                className="size-7 grid place-items-center rounded-md bg-orange/15 text-orange hover:bg-orange hover:text-bg transition-colors"
+              >
+                <Plus className="size-4" />
+              </Link>
+              <Link
+                href="/mine-oppgaver"
+                className="text-xs text-orange hover:underline"
+              >
+                {t("dash_my_all")} →
+              </Link>
+            </div>
           </div>
           <CardBody className="!p-0">
             {myDeviations.data && myDeviations.data.length > 0 ? (
@@ -392,12 +435,16 @@ function StatCard({
   label,
   value,
   href,
+  addHref,
+  addTitle,
   tone = "neutral",
 }: {
   icon: React.ReactNode;
   label: string;
   value: string | number;
   href: string;
+  addHref?: string;
+  addTitle?: string;
   tone?: "neutral" | "orange" | "yellow";
 }) {
   const toneClass =
@@ -407,17 +454,28 @@ function StatCard({
         ? "text-yellow"
         : "text-text-2";
   return (
-    <Link
-      href={href}
-      className="bg-card hover:bg-card-hover border border-border rounded-lg p-5 transition-colors block"
-    >
-      <div className="flex items-center justify-between">
+    <div className="bg-card hover:bg-card-hover border border-border rounded-lg p-5 transition-colors relative group">
+      <Link href={href} className="absolute inset-0 z-0" aria-label={label} />
+      <div className="relative z-10 flex items-center justify-between pointer-events-none">
         <span className="text-text-2 text-xs uppercase tracking-wider">
           {label}
         </span>
         <span className={toneClass}>{icon}</span>
       </div>
-      <div className="text-2xl font-semibold mt-2">{value}</div>
-    </Link>
+      <div className="relative z-10 text-2xl font-semibold mt-2 pointer-events-none">
+        {value}
+      </div>
+      {addHref && (
+        <Link
+          href={addHref}
+          title={addTitle ?? "Opprett ny"}
+          aria-label={addTitle ?? "Opprett ny"}
+          className="absolute bottom-2 right-2 z-20 size-7 grid place-items-center rounded-md bg-orange/15 text-orange hover:bg-orange hover:text-bg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Plus className="size-4" />
+        </Link>
+      )}
+    </div>
   );
 }
