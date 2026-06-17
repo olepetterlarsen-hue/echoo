@@ -44,7 +44,7 @@ import { MyTasksBadge } from "@/components/app/my-tasks-badge";
 import { ReportIssueButton } from "@/components/app/report-issue-button";
 import { AssistantButton } from "@/components/app/assistant-button";
 import { ThemeToggle } from "@/components/app/theme-toggle";
-import type { Theme } from "@/lib/theme/actions";
+import type { Theme } from "@/lib/theme/types";
 
 interface NavItem {
   href: string;

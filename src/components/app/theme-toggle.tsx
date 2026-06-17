@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Sun, Moon } from "lucide-react";
-import { setThemePreference, type Theme } from "@/lib/theme/actions";
+import { setThemePreference } from "@/lib/theme/actions";
+import type { Theme } from "@/lib/theme/types";
 
 interface Props {
   initialTheme: Theme;

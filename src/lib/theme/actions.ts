@@ -2,8 +2,7 @@
 
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-
-export type Theme = "lin" | "dark";
+import type { Theme } from "./types";
 
 const COOKIE_NAME = "echoo-theme";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 år
