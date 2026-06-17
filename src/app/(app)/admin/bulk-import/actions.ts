@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getOrgAndUser } from "@/lib/supabase/org";
+import {
+  parseImageToImport,
+  type ParsedImageFile,
+} from "@/lib/ai/skills/image-import";
 
 interface CustomerRow {
   name: string;
@@ -365,4 +369,43 @@ export async function bulkInviteUsers(input: {
 
   revalidatePath("/admin/brukere");
   return { result: { invited, already_member, errors } };
+}
+
+/**
+ * Parser et skjermbilde (PNG/JPG) av en kunde-/prosjekt-/brukerliste fra
+ * et annet system via Claude Vision. Returnerer samme format som
+ * xlsx-parseren så UI-en kan bruke samme preview-flyt.
+ *
+ * 5 MB grense på selve bildet for å unngå urimelig token-bruk og latency.
+ */
+export async function parseImportImage(input: {
+  base64: string;
+  mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+}): Promise<{ result?: ParsedImageFile; error?: string }> {
+  const supabase = await createClient();
+  let userId: string;
+  try {
+    ({ userId } = await getOrgAndUser(supabase));
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+  if (me?.role !== "admin") {
+    return { error: "Kun admin kan bruke AI-skjermbilde-import." };
+  }
+
+  // Grovsjekk: base64-størrelse * 0.75 ≈ binær-størrelse
+  const approxBytes = Math.floor(input.base64.length * 0.75);
+  if (approxBytes > 5 * 1024 * 1024) {
+    return {
+      error:
+        "Bildet er for stort (over 5 MB). Komprimer eller crop ned før opplasting.",
+    };
+  }
+
+  return parseImageToImport(input);
 }

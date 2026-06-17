@@ -15,12 +15,15 @@ import {
   FolderOpen,
   UserPlus,
   FileSpreadsheet,
+  Camera,
+  Sparkles,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import {
   bulkImportCustomers,
   bulkImportProjects,
   bulkInviteUsers,
+  parseImportImage,
 } from "./actions";
 
 // ============================================================================
@@ -203,21 +206,95 @@ export function BulkImportClient() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<RunResult | RunError | null>(null);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+  const [imageProcessing, setImageProcessing] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setFileName(file.name);
     setResult(null);
+    setAiNote(null);
+    setImageError(null);
     const p = await parseFile(file);
     setParsed(p);
     e.target.value = "";
+  }
+
+  async function onImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const validTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!validTypes.includes(file.type)) {
+      setImageError("Bare PNG, JPG, WEBP eller GIF støttes.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError(
+        "Bildet er over 5 MB. Komprimér det eller crop ned før opplasting.",
+      );
+      return;
+    }
+
+    setFileName(file.name);
+    setResult(null);
+    setAiNote(null);
+    setImageError(null);
+    setParsed(null);
+    setImageProcessing(true);
+
+    try {
+      const base64 = await fileToBase64(file);
+      const res = await parseImportImage({
+        base64,
+        mediaType: file.type as
+          | "image/jpeg"
+          | "image/png"
+          | "image/webp"
+          | "image/gif",
+      });
+      if (res.error || !res.result) {
+        setImageError(res.error ?? "AI kunne ikke tolke bildet.");
+        return;
+      }
+      setAiNote(res.result.note ?? null);
+      // Mapper image-resultat over til samme ParsedFile-format som xlsx-flyten
+      setParsed({
+        kunder: res.result.kunder
+          ? {
+              rows: res.result.kunder.rows,
+              expectedHeaders: res.result.kunder.expectedHeaders,
+            }
+          : undefined,
+        prosjekter: res.result.prosjekter
+          ? {
+              rows: res.result.prosjekter.rows,
+              expectedHeaders: res.result.prosjekter.expectedHeaders,
+            }
+          : undefined,
+        brukere: res.result.brukere
+          ? {
+              rows: res.result.brukere.rows,
+              expectedHeaders: res.result.brukere.expectedHeaders,
+            }
+          : undefined,
+      });
+    } catch (err) {
+      setImageError((err as Error).message);
+    } finally {
+      setImageProcessing(false);
+    }
   }
 
   function reset() {
     setParsed(null);
     setFileName(null);
     setResult(null);
+    setAiNote(null);
+    setImageError(null);
   }
 
   const totalRows =
@@ -374,6 +451,27 @@ export function BulkImportClient() {
                 onChange={onFileChange}
               />
             </label>
+            <label
+              className={`inline-flex items-center gap-2 px-3 h-9 rounded-md text-sm border cursor-pointer transition-colors ${
+                imageProcessing
+                  ? "bg-card text-text-3 border-border cursor-wait"
+                  : "bg-card hover:bg-card-hover text-text-1 border-border"
+              }`}
+            >
+              {imageProcessing ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Camera className="size-4" />
+              )}
+              {imageProcessing ? "AI tolker bildet…" : "Eller last opp skjermbilde (AI)"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                disabled={imageProcessing}
+                onChange={onImageChange}
+              />
+            </label>
             {fileName && (
               <span className="text-xs text-text-3 inline-flex items-center gap-1">
                 <FileSpreadsheet className="size-3.5" />
@@ -381,8 +479,30 @@ export function BulkImportClient() {
               </span>
             )}
           </div>
+          <div className="text-xs text-text-3">
+            Skjermbilde: dra inn et bilde av kundelisten eller prosjektoversikten
+            din fra et annet system (Visma, Tripletex, Excel, e-post). Claude
+            Vision trekker ut radene og legger dem i samme preview-flyt — du
+            godkjenner før noe lagres.
+          </div>
         </CardBody>
       </Card>
+
+      {imageError && (
+        <div className="text-sm text-red bg-red/10 border border-red/30 rounded px-3 py-2 flex items-start gap-2">
+          <AlertCircle className="size-4 mt-0.5 shrink-0" />
+          <span>{imageError}</span>
+        </div>
+      )}
+
+      {aiNote && (
+        <div className="text-sm text-orange bg-orange/10 border border-orange/30 rounded px-3 py-2 flex items-start gap-2">
+          <Sparkles className="size-4 mt-0.5 shrink-0" />
+          <span>
+            <strong>AI-tolkning:</strong> {aiNote}
+          </span>
+        </div>
+      )}
 
       {parsed?.fileError && (
         <div className="text-sm text-red bg-red/10 border border-red/30 rounded px-3 py-2 flex items-start gap-2">
@@ -477,6 +597,24 @@ export function BulkImportClient() {
       )}
     </div>
   );
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error("FileReader feil"));
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== "string") {
+        reject(new Error("Forventet string fra FileReader"));
+        return;
+      }
+      // result er "data:image/png;base64,XXXX" — vi trenger kun base64-delen
+      const comma = result.indexOf(",");
+      resolve(comma === -1 ? result : result.slice(comma + 1));
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function deriveNameFromPrivat(v: Record<string, string>): string {
