@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Sparkles } from "lucide-react";
 import { DOCUMENT_KIND_LABELS, type DocumentKind } from "@/lib/types/database";
 import { TemplateRowActions } from "./template-row-actions";
+import { AdminTabs } from "@/components/app/admin-tabs";
+import { SETTINGS_TABS } from "@/components/app/admin-tab-configs";
 
 const BUILTIN_KINDS: DocumentKind[] = [
   "risikovurdering",
@@ -54,7 +56,7 @@ export default async function TemplatesPage() {
     <div className="px-6 py-6 max-w-5xl mx-auto space-y-8">
       <header className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold">{t("adm_tpl_title")}</h1>
+          <h1 className="text-2xl font-semibold">Innstillinger</h1>
           <p className="text-text-2 text-sm">{t("adm_tpl_subtitle")}</p>
         </div>
         <div className="flex gap-2">
@@ -72,6 +74,7 @@ export default async function TemplatesPage() {
           </Link>
         </div>
       </header>
+      <AdminTabs tabs={SETTINGS_TABS} />
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">

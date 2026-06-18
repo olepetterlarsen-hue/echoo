@@ -9,6 +9,8 @@ import {
   portalAndRedirect,
   startCheckout,
 } from "./actions";
+import { AdminTabs } from "@/components/app/admin-tabs";
+import { SETTINGS_TABS } from "@/components/app/admin-tab-configs";
 
 interface PageProps {
   searchParams: Promise<{
@@ -85,13 +87,15 @@ export default async function AbonnementPage({ searchParams }: PageProps) {
     trialRemainingDays > 0;
 
   return (
-    <div className="px-6 py-6 max-w-3xl mx-auto space-y-6">
+    <div className="px-6 py-6 max-w-5xl mx-auto space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">Abonnement</h1>
+        <h1 className="text-2xl font-semibold">Innstillinger</h1>
         <p className="text-text-2 text-sm">
           {org.firma} — administrer abonnement og fakturering.
         </p>
       </header>
+      <AdminTabs tabs={SETTINGS_TABS} />
+      <div className="max-w-3xl space-y-6">
 
       {flash === "success" && (
         <div className="flex items-start gap-2 bg-green/10 border border-green/30 rounded-md px-3 py-2 text-sm text-green">
@@ -259,6 +263,7 @@ export default async function AbonnementPage({ searchParams }: PageProps) {
           )}
         </CardBody>
       </Card>
+      </div>
     </div>
   );
 }

@@ -5,6 +5,8 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mail, AlertCircle, CheckCircle2 } from "lucide-react";
 import { EmailTestForm } from "./test-form";
+import { AdminTabs } from "@/components/app/admin-tabs";
+import { SETTINGS_TABS } from "@/components/app/admin-tab-configs";
 
 export default async function EmailAdminPage() {
   const supabase = await createClient();
@@ -39,10 +41,11 @@ export default async function EmailAdminPage() {
       <header>
         <h1 className="text-2xl font-semibold flex items-center gap-2">
           <Mail className="size-6 text-text-2" />
-          {t("adm_email_title")}
+          Innstillinger
         </h1>
         <p className="text-text-2 text-sm">{t("adm_email_subtitle")}</p>
       </header>
+      <AdminTabs tabs={SETTINGS_TABS} />
 
       {/* KONFIGURASJONS-STATUS */}
       <Card

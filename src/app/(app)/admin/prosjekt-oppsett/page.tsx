@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrgId } from "@/lib/supabase/org";
 import { Layers } from "lucide-react";
 import { SetupTabs } from "./setup-tabs";
+import { AdminTabs } from "@/components/app/admin-tabs";
+import { SETTINGS_TABS } from "@/components/app/admin-tab-configs";
 
 interface PageProps {
   searchParams: Promise<{ tab?: string }>;
@@ -53,13 +55,14 @@ export default async function ProsjektOppsettPage({ searchParams }: PageProps) {
       <header>
         <h1 className="text-2xl font-semibold flex items-center gap-2">
           <Layers className="size-6 text-text-2" />
-          Prosjekt-oppsett
+          Innstillinger
         </h1>
         <p className="text-text-2 text-sm">
           Definer hvordan prosjekter flyter gjennom bedriften — kanban-stadier,
           prosjekt-kategorier og prosjekt-maler.
         </p>
       </header>
+      <AdminTabs tabs={SETTINGS_TABS} />
 
       <SetupTabs
         initialTab={initialTab}

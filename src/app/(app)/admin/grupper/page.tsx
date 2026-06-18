@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Users } from "lucide-react";
 import { GenerateOpTeamsButton } from "./generate-button";
+import { AdminTabs } from "@/components/app/admin-tabs";
+import { USERS_TABS } from "@/components/app/admin-tab-configs";
 
 export default async function GroupsPage() {
   const supabase = await createClient();
@@ -46,7 +48,7 @@ export default async function GroupsPage() {
         <div>
           <h1 className="text-2xl font-semibold flex items-center gap-2">
             <Users className="size-6 text-text-2" />
-            {t("adm_grp_title")}
+            Brukere &amp; Grupper
           </h1>
           <p className="text-text-2 text-sm">{t("adm_grp_subtitle")}</p>
         </div>
@@ -60,6 +62,7 @@ export default async function GroupsPage() {
           </Link>
         </div>
       </header>
+      <AdminTabs tabs={USERS_TABS} />
 
       <Card>
         <CardBody className="!p-0">
