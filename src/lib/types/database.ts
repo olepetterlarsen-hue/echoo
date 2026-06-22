@@ -1268,7 +1268,10 @@ export type Database = {
       customers: {
         Row: {
           id: string;
+          customer_type: "bedrift" | "privat";
           name: string;
+          first_name: string | null;
+          last_name: string | null;
           org_number: string | null;
           contact_person: string | null;
           email: string | null;
@@ -1286,7 +1289,10 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          customer_type?: "bedrift" | "privat";
           name: string;
+          first_name?: string | null;
+          last_name?: string | null;
           org_number?: string | null;
           contact_person?: string | null;
           email?: string | null;
@@ -1301,7 +1307,10 @@ export type Database = {
           organization_id?: string | null;
         };
         Update: {
+          customer_type?: "bedrift" | "privat";
           name?: string;
+          first_name?: string | null;
+          last_name?: string | null;
           org_number?: string | null;
           contact_person?: string | null;
           email?: string | null;

@@ -78,6 +78,17 @@ html, body {
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  /* Fjerner iOS-Safari sin gule tap-highlight som forstyrrer iPad-bruk
+     med Magic Keyboard / trackpad. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iPad-trackpad og Apple-Pencil registreres som "pointer", men Safari
+   forsinker click i 300 ms uten manipulation. touch-action: manipulation
+   på klikkbare elementer gir umiddelbar respons uten å hindre scroll. */
+button, a, [role="button"], summary, label[for], input[type="button"],
+input[type="submit"], input[type="checkbox"], input[type="radio"] {
+  touch-action: manipulation;
 }
 
 * {
@@ -106,5 +117,21 @@ input::placeholder, textarea::placeholder {
   body {
     background: white;
     color: black;
+  }
+}
+
+/* iPad med Magic Keyboard / Magic Trackpad: brukeren har faktisk fine pointer
+   selv om viewport er under lg-breakpoint. Tving frem desktop-sidebar når et
+   presisjonsverktøy er tilgjengelig OG viewport er minst tablet-bredde, så
+   trackpad-brukere ikke må jakte på en mobil-hamburger. */
+@media (pointer: fine) and (min-width: 768px) and (max-width: 1023.98px) {
+  aside[data-app-sidebar] {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    transform: translateX(0) !important;
+  }
+  header[data-app-mobile-header] {
+    display: none;
   }
 }

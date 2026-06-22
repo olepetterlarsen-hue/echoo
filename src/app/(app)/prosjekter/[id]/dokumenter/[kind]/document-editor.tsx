@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Textarea, Field } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileDown, Pencil, Save, PenLine, ShieldCheck } from "lucide-react";
+import { FileDown, Pencil, Save, PenLine, ShieldCheck, X as XIcon } from "lucide-react";
 import type {
   DocumentRow,
   Project,
@@ -63,6 +63,10 @@ export function DocumentEditor({
   const isSigned = existing?.status === "signert";
   const initialData = (existing?.data ?? {}) as Record<string, unknown>;
 
+  // Lokal nøkkel for backup i localStorage — knyttet til prosjekt+kind+dokument-id
+  // slik at separate dokumenter ikke kolliderer.
+  const backupKey = `echoo:doc_draft:${project?.id ?? "standalone"}:${template.kind}:${existing?.id ?? "new"}`;
+
   const [data, setData] = useState<Record<string, unknown>>(() => {
     const seeded = project
       ? seedData(template, project, initialData)
@@ -73,6 +77,58 @@ export function DocumentEditor({
     }
     return seeded;
   });
+
+  const [restorePrompt, setRestorePrompt] = useState<Record<string, unknown> | null>(null);
+  const backupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // På mount: sjekk localStorage for ulagret backup (ikke for signerte dokumenter).
+  useEffect(() => {
+    if (isSigned) return;
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(backupKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { data?: Record<string, unknown>; at?: string };
+      if (parsed?.data && JSON.stringify(parsed.data) !== JSON.stringify(data)) {
+        // Init fra localStorage på mount — setState er korrekt her.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setRestorePrompt(parsed.data);
+      }
+    } catch {
+      // ignorer korrupt backup
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backupKey, isSigned]);
+
+  // Debounced backup til localStorage på hver endring — beskytter mot tap ved
+  // nettverksfeil eller utilsiktet navigasjon. Slettes ved vellykket lagring.
+  useEffect(() => {
+    if (isSigned) return;
+    if (typeof window === "undefined") return;
+    if (backupTimerRef.current) clearTimeout(backupTimerRef.current);
+    backupTimerRef.current = setTimeout(() => {
+      try {
+        window.localStorage.setItem(
+          backupKey,
+          JSON.stringify({ data, at: new Date().toISOString() }),
+        );
+      } catch {
+        // localStorage kan være full/disabled — ikke fatal
+      }
+    }, 800);
+    return () => {
+      if (backupTimerRef.current) clearTimeout(backupTimerRef.current);
+    };
+  }, [data, backupKey, isSigned]);
+
+  function clearBackup() {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.removeItem(backupKey);
+    } catch {
+      // ignorer
+    }
+  }
 
   const updateField = (key: string, value: unknown) =>
     setData((d) => ({ ...d, [key]: value }));
@@ -90,6 +146,7 @@ export function DocumentEditor({
       if (res.error) setError(res.error);
       else {
         setInfo(tr("proj_doc_saved_draft", locale));
+        clearBackup();
         router.refresh();
       }
     });
@@ -114,6 +171,7 @@ export function DocumentEditor({
       });
       if (res.error) setError(res.error);
       else if (res.documentId) {
+        clearBackup();
         router.push(project ? `/prosjekter/${project.id}` : "/skjemaer");
       }
     });
@@ -243,6 +301,43 @@ export function DocumentEditor({
         </Card>
       )}
 
+      {restorePrompt && !isSigned && (
+        <Card className="border-yellow/30 bg-yellow/5">
+          <CardBody className="flex items-start gap-3 flex-wrap">
+            <div className="text-yellow mt-0.5">⏱</div>
+            <div className="flex-1 text-sm min-w-0">
+              <p className="text-text-1 font-medium">
+                {tr("proj_doc_restore_title", locale)}
+              </p>
+              <p className="text-text-2 mt-0.5">
+                {tr("proj_doc_restore_desc", locale)}
+              </p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (restorePrompt) setData(restorePrompt);
+                  setRestorePrompt(null);
+                }}
+              >
+                {tr("proj_doc_restore_yes", locale)}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setRestorePrompt(null);
+                  clearBackup();
+                }}
+              >
+                {tr("proj_doc_restore_no", locale)}
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
       {template.sections.map((section, i) => (
         <Card key={i}>
           <CardHeader>
@@ -266,14 +361,30 @@ export function DocumentEditor({
       ))}
 
       {error && (
-        <p className="text-sm text-red bg-red/10 border border-red/30 rounded px-3 py-2">
-          {error}
-        </p>
+        <div className="text-sm text-red bg-red/10 border border-red/30 rounded px-3 py-2 flex items-start gap-2">
+          <span className="flex-1">{error}</span>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="text-red/70 hover:text-red shrink-0"
+            aria-label={tr("dismiss", locale)}
+          >
+            <XIcon className="size-4" />
+          </button>
+        </div>
       )}
       {info && (
-        <p className="text-sm text-green bg-green/10 border border-green/30 rounded px-3 py-2">
-          {info}
-        </p>
+        <div className="text-sm text-green bg-green/10 border border-green/30 rounded px-3 py-2 flex items-start gap-2">
+          <span className="flex-1">{info}</span>
+          <button
+            type="button"
+            onClick={() => setInfo(null)}
+            className="text-green/70 hover:text-green shrink-0"
+            aria-label={tr("dismiss", locale)}
+          >
+            <XIcon className="size-4" />
+          </button>
+        </div>
       )}
 
       {!isSigned &&
@@ -288,7 +399,12 @@ export function DocumentEditor({
               : tr("proj_doc_help_ready", locale);
           return (
             <div className="flex flex-wrap items-center justify-end gap-3 sticky bottom-4 bg-bg/90 backdrop-blur p-3 rounded-lg border border-border">
-              <span className="text-xs text-text-3 mr-auto">{helpText}</span>
+              <div className="flex flex-col mr-auto">
+                <span className="text-xs text-text-3">{helpText}</span>
+                <span className="text-[11px] text-text-3 italic">
+                  {tr("proj_doc_no_time_limit", locale)}
+                </span>
+              </div>
               <Button variant="secondary" onClick={onSave} disabled={pending}>
                 <Save className="size-4" />
                 {pending ? tr("proj_doc_saving", locale) : tr("proj_doc_save_draft", locale)}

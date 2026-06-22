@@ -205,4 +205,15 @@ export const COMMON: TranslationDict = {
     no: "Avskjerm spenningssatte deler",
     en: "Shield live parts",
   },
+
+  dismiss: { no: "Lukk", en: "Dismiss" },
+
+  // Quick-create FAB
+  qc_button: { no: "Opprett ny", en: "Create new" },
+  qc_project: { no: "Nytt prosjekt", en: "New project" },
+  qc_customer: { no: "Ny kunde", en: "New customer" },
+  qc_site: { no: "Nytt anlegg", en: "New site" },
+  qc_deviation: { no: "Meld avvik", en: "Report deviation" },
+  qc_task: { no: "Ny oppgave", en: "New task" },
+  qc_form: { no: "Nytt skjema", en: "New form" },
 };

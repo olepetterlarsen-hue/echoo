@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardBody } from "@/components/ui/card";
@@ -132,7 +132,7 @@ function StagesTab({ stages }: { stages: Stage[] }) {
     });
   }
 
-  function patch(id: string, p: { color?: string; is_active?: boolean }) {
+  function patch(id: string, p: { name?: string; color?: string; is_active?: boolean }) {
     startTransition(async () => {
       const res = await updateStage({ id, ...p });
       if (res.error) setError(res.error);
@@ -240,17 +240,18 @@ function StagesTab({ stages }: { stages: Stage[] }) {
                   type="color"
                   value={s.color}
                   onChange={(e) => patch(s.id, { color: e.target.value })}
-                  className="size-7 rounded border border-border bg-transparent cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="size-7 rounded border border-border bg-transparent cursor-pointer"
                   aria-label="Endre farge"
+                  title="Endre farge"
                 />
                 <div className="flex-1 min-w-0">
-                  <div
-                    className={
-                      s.is_active ? "text-text-1" : "text-text-3 line-through"
-                    }
-                  >
-                    {s.name}
-                  </div>
+                  <StageNameInput
+                    defaultValue={s.name}
+                    isActive={s.is_active}
+                    onSave={(name) => {
+                      if (name && name !== s.name) patch(s.id, { name });
+                    }}
+                  />
                 </div>
                 {!s.is_active && <Badge tone="neutral">Inaktiv</Badge>}
                 <button
@@ -277,6 +278,55 @@ function StagesTab({ stages }: { stages: Stage[] }) {
         )}
       </CardBody>
     </Card>
+  );
+}
+
+function StageNameInput({
+  defaultValue,
+  isActive,
+  onSave,
+}: {
+  defaultValue: string;
+  isActive: boolean;
+  onSave: (name: string) => void;
+}) {
+  const [value, setValue] = useState(defaultValue);
+
+  // Hold local input i synk når server-data oppdateres (etter reorder/refresh).
+  // Eksternt signal — setState er korrekt her, lint-regelen er for streng.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setValue(defaultValue);
+  }, [defaultValue]);
+
+  function commit() {
+    const trimmed = value.trim();
+    if (trimmed && trimmed !== defaultValue) {
+      onSave(trimmed);
+    } else if (!trimmed) {
+      setValue(defaultValue);
+    }
+  }
+
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.currentTarget.blur();
+        } else if (e.key === "Escape") {
+          setValue(defaultValue);
+          e.currentTarget.blur();
+        }
+      }}
+      className={`w-full bg-transparent border-0 rounded px-1 py-0.5 focus:bg-card focus:ring-1 focus:ring-orange focus:outline-none ${
+        isActive ? "text-text-1" : "text-text-3 line-through"
+      }`}
+      aria-label="Stadium-navn"
+    />
   );
 }
 

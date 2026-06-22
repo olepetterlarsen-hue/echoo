@@ -10,6 +10,9 @@ import {
 
 interface CustomerRow {
   name: string;
+  customer_type?: string;
+  first_name?: string;
+  last_name?: string;
   org_number?: string;
   contact_person?: string;
   email?: string;
@@ -61,18 +64,42 @@ export async function bulkImportCustomers(input: {
   for (let i = 0; i < input.rows.length; i++) {
     const r = input.rows[i];
     const rowNum = i + 2; // +1 for header, +1 for 1-indexed
-    if (!r.name?.trim()) {
-      errors.push(`Rad ${rowNum}: mangler navn`);
+
+    // Normaliser customer_type. Aksepter "privat"/"private" → privat,
+    // alt annet (inkludert tom verdi) → bedrift.
+    const rawType = (r.customer_type ?? "").trim().toLowerCase();
+    const customerType: "privat" | "bedrift" =
+      rawType === "privat" || rawType === "private" ? "privat" : "bedrift";
+
+    // Avled navn ut fra type — bedrift bruker name, privat avleder fra
+    // first_name + last_name hvis name ikke er oppgitt.
+    let resolvedName = r.name?.trim() ?? "";
+    if (customerType === "privat" && !resolvedName) {
+      resolvedName = [r.first_name?.trim(), r.last_name?.trim()]
+        .filter(Boolean)
+        .join(" ");
+    }
+
+    if (!resolvedName) {
+      errors.push(
+        `Rad ${rowNum}: mangler navn${customerType === "privat" ? " (eller fornavn+etternavn)" : ""}`,
+      );
       continue;
     }
-    if (existingNames.has(r.name.trim().toLowerCase())) {
+    if (existingNames.has(resolvedName.toLowerCase())) {
       skipped++;
       continue;
     }
     const { error } = await supabase.from("customers").insert({
       organization_id: orgId,
-      name: r.name.trim(),
-      org_number: r.org_number?.trim() || null,
+      customer_type: customerType,
+      name: resolvedName,
+      first_name:
+        customerType === "privat" ? r.first_name?.trim() || null : null,
+      last_name:
+        customerType === "privat" ? r.last_name?.trim() || null : null,
+      org_number:
+        customerType === "bedrift" ? r.org_number?.trim() || null : null,
       contact_person: r.contact_person?.trim() || null,
       email: r.email?.trim() || null,
       phone: r.phone?.trim() || null,
@@ -83,10 +110,10 @@ export async function bulkImportCustomers(input: {
       created_by: userId,
     } as never);
     if (error) {
-      errors.push(`Rad ${rowNum} (${r.name}): ${error.message}`);
+      errors.push(`Rad ${rowNum} (${resolvedName}): ${error.message}`);
       continue;
     }
-    existingNames.add(r.name.trim().toLowerCase());
+    existingNames.add(resolvedName.toLowerCase());
     created++;
   }
 

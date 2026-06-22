@@ -145,7 +145,7 @@ export function wrapHtml(body: string, title: string): string {
       ${safeBody}
     </td></tr>
     <tr><td style="background:#fafafa;padding:14px 24px;font-size:11px;color:#888;border-top:1px solid #eee;">
-      Echoo — internt verktøy for OPCOM AS. Dette er en automatisk varsling.
+      Echoo — internkontrollsystem for elektroentreprenører. Dette er en automatisk varsling.
     </td></tr>
   </table>
 </body></html>`;

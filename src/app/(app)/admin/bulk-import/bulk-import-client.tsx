@@ -314,6 +314,9 @@ export function BulkImportClient() {
         try {
           const res = await bulkImportCustomers({
             rows: parsed.kunder.rows.map((r) => ({
+              customer_type: r.values.customer_type,
+              first_name: r.values.first_name,
+              last_name: r.values.last_name,
               name: r.values.name ?? deriveNameFromPrivat(r.values),
               org_number: r.values.org_number,
               contact_person: r.values.contact_person,

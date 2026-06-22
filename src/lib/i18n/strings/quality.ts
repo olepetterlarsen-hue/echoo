@@ -42,11 +42,31 @@ export const QUALITY: TranslationDict = {
     no: "Alle avvik på tvers av prosjekter.",
     en: "All deviations across projects.",
   },
-  dev_filter_open: { no: "Åpne", en: "Open" },
-  dev_filter_fully_open: { no: "Helt åpne", en: "Fully open" },
+  dev_filter_open: { no: "Aktive", en: "Active" },
+  dev_filter_fully_open: { no: "Bare åpne", en: "Open only" },
   dev_filter_in_progress: { no: "Under arbeid", en: "In progress" },
   dev_filter_closed: { no: "Lukkede", en: "Closed" },
   dev_filter_all: { no: "Alle", en: "All" },
+  dev_filter_open_tip: {
+    no: "Åpne + under arbeid (alt som ikke er lukket)",
+    en: "Open + in progress (everything not closed)",
+  },
+  dev_filter_fully_open_tip: {
+    no: "Kun avvik med status åpen",
+    en: "Only deviations with status open",
+  },
+  dev_filter_in_progress_tip: {
+    no: "Kun avvik med status under arbeid",
+    en: "Only deviations with status in progress",
+  },
+  dev_filter_closed_tip: {
+    no: "Kun lukkede avvik",
+    en: "Only closed deviations",
+  },
+  dev_filter_all_tip: {
+    no: "Alle avvik, inkludert lukkede",
+    en: "All deviations, including closed",
+  },
   dev_empty_in_filter: {
     no: "Ingen avvik i dette filteret.",
     en: "No deviations in this filter.",

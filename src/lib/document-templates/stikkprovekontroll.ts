@@ -10,7 +10,7 @@ export const STIKKPROVEKONTROLL: TemplateDef = {
   subtitle: "Bedriftens kontrollskjema",
   revision: "v1.0",
   description:
-    "Gjennomføring av stikkprøvekontroller har som mål å: styrke HMS-arbeidet i OPCOM, redusere fraværsskader, øke bevisstheten for sikkerhet hos den enkelte, sikre synlig ledelse ute i virksomheten, bekrefte riktig bruk av verneutstyr, overvåke etterlevelse av instrukser og retningslinjer.",
+    "Gjennomføring av stikkprøvekontroller har som mål å: styrke HMS-arbeidet i bedriften, redusere fraværsskader, øke bevisstheten for sikkerhet hos den enkelte, sikre synlig ledelse ute i virksomheten, bekrefte riktig bruk av verneutstyr, overvåke etterlevelse av instrukser og retningslinjer.",
   sections: [
     {
       title: "Seksjon 1: Kontrollinformasjon",
@@ -19,7 +19,7 @@ export const STIKKPROVEKONTROLL: TemplateDef = {
         { key: "utforende_firma", label: "Utførende firma", kind: "text" },
         { key: "personell_tilstede", label: "Personell tilstede", kind: "textarea" },
         { key: "team_leder", label: "Hvem er team leder for utførende", kind: "text" },
-        { key: "ansvarlig_pl", label: "Hvem er ansvarlig PL Opcom", kind: "text" },
+        { key: "ansvarlig_pl", label: "Hvem er ansvarlig PL", kind: "text" },
         { key: "kontrollansvarlig", label: "Kontrollansvarlig", kind: "text", required: true },
         { key: "prosjektnummer_kontroll", label: "Prosjektnummer", kind: "text" },
         { key: "site_id", label: "Site ID", kind: "text" },

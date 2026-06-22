@@ -41,6 +41,7 @@ import { getModeFromPath, type AppMode } from "@/lib/app-modes";
 import { MyTasksBadge } from "@/components/app/my-tasks-badge";
 import { ReportIssueButton } from "@/components/app/report-issue-button";
 import { AssistantButton } from "@/components/app/assistant-button";
+import { QuickCreateFab } from "@/components/app/quick-create-fab";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import type { Theme } from "@/lib/theme/types";
 
@@ -222,6 +223,7 @@ export function AppShell({
             logg ut) alltid er synlig nederst i viewporten uansett scroll-
             posisjon på siden. */}
         <aside
+          data-app-sidebar
           className={`fixed lg:sticky lg:top-0 inset-y-0 left-0 z-40 w-64 lg:h-screen bg-surface border-r border-border flex flex-col transition-transform ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
         >
           <div className="px-5 py-4 border-b border-border flex items-center gap-3">
@@ -364,7 +366,7 @@ export function AppShell({
         )}
 
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="lg:hidden h-14 border-b border-border bg-surface flex items-center justify-between px-4">
+          <header data-app-mobile-header className="lg:hidden h-14 border-b border-border bg-surface flex items-center justify-between px-4">
             <button
               onClick={() => setMobileOpen((v) => !v)}
               className="text-text-1 p-2 -ml-2"
@@ -410,6 +412,7 @@ export function AppShell({
           </main>
         </div>
 
+        <QuickCreateFab />
         <AssistantButton />
         <ReportIssueButton />
       </div>

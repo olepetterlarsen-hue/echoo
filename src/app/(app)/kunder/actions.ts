@@ -8,6 +8,9 @@ import { getServerT } from "@/lib/i18n/server";
 
 interface CustomerInput {
   name: string;
+  customer_type?: "bedrift" | "privat";
+  first_name?: string;
+  last_name?: string;
   org_number?: string;
   contact_person?: string;
   email?: string;
@@ -41,12 +44,16 @@ export async function createCustomer(input: CustomerInput): Promise<{
     return { error: (e as Error).message || t("cust_err_not_logged_in") };
   }
 
+  const customerType: "bedrift" | "privat" = input.customer_type === "privat" ? "privat" : "bedrift";
   const { data, error } = await supabase
     .from("customers")
     .insert({
       organization_id: orgId,
+      customer_type: customerType,
       name: input.name.trim(),
-      org_number: clean(input.org_number),
+      first_name: customerType === "privat" ? clean(input.first_name) : null,
+      last_name: customerType === "privat" ? clean(input.last_name) : null,
+      org_number: customerType === "bedrift" ? clean(input.org_number) : null,
       contact_person: clean(input.contact_person),
       email: clean(input.email),
       phone: clean(input.phone),
@@ -60,22 +67,35 @@ export async function createCustomer(input: CustomerInput): Promise<{
     .select("id")
     .single();
 
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyError(error.message, t) };
   revalidatePath("/kunder");
   return { id: data.id };
+}
+
+function friendlyError(msg: string, t: (k: string) => string): string {
+  // Postgres unique_violation på partial index "customers_orgnr_unique_per_org"
+  if (msg.includes("customers_orgnr_unique_per_org") || msg.toLowerCase().includes("duplicate key")) {
+    return t("cust_err_orgnr_duplicate");
+  }
+  return msg;
 }
 
 export async function updateCustomer(
   input: CustomerInput & { id: string },
 ): Promise<{ id?: string; error?: string }> {
+  const { t } = await getServerT();
   const supabase = await createClient();
   const { id, ...rest } = input;
 
+  const customerType: "bedrift" | "privat" = rest.customer_type === "privat" ? "privat" : "bedrift";
   const { error } = await supabase
     .from("customers")
     .update({
+      customer_type: customerType,
       name: rest.name.trim(),
-      org_number: clean(rest.org_number),
+      first_name: customerType === "privat" ? clean(rest.first_name) : null,
+      last_name: customerType === "privat" ? clean(rest.last_name) : null,
+      org_number: customerType === "bedrift" ? clean(rest.org_number) : null,
       contact_person: clean(rest.contact_person),
       email: clean(rest.email),
       phone: clean(rest.phone),
@@ -88,7 +108,7 @@ export async function updateCustomer(
     })
     .eq("id", id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyError(error.message, t) };
   revalidatePath("/kunder");
   revalidatePath(`/kunder/${id}`);
   return { id };

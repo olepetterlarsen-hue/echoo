@@ -208,7 +208,38 @@ export const PLANNER: TranslationDict = {
   // Customer form
   cust_card_basic: { no: "Grunnleggende info", en: "Basic info" },
   cust_field_company_name: { no: "Firmanavn", en: "Company name" },
+  cust_field_type: { no: "Kundetype", en: "Customer type" },
+  cust_type_business: { no: "Bedrift", en: "Business" },
+  cust_type_private: { no: "Privat", en: "Private" },
+  cust_field_first_name: { no: "Fornavn", en: "First name" },
+  cust_field_last_name: { no: "Etternavn", en: "Last name" },
   cust_field_org_number: { no: "Organisasjonsnummer", en: "Organisation number" },
+  brreg_lookup: { no: "Slå opp", en: "Look up" },
+  brreg_lookup_title: {
+    no: "Hent firmadata fra Brønnøysundregistrene",
+    en: "Fetch company data from Brønnøysund Registry",
+  },
+  brreg_searching: { no: "Søker…", en: "Searching…" },
+  brreg_invalid_format: {
+    no: "Organisasjonsnummer må være 9 siffer.",
+    en: "Organisation number must be 9 digits.",
+  },
+  brreg_not_found: {
+    no: "Fant ikke organisasjonsnummeret i Brønnøysund.",
+    en: "Organisation number not found in Brønnøysund.",
+  },
+  brreg_found: {
+    no: "Fylte inn fra Brønnøysund: {n}",
+    en: "Filled from Brønnøysund: {n}",
+  },
+  brreg_found_inactive: {
+    no: "Funnet, men selskapet er ikke aktivt: {r}",
+    en: "Found, but company is not active: {r}",
+  },
+  cust_err_orgnr_duplicate: {
+    no: "Det finnes allerede en kunde med dette organisasjonsnummeret i din bedrift.",
+    en: "A customer with this organisation number already exists in your company.",
+  },
   cust_field_contact_person: { no: "Kontaktperson", en: "Contact person" },
   cust_field_email: { no: "E-post", en: "Email" },
   cust_field_phone: { no: "Telefon", en: "Phone" },

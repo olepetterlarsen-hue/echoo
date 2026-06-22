@@ -420,6 +420,20 @@ export const PROJECTS: TranslationDict = {
   proj_doc_save_draft: { no: "Lagre utkast", en: "Save draft" },
   proj_doc_saving: { no: "Lagrer…", en: "Saving…" },
   proj_doc_sign_and_generate: { no: "Signer og generer PDF", en: "Sign and generate PDF" },
+  proj_doc_no_time_limit: {
+    no: "Ta så lang tid du trenger — vi husker det du skriver lokalt.",
+    en: "Take as long as you need — we keep what you type locally.",
+  },
+  proj_doc_restore_title: {
+    no: "Ulagrede endringer funnet",
+    en: "Unsaved changes found",
+  },
+  proj_doc_restore_desc: {
+    no: "Vi fant tekst du skrev tidligere som ikke ble lagret. Vil du gjenopprette?",
+    en: "We found text you typed earlier that wasn't saved. Restore it?",
+  },
+  proj_doc_restore_yes: { no: "Gjenopprett", en: "Restore" },
+  proj_doc_restore_no: { no: "Forkast", en: "Discard" },
 
   // Document editor inline subforms
   proj_doc_field_question: { no: "Spørsmål", en: "Question" },

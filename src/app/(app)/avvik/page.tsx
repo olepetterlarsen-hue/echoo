@@ -46,20 +46,20 @@ export default async function AvvikPage({ searchParams }: PageProps) {
         </Link>
       </header>
 
-      <div className="flex gap-2">
-        <FilterLink current={status} value={undefined}>
+      <div className="flex gap-2 flex-wrap">
+        <FilterLink current={status} value={undefined} title={t("dev_filter_open_tip")}>
           {t("dev_filter_open")}
         </FilterLink>
-        <FilterLink current={status} value="apen">
+        <FilterLink current={status} value="apen" title={t("dev_filter_fully_open_tip")}>
           {t("dev_filter_fully_open")}
         </FilterLink>
-        <FilterLink current={status} value="under_arbeid">
+        <FilterLink current={status} value="under_arbeid" title={t("dev_filter_in_progress_tip")}>
           {t("dev_filter_in_progress")}
         </FilterLink>
-        <FilterLink current={status} value="lukket">
+        <FilterLink current={status} value="lukket" title={t("dev_filter_closed_tip")}>
           {t("dev_filter_closed")}
         </FilterLink>
-        <FilterLink current={status} value="all">
+        <FilterLink current={status} value="all" title={t("dev_filter_all_tip")}>
           {t("dev_filter_all")}
         </FilterLink>
       </div>
@@ -132,10 +132,12 @@ function FilterLink({
   current,
   value,
   children,
+  title,
 }: {
   current: string | undefined;
   value: string | undefined;
   children: React.ReactNode;
+  title?: string;
 }) {
   const active =
     (current === undefined && value === undefined) ||
@@ -144,6 +146,7 @@ function FilterLink({
   return (
     <Link
       href={href}
+      title={title}
       className={`px-3 py-1.5 rounded-md text-sm border ${active ? "bg-orange text-bg border-orange" : "bg-card text-text-2 border-border hover:bg-card-hover"}`}
     >
       {children}
