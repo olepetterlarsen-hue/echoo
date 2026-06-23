@@ -30,9 +30,8 @@ export const metadata: Metadata = {
   },
   description:
     "Echoo — kvalitets- og prosjektstyring for elektroentreprenører. Bygget av håndverkere, for håndverkere.",
-  icons: {
-    icon: "/favicon.png",
-  },
+  // Favicon og apple-touch-icon håndteres av Next.js' filkonvensjon:
+  // src/app/icon.svg og src/app/apple-icon.svg genereres automatisk i <head>.
 };
 
 export default async function RootLayout({
