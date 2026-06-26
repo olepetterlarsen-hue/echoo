@@ -20,6 +20,7 @@ import {
   askSjaAssistant,
   askIsoVeileder,
   askOnboarding,
+  markOnboardingFinished,
 } from "@/app/(app)/actions/assistant";
 import type { AvvikDraft } from "@/lib/ai/skills/avvik";
 import type { SjaDraft } from "@/lib/ai/skills/sja";
@@ -270,6 +271,17 @@ export function AssistantButton() {
                   progress={onboardingProgress}
                   pending={pending}
                   bottomRef={onboardingBottomRef}
+                  onMarkFinished={() => {
+                    startTransition(async () => {
+                      const res = await markOnboardingFinished();
+                      if (res.error) setError(res.error);
+                      else {
+                        setOnboardingProgress((p) =>
+                          p ? { ...p, finished: true } : p,
+                        );
+                      }
+                    });
+                  }}
                 />
               )}
               {skill === "avvik" && <AvvikContent draft={avvikDraft} />}
@@ -698,15 +710,19 @@ function OnboardingContent({
   progress,
   pending,
   bottomRef,
+  onMarkFinished,
 }: {
   messages: OnboardingMessage[];
   progress: OnboardingProgress | null;
   pending: boolean;
   bottomRef: React.RefObject<HTMLDivElement | null>;
+  onMarkFinished: () => void;
 }) {
   const completed = progress?.completed_steps ?? [];
   const doneCount = completed.length;
   const totalCount = ONBOARDING_STEPS_UI.length;
+  const allDone = doneCount === totalCount;
+  const isFinished = !!progress?.finished;
   return (
     <div className="space-y-4">
       {/* Progress-bar med stegene */}
@@ -741,6 +757,21 @@ function OnboardingContent({
             );
           })}
         </ul>
+        {isFinished ? (
+          <div className="mt-2 flex items-center gap-2 text-xs text-green">
+            <CheckCircle2 className="size-3.5" />
+            <span>Onboarding fullført</span>
+          </div>
+        ) : allDone ? (
+          <button
+            type="button"
+            onClick={onMarkFinished}
+            disabled={pending}
+            className="mt-2 w-full px-3 py-2 rounded-md bg-orange text-bg text-sm font-medium hover:bg-orange/90 disabled:opacity-60"
+          >
+            {pending ? "Lagrer…" : "Marker som fullført"}
+          </button>
+        ) : null}
       </div>
 
       {messages.length === 0 ? (

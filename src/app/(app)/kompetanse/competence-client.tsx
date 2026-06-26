@@ -268,6 +268,7 @@ function UploadCard({
             <input
               type="file"
               accept=".pdf,image/*"
+              capture="environment"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               required
               className="block w-full text-sm text-text-2 file:mr-3 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-orange file:text-bg file:cursor-pointer"

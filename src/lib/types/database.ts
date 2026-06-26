@@ -2057,9 +2057,11 @@ export const ROLE_LABELS: Record<UserRole, { no: string; en: string }> = {
   montor: { no: "Montør", en: "Assembly worker" },
 };
 
-// Roller som kan signere Samsvarserklæring (FEL § 12)
+// Roller som kan signere Samsvarserklæring (FEL § 12).
+// KUN installatør eller bemyndiget av installatør — admin har ikke
+// signeringsrett selv om de har systemrettigheter. Endring fra 2026-06-26
+// etter agent-review: admin var feilaktig listet her.
 export const SAMSVAR_SIGNING_ROLES: UserRole[] = [
-  "admin",
   "installator",
   "bemyndiget",
 ];

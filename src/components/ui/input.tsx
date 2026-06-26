@@ -1,7 +1,10 @@
 import { forwardRef, type InputHTMLAttributes, type TextareaHTMLAttributes } from "react";
 
+// text-base (16 px) på mobil for å unngå iOS Safari sin auto-zoom på input-fokus.
+// text-sm (14 px) på sm+ for å bevare desktop-density. Field-arbeid på iPhone
+// får ellers en kort zoom-pulse hver gang man trykker i et felt.
 const baseField =
-  "w-full h-10 rounded-md px-3 text-sm bg-surface border border-border placeholder:text-text-3 focus:border-orange focus:outline-none focus:ring-2 focus:ring-orange/20";
+  "w-full h-10 rounded-md px-3 text-base sm:text-sm bg-surface border border-border placeholder:text-text-3 focus:border-orange focus:outline-none focus:ring-2 focus:ring-orange/20";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   ({ className = "", ...props }, ref) => (

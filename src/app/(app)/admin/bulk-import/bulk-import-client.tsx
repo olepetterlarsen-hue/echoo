@@ -474,6 +474,7 @@ export function BulkImportClient() {
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/gif"
+                capture="environment"
                 className="hidden"
                 disabled={imageProcessing}
                 onChange={onImageChange}

@@ -106,6 +106,15 @@ input, textarea, select {
   color: var(--color-text-1);
 }
 
+/* iOS Safari zoomer inn automatisk når et input-felt får fokus hvis font-size
+   er under 16 px. Tving 16 px på mobil (typografi-systemet er fortsatt 14 px
+   visuelt via Tailwind text-sm på sm+). */
+@media (max-width: 639px) {
+  input, textarea, select {
+    font-size: 16px;
+  }
+}
+
 input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--color-orange);

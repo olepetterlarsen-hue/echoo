@@ -399,7 +399,14 @@ export function DocumentEditor({
               ? tr("proj_doc_help_samsvar_blocked", locale)
               : tr("proj_doc_help_ready", locale);
           return (
-            <div className="flex flex-wrap items-center justify-end gap-3 sticky bottom-4 bg-bg/90 backdrop-blur p-3 rounded-lg border border-border">
+            <div
+              className="flex flex-wrap items-center justify-end gap-3 sticky bg-bg/90 backdrop-blur p-3 rounded-lg border border-border"
+              style={{
+                // env(safe-area-inset-bottom) lar knappene unngå iOS-hjemstreken
+                // og dukker ikke under tastaturet når brukeren skriver i felt.
+                bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
+              }}
+            >
               <div className="flex flex-col mr-auto">
                 <span className="text-xs text-text-3">{helpText}</span>
                 <span className="text-[11px] text-text-3 italic">
@@ -829,8 +836,14 @@ function YnaGroup({
     onChange(next);
   }
 
+  const OPTIONS: { value: YnaAnswer; labelKey: Parameters<typeof tr>[0] }[] = [
+    { value: "ja", labelKey: "proj_doc_field_yes" },
+    { value: "nei", labelKey: "proj_doc_field_no" },
+    { value: "uakt", labelKey: "proj_doc_field_na" },
+  ];
+
   return (
-    <div className="overflow-x-auto -mx-5">
+    <div className="-mx-5 sm:mx-0">
       {!disabled && items.length > 1 && (
         <div className="px-5 pb-2 flex justify-end">
           <button
@@ -848,50 +861,97 @@ function YnaGroup({
           </button>
         </div>
       )}
-      <table className="w-full text-sm">
-        <thead className="text-xs uppercase tracking-wider text-text-3 border-b border-border">
-          <tr>
-            <th className="text-left px-5 py-2 font-medium">{tr("proj_doc_field_question", locale)}</th>
-            <th className="w-12 text-center py-2 font-medium">{tr("proj_doc_field_yes", locale)}</th>
-            <th className="w-12 text-center py-2 font-medium">{tr("proj_doc_field_no", locale)}</th>
-            <th className="w-12 text-center py-2 font-medium">{tr("proj_doc_field_na", locale)}</th>
-            <th className="w-1/3 text-left px-3 py-2 font-medium">{tr("proj_doc_field_comment", locale)}</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {items.map((item) => {
-            const r = value[item.key] ?? { svar: null, kommentar: "" };
-            return (
-              <tr key={item.key} className="align-top">
-                <td className="px-5 py-2 text-text-1">{item.label}</td>
-                {(["ja", "nei", "uakt"] as YnaAnswer[]).map((opt) => (
-                  <td key={opt} className="text-center py-2">
-                    <input
-                      type="radio"
-                      name={`yna_${item.key}`}
-                      checked={r.svar === opt}
-                      onChange={() => setItem(item.key, { svar: opt })}
+
+      {/* Mobil: kort-stack — store touch-target-knapper for hånd/hanske-bruk */}
+      <div className="sm:hidden space-y-3 px-5">
+        {items.map((item) => {
+          const r = value[item.key] ?? { svar: null, kommentar: "" };
+          return (
+            <div
+              key={item.key}
+              className="border border-border rounded-md bg-card p-3 space-y-2"
+            >
+              <div className="text-sm text-text-1">{item.label}</div>
+              <div className="grid grid-cols-3 gap-2">
+                {OPTIONS.map((opt) => {
+                  const active = r.svar === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setItem(item.key, { svar: opt.value })}
                       disabled={disabled}
-                      className="size-4 accent-orange cursor-pointer"
+                      className={`min-h-[44px] rounded-md text-sm font-medium border transition-colors ${
+                        active
+                          ? "bg-orange text-bg border-orange"
+                          : "bg-surface text-text-2 border-border hover:bg-card-hover"
+                      } disabled:opacity-50`}
+                    >
+                      {tr(opt.labelKey, locale)}
+                    </button>
+                  );
+                })}
+              </div>
+              <input
+                type="text"
+                value={r.kommentar}
+                onChange={(e) => setItem(item.key, { kommentar: e.target.value })}
+                disabled={disabled}
+                placeholder={tr("proj_doc_field_comment", locale)}
+                className="w-full h-10 rounded-md px-3 text-base bg-surface border border-border focus:border-orange focus:outline-none"
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop: kompakt tabell — bevarer tett oversikt på store skjermer */}
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-xs uppercase tracking-wider text-text-3 border-b border-border">
+            <tr>
+              <th className="text-left px-5 py-2 font-medium">{tr("proj_doc_field_question", locale)}</th>
+              <th className="w-12 text-center py-2 font-medium">{tr("proj_doc_field_yes", locale)}</th>
+              <th className="w-12 text-center py-2 font-medium">{tr("proj_doc_field_no", locale)}</th>
+              <th className="w-12 text-center py-2 font-medium">{tr("proj_doc_field_na", locale)}</th>
+              <th className="w-1/3 text-left px-3 py-2 font-medium">{tr("proj_doc_field_comment", locale)}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {items.map((item) => {
+              const r = value[item.key] ?? { svar: null, kommentar: "" };
+              return (
+                <tr key={item.key} className="align-top">
+                  <td className="px-5 py-2 text-text-1">{item.label}</td>
+                  {(["ja", "nei", "uakt"] as YnaAnswer[]).map((opt) => (
+                    <td key={opt} className="text-center py-2">
+                      <input
+                        type="radio"
+                        name={`yna_${item.key}`}
+                        checked={r.svar === opt}
+                        onChange={() => setItem(item.key, { svar: opt })}
+                        disabled={disabled}
+                        className="size-4 accent-orange cursor-pointer"
+                      />
+                    </td>
+                  ))}
+                  <td className="px-3 py-2">
+                    <input
+                      type="text"
+                      value={r.kommentar}
+                      onChange={(e) =>
+                        setItem(item.key, { kommentar: e.target.value })
+                      }
+                      disabled={disabled}
+                      className="w-full h-8 rounded px-2 text-sm bg-surface border border-border focus:border-orange focus:outline-none"
                     />
                   </td>
-                ))}
-                <td className="px-3 py-2">
-                  <input
-                    type="text"
-                    value={r.kommentar}
-                    onChange={(e) =>
-                      setItem(item.key, { kommentar: e.target.value })
-                    }
-                    disabled={disabled}
-                    className="w-full h-8 rounded px-2 text-sm bg-surface border border-border focus:border-orange focus:outline-none"
-                  />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -1114,31 +1174,36 @@ function PeopleList({
         <p className="text-xs text-text-3">{tr("proj_doc_people_empty", locale)}</p>
       )}
       {value.map((p, i) => (
-        <div key={i} className="grid grid-cols-12 gap-2 items-center">
+        <div
+          key={i}
+          className="flex flex-col sm:grid sm:grid-cols-12 gap-2 sm:items-center"
+        >
           <input
             value={p.navn}
             onChange={(e) => update(i, { navn: e.target.value })}
             disabled={disabled}
             placeholder={tr("proj_doc_people_name_placeholder", locale)}
-            className="col-span-6 h-9 rounded px-2 text-sm bg-surface border border-border focus:border-orange focus:outline-none"
+            className="sm:col-span-6 h-10 sm:h-9 rounded px-2 text-base sm:text-sm bg-surface border border-border focus:border-orange focus:outline-none"
           />
-          <input
-            value={p.rolle}
-            onChange={(e) => update(i, { rolle: e.target.value })}
-            disabled={disabled}
-            placeholder={tr("proj_doc_people_role_placeholder", locale)}
-            className="col-span-5 h-9 rounded px-2 text-sm bg-surface border border-border focus:border-orange focus:outline-none"
-          />
-          {!disabled && (
-            <button
-              type="button"
-              onClick={() => remove(i)}
-              className="col-span-1 text-text-3 hover:text-red flex items-center justify-center"
-              aria-label={tr("proj_doc_remove", locale)}
-            >
-              <Trash2 className="size-4" />
-            </button>
-          )}
+          <div className="flex gap-2 items-center sm:contents">
+            <input
+              value={p.rolle}
+              onChange={(e) => update(i, { rolle: e.target.value })}
+              disabled={disabled}
+              placeholder={tr("proj_doc_people_role_placeholder", locale)}
+              className="flex-1 sm:col-span-5 h-10 sm:h-9 rounded px-2 text-base sm:text-sm bg-surface border border-border focus:border-orange focus:outline-none"
+            />
+            {!disabled && (
+              <button
+                type="button"
+                onClick={() => remove(i)}
+                className="sm:col-span-1 size-10 sm:size-9 shrink-0 text-text-3 hover:text-red flex items-center justify-center"
+                aria-label={tr("proj_doc_remove", locale)}
+              >
+                <Trash2 className="size-4" />
+              </button>
+            )}
+          </div>
         </div>
       ))}
       {!disabled && (
@@ -1305,7 +1370,7 @@ function RiskAssessmentGroup({
             key={item.key}
             className="border border-border rounded-md p-3 space-y-2"
           >
-            <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-text-1">{item.label}</div>
                 {item.description && (
@@ -1314,7 +1379,7 @@ function RiskAssessmentGroup({
                   </div>
                 )}
               </div>
-              <div className="flex flex-wrap gap-1">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-1">
                 {LEVELS.map((l) => {
                   const active = r.level === l.value;
                   return (
@@ -1323,7 +1388,7 @@ function RiskAssessmentGroup({
                       type="button"
                       onClick={() => setItem(item.key, { level: l.value })}
                       disabled={disabled}
-                      className={`px-2.5 py-1 text-xs rounded border font-medium transition-colors disabled:opacity-60 ${
+                      className={`min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 text-sm sm:text-xs rounded border font-medium transition-colors disabled:opacity-60 ${
                         active
                           ? l.tone
                           : "bg-card text-text-2 border-border hover:bg-card-hover"
@@ -1343,7 +1408,7 @@ function RiskAssessmentGroup({
               disabled={disabled}
               rows={2}
               placeholder={tr("proj_doc_risk_response_placeholder", locale)}
-              className="w-full rounded px-2 py-1.5 text-sm bg-surface border border-border focus:border-orange focus:outline-none"
+              className="w-full rounded px-2 py-1.5 text-base sm:text-sm bg-surface border border-border focus:border-orange focus:outline-none"
             />
           </div>
         );
