@@ -189,6 +189,7 @@ export function CustomerForm({ mode, customer }: Props) {
                   size="sm"
                   onClick={lookupBrreg}
                   disabled={brregPending || !form.org_number.trim()}
+                  aria-label={tr("brreg_lookup_title", locale)}
                   title={tr("brreg_lookup_title", locale)}
                 >
                   <Search className="size-4" />

@@ -155,6 +155,7 @@ export function EntryPopup({ entry, projects, groups, onClose }: Props) {
                   <Link
                     href={`/prosjekter/${selectedProject.id}?tab=planlegging`}
                     target="_blank"
+                    aria-label={tr("sched_open_project", locale)}
                     title={tr("sched_open_project", locale)}
                     className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-surface border border-border hover:bg-card-hover"
                   >

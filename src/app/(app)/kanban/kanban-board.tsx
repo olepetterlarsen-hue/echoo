@@ -51,6 +51,7 @@ export function KanbanBoard({ stages, projects }: Props) {
     <div className="flex gap-4 overflow-x-auto pb-4">
       <Column
         key={UNASSIGNED_KEY}
+        aria-label={tr("kanban_col_no_stage", locale)}
         title={tr("kanban_col_no_stage", locale)}
         color="#58585F"
         items={groups.get(UNASSIGNED_KEY) ?? []}

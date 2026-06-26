@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { Bug, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input, Field } from "@/components/ui/input";
 import { useLocale } from "@/lib/i18n";
 import { tr } from "@/lib/i18n/strings";
 import { submitIssueReport } from "@/app/(app)/actions/issue-reports";
+import { useFocusTrap } from "@/lib/hooks/use-focus-trap";
 
 type Severity = "lav" | "middels" | "hoey";
 
@@ -21,6 +22,8 @@ export function ReportIssueButton() {
   const [pending, startTransition] = useTransition();
   const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, open);
 
   function reset() {
     setTitle("");
@@ -68,6 +71,7 @@ export function ReportIssueButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
+        aria-label={tr("issue_button", locale)}
         title={tr("issue_button", locale)}
         className="fixed bottom-4 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-orange text-bg px-4 py-2.5 text-sm font-semibold shadow-lg hover:bg-orange/90 transition-colors"
       >
@@ -81,6 +85,10 @@ export function ReportIssueButton() {
           onClick={close}
         >
           <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={tr("issue_modal_title", locale)}
             className="w-full max-w-md bg-surface border border-border rounded-lg shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >

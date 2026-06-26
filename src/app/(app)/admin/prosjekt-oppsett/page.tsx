@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrgId } from "@/lib/supabase/org";
 import { Layers } from "lucide-react";
 import { SetupTabs } from "./setup-tabs";
+import type { Stage, Category, Template } from "./setup-tabs";
 import { AdminTabs } from "@/components/app/admin-tabs";
 import { SETTINGS_TABS } from "@/components/app/admin-tab-configs";
 
@@ -66,9 +67,9 @@ export default async function ProsjektOppsettPage({ searchParams }: PageProps) {
 
       <SetupTabs
         initialTab={initialTab}
-        stages={(stages ?? []) as unknown as Parameters<typeof SetupTabs>[0]["stages"]}
-        categories={(categories ?? []) as unknown as Parameters<typeof SetupTabs>[0]["categories"]}
-        templates={(templates ?? []) as unknown as Parameters<typeof SetupTabs>[0]["templates"]}
+        stages={(stages ?? []) as Stage[]}
+        categories={(categories ?? []) as Category[]}
+        templates={(templates ?? []) as Template[]}
       />
     </div>
   );

@@ -35,7 +35,9 @@
 
   --color-text-1: #211f1a;
   --color-text-2: #5b574c;
-  --color-text-3: #8c8676;
+  /* text-3 darkened from #8c8676 → #6f6855 så placeholder + tertiær-tekst
+     passerer WCAG AA (≥4.5:1) på alle Lin-bakgrunner inkl. bg-card #f5f2ea. */
+  --color-text-3: #6f6855;
 
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-display: var(--font-archivo), var(--font-inter), system-ui, sans-serif;
@@ -58,7 +60,9 @@
 
   --color-text-1: #F2F2F2;
   --color-text-2: #9A9AA4;
-  --color-text-3: #58585F;
+  /* text-3 lysnet fra #58585F → #8c8c95 så det passerer WCAG AA på Dark bg-card.
+     Gammel verdi ga ~2.5:1 kontrast (failed). */
+  --color-text-3: #8c8c95;
 }
 
 :root {

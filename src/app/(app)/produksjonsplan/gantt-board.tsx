@@ -940,7 +940,8 @@ function SectionEditControls({
                 return r;
               })
             }
-            className="size-6 grid place-items-center rounded text-orange hover:bg-orange/10"
+            className="size-8 grid place-items-center rounded text-orange hover:bg-orange/10"
+            aria-label={tr("save", locale)}
             title={tr("save", locale)}
           >
             <Check className="size-3.5" />
@@ -951,7 +952,8 @@ function SectionEditControls({
               setNewName(section.name);
               setRenaming(false);
             }}
-            className="size-6 grid place-items-center rounded text-text-3 hover:bg-card"
+            className="size-8 grid place-items-center rounded text-text-3 hover:bg-card"
+            aria-label={tr("cancel", locale)}
             title={tr("cancel", locale)}
           >
             <X className="size-3.5" />
@@ -963,7 +965,8 @@ function SectionEditControls({
             type="button"
             disabled={pending || !canMoveUp}
             onClick={() => runAction(() => moveSection(section.id, "up"))}
-            className="size-6 grid place-items-center rounded text-text-2 hover:text-text-1 hover:bg-card disabled:opacity-30"
+            className="size-8 grid place-items-center rounded text-text-2 hover:text-text-1 hover:bg-card disabled:opacity-30"
+            aria-label={tr("gantt_move_up", locale)}
             title={tr("gantt_move_up", locale)}
           >
             <ChevronUp className="size-3.5" />
@@ -972,7 +975,8 @@ function SectionEditControls({
             type="button"
             disabled={pending || !canMoveDown}
             onClick={() => runAction(() => moveSection(section.id, "down"))}
-            className="size-6 grid place-items-center rounded text-text-2 hover:text-text-1 hover:bg-card disabled:opacity-30"
+            className="size-8 grid place-items-center rounded text-text-2 hover:text-text-1 hover:bg-card disabled:opacity-30"
+            aria-label={tr("gantt_move_down", locale)}
             title={tr("gantt_move_down", locale)}
           >
             <ChevronDown className="size-3.5" />
@@ -981,7 +985,8 @@ function SectionEditControls({
             type="button"
             disabled={pending}
             onClick={() => setRenaming(true)}
-            className="size-6 grid place-items-center rounded text-text-2 hover:text-text-1 hover:bg-card"
+            className="size-8 grid place-items-center rounded text-text-2 hover:text-text-1 hover:bg-card"
+            aria-label={tr("gantt_rename", locale)}
             title={tr("gantt_rename", locale)}
           >
             <Pencil className="size-3.5" />
@@ -993,7 +998,8 @@ function SectionEditControls({
               if (!confirm(tr("gantt_delete_section_confirm", locale).replace("{name}", section.name))) return;
               runAction(() => deleteSection(section.id));
             }}
-            className="size-6 grid place-items-center rounded text-red hover:bg-red/10"
+            className="size-8 grid place-items-center rounded text-red hover:bg-red/10"
+            aria-label={tr("delete", locale)}
             title={tr("delete", locale)}
           >
             <Trash2 className="size-3.5" />
@@ -1024,7 +1030,8 @@ function LaneEditControls({
         type="button"
         disabled={pending}
         onClick={() => runAction(() => moveGroup(groupId, "up"))}
-        className="size-6 grid place-items-center rounded text-text-2 hover:text-text-1 hover:bg-card disabled:opacity-30"
+        className="size-8 grid place-items-center rounded text-text-2 hover:text-text-1 hover:bg-card disabled:opacity-30"
+        aria-label={tr("gantt_move_up", locale)}
         title={tr("gantt_move_up", locale)}
       >
         <ChevronUp className="size-3.5" />
@@ -1033,7 +1040,8 @@ function LaneEditControls({
         type="button"
         disabled={pending}
         onClick={() => runAction(() => moveGroup(groupId, "down"))}
-        className="size-6 grid place-items-center rounded text-text-2 hover:text-text-1 hover:bg-card disabled:opacity-30"
+        className="size-8 grid place-items-center rounded text-text-2 hover:text-text-1 hover:bg-card disabled:opacity-30"
+        aria-label={tr("gantt_move_down", locale)}
         title={tr("gantt_move_down", locale)}
       >
         <ChevronDown className="size-3.5" />
@@ -1046,6 +1054,7 @@ function LaneEditControls({
           runAction(() => assignGroupToSection(groupId, val));
         }}
         className="h-6 rounded px-1 text-[10px] bg-surface border border-border text-text-2"
+        aria-label={tr("gantt_move_to_section", locale)}
         title={tr("gantt_move_to_section", locale)}
       >
         <option value="">— {tr("gantt_unsectioned", locale)} —</option>
@@ -1114,7 +1123,7 @@ function NewSectionButton({
         type="button"
         disabled={pending}
         onClick={save}
-        className="size-6 grid place-items-center rounded text-orange hover:bg-orange/10"
+        className="size-8 grid place-items-center rounded text-orange hover:bg-orange/10"
       >
         <Check className="size-3.5" />
       </button>
@@ -1124,7 +1133,7 @@ function NewSectionButton({
           setName("");
           setOpen(false);
         }}
-        className="size-6 grid place-items-center rounded text-text-3 hover:bg-card"
+        className="size-8 grid place-items-center rounded text-text-3 hover:bg-card"
       >
         <X className="size-3.5" />
       </button>

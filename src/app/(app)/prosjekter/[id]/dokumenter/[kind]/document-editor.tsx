@@ -286,6 +286,7 @@ export function DocumentEditor({
                   size="sm"
                   onClick={onStartInternalControl}
                   disabled={pending}
+                  aria-label={tr("proj_doc_internal_control_title", locale)}
                   title={tr("proj_doc_internal_control_title", locale)}
                 >
                   <ShieldCheck className="size-4" />

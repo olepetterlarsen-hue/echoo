@@ -35,10 +35,15 @@ export default async function TasksPage({ searchParams }: PageProps) {
   if (view === "mine") {
     query = query.eq("assigned_to", user.id);
   }
-  if (status && status !== "all" && (status === "initiated" || status === "in_progress" || status === "resolved")) {
-    query = query.eq("status", status);
-  } else if (view !== "tavle") {
-    // Mine og Alle: skjul "resolved" by default
+  const explicitStatus =
+    status === "initiated" || status === "in_progress" || status === "resolved"
+      ? status
+      : null;
+  if (explicitStatus) {
+    query = query.eq("status", explicitStatus);
+  } else if (view !== "tavle" && view !== "mine") {
+    // Alle-view: skjul "resolved" by default.
+    // Mine-view: hent alt — vi trenger resolved-rader for å regne stats.
     query = query.neq("status", "resolved");
   }
 
@@ -61,23 +66,15 @@ export default async function TasksPage({ searchParams }: PageProps) {
     assignee?: { full_name: string | null; email: string | null } | null;
     task_type?: { label_no: string } | null;
   };
-  const tasks = (rawTasks ?? []) as unknown as TaskRow[];
+  const allFetchedTasks = (rawTasks ?? []) as unknown as TaskRow[];
 
-  // Kun for "mine"-fanen: vis stats
+  // For "mine"-fanen: regn stats fra samme query, så vi slipper en duplikat
+  // round-trip til DB (sparer ~50-100ms per request).
   const stats = { open: 0, resolved: 0, avgResolveDays: 0 };
   if (view === "mine") {
-    const { data: allMine } = await supabase
-      .from("tasks")
-      .select("status, created_at, resolved_at")
-      .eq("assigned_to", user.id);
-    const all = (allMine ?? []) as Array<{
-      status: string;
-      created_at: string;
-      resolved_at: string | null;
-    }>;
-    stats.open = all.filter((t) => t.status !== "resolved").length;
-    stats.resolved = all.filter((t) => t.status === "resolved").length;
-    const resolvedDurations = all
+    stats.open = allFetchedTasks.filter((t) => t.status !== "resolved").length;
+    stats.resolved = allFetchedTasks.filter((t) => t.status === "resolved").length;
+    const resolvedDurations = allFetchedTasks
       .filter((t) => t.status === "resolved" && t.resolved_at)
       .map(
         (t) =>
@@ -94,6 +91,13 @@ export default async function TasksPage({ searchParams }: PageProps) {
           ) / 10
         : 0;
   }
+
+  // Display-filter: i "mine"-view fetcher vi alt for stats, men viser kun
+  // ikke-resolved med mindre brukeren har valgt status-filter.
+  const tasks =
+    view === "mine" && !explicitStatus
+      ? allFetchedTasks.filter((t) => t.status !== "resolved")
+      : allFetchedTasks;
 
   const dateLocale = locale === "en" ? "en-GB" : "no-NO";
   const daysSuffix = locale === "en" ? "d" : "d";

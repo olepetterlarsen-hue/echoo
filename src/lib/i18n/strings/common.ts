@@ -207,6 +207,13 @@ export const COMMON: TranslationDict = {
   },
 
   dismiss: { no: "Lukk", en: "Dismiss" },
+  a11y_skip_to_content: { no: "Hopp til innhold", en: "Skip to content" },
+
+  guard_not_logged_in: { no: "Du må være logget inn.", en: "You must be logged in." },
+  guard_admin_required: {
+    no: "Krever admin-rolle.",
+    en: "Admin role required.",
+  },
 
   // Quick-create FAB
   qc_button: { no: "Opprett ny", en: "Create new" },

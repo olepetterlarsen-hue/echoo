@@ -39,7 +39,7 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase
       .from("projects")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("organization_id", orgId)
       .eq("status", "aktiv"),
     supabase
@@ -54,12 +54,12 @@ export default async function DashboardPage() {
       .eq("active", true),
     supabase
       .from("deviations")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("organization_id", orgId)
       .neq("status", "lukket"),
     supabase
       .from("documents")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("organization_id", orgId)
       .eq("status", "utkast"),
     supabase
@@ -227,7 +227,7 @@ export default async function DashboardPage() {
               href="/oppgaver/ny"
               title="Opprett ny oppgave"
               aria-label="Opprett ny oppgave"
-              className="size-7 grid place-items-center rounded-md bg-orange/15 text-orange hover:bg-orange hover:text-bg transition-colors"
+              className="size-8 grid place-items-center rounded-md bg-orange/15 text-orange hover:bg-orange hover:text-bg transition-colors"
             >
               <Plus className="size-4" />
             </Link>
@@ -288,7 +288,7 @@ export default async function DashboardPage() {
                 href="/prosjekter/ny"
                 title="Opprett nytt prosjekt"
                 aria-label="Opprett nytt prosjekt"
-                className="size-7 grid place-items-center rounded-md bg-orange/15 text-orange hover:bg-orange hover:text-bg transition-colors"
+                className="size-8 grid place-items-center rounded-md bg-orange/15 text-orange hover:bg-orange hover:text-bg transition-colors"
               >
                 <Plus className="size-4" />
               </Link>
@@ -345,7 +345,7 @@ export default async function DashboardPage() {
                 href="/avvik/ny"
                 title="Meld nytt avvik"
                 aria-label="Meld nytt avvik"
-                className="size-7 grid place-items-center rounded-md bg-orange/15 text-orange hover:bg-orange hover:text-bg transition-colors"
+                className="size-8 grid place-items-center rounded-md bg-orange/15 text-orange hover:bg-orange hover:text-bg transition-colors"
               >
                 <Plus className="size-4" />
               </Link>

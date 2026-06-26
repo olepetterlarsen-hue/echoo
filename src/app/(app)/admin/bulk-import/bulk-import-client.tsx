@@ -18,7 +18,9 @@ import {
   Camera,
   Sparkles,
 } from "lucide-react";
-import * as XLSX from "xlsx";
+// XLSX importeres dynamisk i parseFile() — ~100 KB minified, og brukes
+// kun når en admin laster opp Excel. Holder den utenfor hovedbundle.
+import type * as XLSXType from "xlsx";
 import {
   bulkImportCustomers,
   bulkImportProjects,
@@ -129,7 +131,8 @@ function normalizeHeader(h: string): string {
 }
 
 function parseSheet(
-  ws: XLSX.WorkSheet,
+  XLSX: typeof XLSXType,
+  ws: XLSXType.WorkSheet,
   expectedHeaders: string[],
 ): ParsedSheet | undefined {
   const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, {
@@ -177,6 +180,7 @@ function parseSheet(
 
 async function parseFile(file: File): Promise<ParsedFile> {
   try {
+    const XLSX = await import("xlsx");
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, { type: "array" });
 
@@ -185,11 +189,11 @@ async function parseFile(file: File): Promise<ParsedFile> {
     const brukereSheet = wb.Sheets[SHEET_NAMES.brukere];
 
     return {
-      kunder: kunderSheet ? parseSheet(kunderSheet, CUSTOMER_HEADERS) : undefined,
+      kunder: kunderSheet ? parseSheet(XLSX, kunderSheet, CUSTOMER_HEADERS) : undefined,
       prosjekter: prosjekterSheet
-        ? parseSheet(prosjekterSheet, PROJECT_HEADERS)
+        ? parseSheet(XLSX, prosjekterSheet, PROJECT_HEADERS)
         : undefined,
-      brukere: brukereSheet ? parseSheet(brukereSheet, USER_HEADERS) : undefined,
+      brukere: brukereSheet ? parseSheet(XLSX, brukereSheet, USER_HEADERS) : undefined,
     };
   } catch (e) {
     return { fileError: (e as Error).message };

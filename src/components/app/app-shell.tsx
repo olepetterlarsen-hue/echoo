@@ -218,6 +218,12 @@ export function AppShell({
 
   return (
     <LocaleContext.Provider value={{ locale, setLocale }}>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-orange focus:text-bg focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg"
+      >
+        {tr("a11y_skip_to_content", locale)}
+      </a>
       <div className="min-h-screen flex">
         {/* Sidebar — sticky top på desktop så bunn-elementer (språk, profil,
             logg ut) alltid er synlig nederst i viewporten uansett scroll-
@@ -378,7 +384,7 @@ export function AppShell({
             <div className="w-8" />
           </header>
 
-          <main className="flex-1 overflow-y-auto">
+          <main id="main-content" className="flex-1 overflow-y-auto">
             {locked && (
               <div className="bg-red/10 border-b border-red/30 px-6 py-2 text-sm text-red flex items-center justify-between gap-4">
                 <span>

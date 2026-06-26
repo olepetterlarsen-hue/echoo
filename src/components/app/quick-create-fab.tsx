@@ -76,8 +76,8 @@ export function QuickCreateFab() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        title={tr("qc_button", locale)}
         aria-label={tr("qc_button", locale)}
+        title={tr("qc_button", locale)}
         className="inline-flex items-center justify-center size-12 rounded-full bg-orange text-bg shadow-lg hover:bg-orange/90 transition-colors"
       >
         {open ? <X className="size-5" /> : <Plus className="size-5" />}

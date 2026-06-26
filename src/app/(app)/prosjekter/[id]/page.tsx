@@ -122,9 +122,11 @@ export default async function ProjectDetailPage({
   };
   const p = project as ProjectWithLinks;
 
+  // Hopper over JSONB-feltet "data" — det er stort (skjema-innhold) og
+  // brukes ikke i listevisningen, kun når brukeren åpner ett dokument.
   const { data: documents } = await supabase
     .from("documents")
-    .select("*")
+    .select("id, kind, version, status, pdf_path, signed_at")
     .eq("project_id", id)
     .order("version", { ascending: false });
 

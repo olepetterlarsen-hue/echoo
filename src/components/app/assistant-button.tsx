@@ -29,6 +29,7 @@ import type {
   OnboardingProgress,
 } from "@/lib/ai/skills/onboarding";
 import { MarkdownMini } from "@/components/app/markdown-mini";
+import { useFocusTrap } from "@/lib/hooks/use-focus-trap";
 
 type Skill = "onboarding" | "avvik" | "sja" | "iso";
 
@@ -37,6 +38,7 @@ const AVVIK_DRAFT_KEY = "echoo:avvik_draft";
 export function AssistantButton() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLElement | null>(null);
   const [skill, setSkill] = useState<Skill>("onboarding");
   const [input, setInput] = useState("");
   const [pending, startTransition] = useTransition();
@@ -49,6 +51,7 @@ export function AssistantButton() {
   const [onboardingMessages, setOnboardingMessages] = useState<OnboardingMessage[]>([]);
   const [onboardingProgress, setOnboardingProgress] = useState<OnboardingProgress | null>(null);
   const isoBottomRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(panelRef, open);
   const onboardingBottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -211,6 +214,10 @@ export function AssistantButton() {
           onClick={() => setOpen(false)}
         >
           <aside
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Echoo AI-assistent"
             className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-surface border-l border-border shadow-2xl flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >

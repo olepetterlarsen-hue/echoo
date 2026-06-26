@@ -446,6 +446,7 @@ function FieldEditor({
           type="button"
           onClick={onRemove}
           className="text-text-3 hover:text-red p-2 mt-6"
+          aria-label={tr("adm_tpl_ny_remove_field", locale)}
           title={tr("adm_tpl_ny_remove_field", locale)}
         >
           <Trash2 className="size-4" />

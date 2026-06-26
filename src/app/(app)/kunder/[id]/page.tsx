@@ -19,7 +19,9 @@ export default async function CustomerDetailPage({ params }: PageProps) {
   const supabase = await createClient();
   const { data: customer } = await supabase
     .from("customers")
-    .select("*")
+    .select(
+      "id, name, org_number, contact_person, email, phone, address, postal_code, city, notes, map_color, active",
+    )
     .eq("id", id)
     .single();
   if (!customer) notFound();

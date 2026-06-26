@@ -72,10 +72,19 @@ export async function restoreDefault(input: {
     return { error: (e as Error).message };
   }
   const { supabase } = ctx;
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+  // KRITISK: filter på organization_id — uten denne sletter én admin
+  // mal-overrides for alle orgs som bruker samme kind.
   const { error } = await supabase
     .from("document_templates")
     .delete()
-    .eq("kind", input.kind);
+    .eq("kind", input.kind)
+    .eq("organization_id", orgId);
   if (error) return { error: error.message };
   revalidatePath(`/admin/maler/${input.kind}`);
   revalidatePath("/admin/maler");
@@ -101,18 +110,22 @@ export async function toggleTemplateHidden(input: {
     return { error: (e as Error).message };
   }
 
-  // Sjekk om rad eksisterer; oppretter hvis ikke
+  // Sjekk om rad eksisterer for denne org-en; oppretter hvis ikke.
+  // KRITISK: filter på organization_id på både select og update — uten
+  // kunne én admin slått hidden av/på for alle orgs som har overridet kind.
   const { data: existing } = await supabase
     .from("document_templates")
     .select("kind")
     .eq("kind", input.kind)
+    .eq("organization_id", orgId)
     .maybeSingle();
 
   if (existing) {
     const { error } = await supabase
       .from("document_templates")
       .update({ is_hidden: input.hidden, updated_by: userId })
-      .eq("kind", input.kind);
+      .eq("kind", input.kind)
+      .eq("organization_id", orgId);
     if (error) return { error: error.message };
   } else {
     // Trenger en definisjon for å lage raden — bruk en tom placeholder

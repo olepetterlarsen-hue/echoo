@@ -253,6 +253,7 @@ export function MapClient({ markers }: Props) {
                   <button
                     type="button"
                     onClick={() => showOnly(entry.id)}
+                    aria-label={tr("map_show_only", locale)}
                     title={tr("map_show_only", locale)}
                     className="text-[10px] text-text-3 hover:text-orange shrink-0"
                   >

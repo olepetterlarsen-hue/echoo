@@ -75,10 +75,17 @@ export default async function ProjectTemplatesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {templates.map((tpl) => {
-                  const cat = (
-                    tpl as unknown as { category?: { name: string } | null }
-                  ).category;
+                {(
+                  templates as unknown as Array<{
+                    id: string;
+                    name: string;
+                    description: string | null;
+                    default_installation_type: string | null;
+                    is_active: boolean;
+                    category?: { name: string } | null;
+                  }>
+                ).map((tpl) => {
+                  const cat = tpl.category;
                   return (
                     <tr key={tpl.id} className="hover:bg-card-hover">
                       <td className="px-4 py-3">

@@ -49,7 +49,8 @@ export async function upsertGroup(
     const { error } = await supabase
       .from("groups")
       .update(payload)
-      .eq("id", input.id);
+      .eq("id", input.id)
+      .eq("organization_id", orgId);
     if (error) return { error: error.message };
     revalidatePath("/admin/grupper");
     revalidatePath(`/admin/grupper/${input.id}`);
@@ -68,8 +69,31 @@ export async function upsertGroup(
 export async function deleteGroup(input: {
   id: string;
 }): Promise<{ error?: string }> {
+  const { t } = await getServerT();
   const supabase = await createClient();
-  const { error } = await supabase.from("groups").delete().eq("id", input.id);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: t("adm_grp_err_not_logged_in") };
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (me?.role !== "admin") return { error: t("adm_grp_err_requires_admin") };
+
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const { error } = await supabase
+    .from("groups")
+    .delete()
+    .eq("id", input.id)
+    .eq("organization_id", orgId);
   if (error) return { error: error.message };
   revalidatePath("/admin/grupper");
   return {};
@@ -178,7 +202,35 @@ export async function updateMembers(input: {
   groupId: string;
   userIds: string[];
 }): Promise<{ error?: string }> {
+  const { t } = await getServerT();
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: t("adm_grp_err_not_logged_in") };
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (me?.role !== "admin") return { error: t("adm_grp_err_requires_admin") };
+
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  // Verifiser at gruppen tilhører kallerens org før vi rører noe.
+  const { data: group } = await supabase
+    .from("groups")
+    .select("id")
+    .eq("id", input.groupId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (!group) return { error: t("adm_grp_err_requires_admin") };
+
   // Hent eksisterende medlemmer
   const { data: existing } = await supabase
     .from("group_members")

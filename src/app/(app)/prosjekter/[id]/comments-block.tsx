@@ -126,6 +126,7 @@ export function CommentsBlock({
                     <button
                       type="button"
                       onClick={() => onDelete(c.id)}
+                      aria-label={tr("proj_comment_delete_title", locale)}
                       title={tr("proj_comment_delete_title", locale)}
                       className="text-text-3 hover:text-red transition-colors"
                     >

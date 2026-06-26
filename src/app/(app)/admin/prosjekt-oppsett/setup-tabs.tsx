@@ -15,7 +15,7 @@ import {
   reorderStage,
 } from "./actions";
 
-interface Stage {
+export interface Stage {
   id: string;
   name: string;
   color: string;
@@ -23,7 +23,7 @@ interface Stage {
   is_active: boolean;
 }
 
-interface Category {
+export interface Category {
   id: string;
   name: string;
   slug: string;
@@ -32,7 +32,7 @@ interface Category {
   field_schema: Array<{ key: string; label: string; kind: string }> | unknown;
 }
 
-interface Template {
+export interface Template {
   id: string;
   name: string;
   description: string | null;
