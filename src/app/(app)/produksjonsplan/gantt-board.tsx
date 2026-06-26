@@ -145,6 +145,10 @@ export function GanttBoard({
   const router = useRouter();
   // Valgt entry til popup
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
+  // Klikkbare team-knapper og datoer — issues #14, #16, #17, #18.
+  // Åpner side-panel som filtrerer entries på valgt team eller dato.
+  const [selectedLaneId, setSelectedLaneId] = useState<string | null>(null);
+  const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
   // Drag-and-drop-tilstand. dragRef holder den autoritative state-en
   // (oppdateres synkront i pointermove uten å forårsake re-render-loop),
   // dragState speiler den for rendering. moved = true så snart pointeren har
@@ -484,6 +488,26 @@ export function GanttBoard({
         onClose={() => setSelectedEntry(null)}
       />
     )}
+    {selectedLaneId && (
+      <LaneDetailPanel
+        laneId={selectedLaneId}
+        groups={groups}
+        entries={entries}
+        projects={projects}
+        dateLocale={dateLocale}
+        onClose={() => setSelectedLaneId(null)}
+      />
+    )}
+    {selectedDateStr && (
+      <DateDetailPanel
+        dateStr={selectedDateStr}
+        groups={groups}
+        entries={entries}
+        projects={projects}
+        dateLocale={dateLocale}
+        onClose={() => setSelectedDateStr(null)}
+      />
+    )}
     <div className="bg-card border border-border rounded-lg overflow-hidden">
       <div className="overflow-x-auto">
         <div style={{ minWidth: `${180 + totalWidth}px` }}>
@@ -503,27 +527,32 @@ export function GanttBoard({
             ))}
           </div>
 
-          {/* Dag-header */}
+          {/* Dag-header — datoer er klikkbare for å åpne dag-detalj-panel */}
           <div className="flex border-b border-border bg-surface/50">
             <div className="w-[180px] shrink-0" />
             {days.map((d, i) => {
               const isToday = formatDate(d) === todayStr;
               const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+              const dateStr = formatDate(d);
               return (
-                <div
+                <button
                   key={i}
+                  type="button"
+                  onClick={() => setSelectedDateStr(dateStr)}
                   style={{ width: `${DAY_PX}px` }}
-                  className={`shrink-0 border-l border-border text-center py-1.5 text-[10px] ${
+                  className={`shrink-0 border-l border-border text-center py-1.5 text-[10px] hover:bg-orange/10 transition-colors ${
                     isToday
                       ? "bg-orange/20 text-orange font-bold"
                       : isWeekend
                         ? "text-text-3"
                         : "text-text-2"
                   }`}
+                  title={tr("gantt_date_open_detail", locale)}
+                  aria-label={`${tr("gantt_date_open_detail", locale)} ${dateStr}`}
                 >
                   <div>{d.toLocaleDateString(dateLocale, { weekday: "short" }).slice(0, 2)}</div>
                   <div className="font-mono">{d.getDate()}</div>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -587,7 +616,7 @@ export function GanttBoard({
                 className="flex border-b border-border relative"
                 style={{ height: `${laneHeight}px` }}
               >
-                {/* Lane-tittel */}
+                {/* Lane-tittel — klikkbar for å åpne team-detalj-panel */}
                 <div className="w-[180px] shrink-0 px-3 py-2 bg-surface/30 border-r border-border flex items-center gap-2">
                   {lane.color && (
                     <span
@@ -595,9 +624,21 @@ export function GanttBoard({
                       style={{ backgroundColor: lane.color }}
                     />
                   )}
-                  <span className="text-sm text-text-1 truncate flex-1">
-                    {lane.name}
-                  </span>
+                  {lane.id !== null && !editMode ? (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLaneId(lane.id)}
+                      className="text-sm text-text-1 truncate flex-1 text-left hover:text-orange transition-colors"
+                      title={tr("gantt_lane_open_detail", locale)}
+                      aria-label={tr("gantt_lane_open_detail", locale)}
+                    >
+                      {lane.name}
+                    </button>
+                  ) : (
+                    <span className="text-sm text-text-1 truncate flex-1">
+                      {lane.name}
+                    </span>
+                  )}
                   {editMode && lane.id !== null && (
                     <LaneEditControls
                       groupId={lane.id}
@@ -1158,4 +1199,210 @@ function formatDate(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+// Side-panel som vises når brukeren klikker på et team-navn i venstrekolonne.
+// Lister alle entries for laget i datoperioden, med dato, prosjekt, status.
+// Issues #14, #16, #17.
+function LaneDetailPanel({
+  laneId,
+  groups,
+  entries,
+  projects,
+  dateLocale,
+  onClose,
+}: {
+  laneId: string;
+  groups: Group[];
+  entries: Entry[];
+  projects: Array<{ id: string; project_number: string; title: string }>;
+  dateLocale: string;
+  onClose: () => void;
+}) {
+  const { locale } = useLocale();
+  const lane = groups.find((g) => g.id === laneId);
+  const laneEntries = entries
+    .filter((e) => e.group_id === laneId)
+    .sort((a, b) => a.start_date.localeCompare(b.start_date));
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose}>
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label={lane?.name ?? ""}
+        className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-surface border-l border-border shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+          <div className="flex items-center gap-2 min-w-0">
+            {lane?.color && (
+              <span
+                className="inline-block size-3 rounded-full shrink-0"
+                style={{ backgroundColor: lane.color }}
+              />
+            )}
+            <h2 className="text-base font-semibold truncate">{lane?.name}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-text-3 hover:text-text-1"
+            aria-label={tr("close", locale)}
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {lane?.email && (
+            <div className="px-5 py-3 border-b border-border text-sm">
+              <span className="text-text-3">{tr("gantt_lane_email", locale)}</span>{" "}
+              <a href={`mailto:${lane.email}`} className="text-orange hover:underline">
+                {lane.email}
+              </a>
+            </div>
+          )}
+          <div className="px-5 py-3 text-xs uppercase tracking-wider text-text-3 font-semibold">
+            {tr("gantt_lane_entries_count", locale).replace(
+              "{n}",
+              String(laneEntries.length),
+            )}
+          </div>
+          {laneEntries.length === 0 ? (
+            <div className="px-5 py-6 text-center text-text-3 text-sm">
+              {tr("gantt_lane_empty", locale)}
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {laneEntries.map((e) => {
+                const proj =
+                  e.projects ?? projects.find((p) => p.id === e.project_id);
+                return (
+                  <li key={e.id} className="px-5 py-3 hover:bg-card-hover">
+                    <div className="text-sm font-medium text-text-1">
+                      {e.title ?? proj?.title ?? "—"}
+                    </div>
+                    {proj && (
+                      <div className="text-xs text-text-3 font-mono mt-0.5">
+                        {proj.project_number}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between mt-1 text-xs">
+                      <span className="text-text-2">
+                        {new Date(e.start_date).toLocaleDateString(dateLocale, {
+                          day: "2-digit",
+                          month: "short",
+                        })}
+                        {" → "}
+                        {new Date(e.end_date).toLocaleDateString(dateLocale, {
+                          day: "2-digit",
+                          month: "short",
+                        })}
+                      </span>
+                      <span className="text-text-3 capitalize">
+                        {e.status.replace("_", " ")}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+// Side-panel som vises når brukeren klikker på en dato i dag-headeren.
+// Lister alle entries som er aktive den dagen, gruppert per team. Issue #18.
+function DateDetailPanel({
+  dateStr,
+  groups,
+  entries,
+  projects,
+  dateLocale,
+  onClose,
+}: {
+  dateStr: string;
+  groups: Group[];
+  entries: Entry[];
+  projects: Array<{ id: string; project_number: string; title: string }>;
+  dateLocale: string;
+  onClose: () => void;
+}) {
+  const { locale } = useLocale();
+  const activeEntries = entries.filter(
+    (e) => e.start_date <= dateStr && dateStr <= e.end_date,
+  );
+  const headerDate = new Date(dateStr).toLocaleDateString(dateLocale, {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose}>
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label={headerDate}
+        className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-surface border-l border-border shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+          <h2 className="text-base font-semibold capitalize truncate">{headerDate}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-text-3 hover:text-text-1"
+            aria-label={tr("close", locale)}
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-5 py-3 text-xs uppercase tracking-wider text-text-3 font-semibold">
+            {tr("gantt_date_entries_count", locale).replace(
+              "{n}",
+              String(activeEntries.length),
+            )}
+          </div>
+          {activeEntries.length === 0 ? (
+            <div className="px-5 py-6 text-center text-text-3 text-sm">
+              {tr("gantt_date_empty", locale)}
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {activeEntries.map((e) => {
+                const group = groups.find((g) => g.id === e.group_id);
+                const proj =
+                  e.projects ?? projects.find((p) => p.id === e.project_id);
+                return (
+                  <li key={e.id} className="px-5 py-3 hover:bg-card-hover">
+                    <div className="flex items-center gap-2 mb-1">
+                      {group?.color && (
+                        <span
+                          className="inline-block size-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: group.color }}
+                        />
+                      )}
+                      <span className="text-xs text-text-3">{group?.name ?? "—"}</span>
+                    </div>
+                    <div className="text-sm font-medium text-text-1">
+                      {e.title ?? proj?.title ?? "—"}
+                    </div>
+                    {proj && (
+                      <div className="text-xs text-text-3 font-mono mt-0.5">
+                        {proj.project_number}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </aside>
+    </div>
+  );
 }

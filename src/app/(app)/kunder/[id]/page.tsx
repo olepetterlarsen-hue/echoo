@@ -20,7 +20,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
   const { data: customer } = await supabase
     .from("customers")
     .select(
-      "id, name, org_number, contact_person, email, phone, address, postal_code, city, notes, map_color, active",
+      "id, name, org_number, contact_person, contact_person_role, contact_person_phone_alt, contact_person_address, email, phone, address, postal_code, city, notes, map_color, active",
     )
     .eq("id", id)
     .single();
@@ -88,6 +88,12 @@ export default async function CustomerDetailPage({ params }: PageProps) {
               <span className="text-text-3">{t("cust_label_contact_person")}</span>{" "}
               {customer.contact_person ?? "—"}
             </p>
+            {customer.contact_person_role && (
+              <p>
+                <span className="text-text-3">{t("cust_label_contact_role")}</span>{" "}
+                {customer.contact_person_role}
+              </p>
+            )}
             <p>
               <span className="text-text-3">{t("cust_label_email")}</span>{" "}
               {customer.email ? (
@@ -102,6 +108,18 @@ export default async function CustomerDetailPage({ params }: PageProps) {
               <span className="text-text-3">{t("cust_label_phone")}</span>{" "}
               {customer.phone ?? "—"}
             </p>
+            {customer.contact_person_phone_alt && (
+              <p>
+                <span className="text-text-3">{t("cust_label_contact_phone_alt")}</span>{" "}
+                {customer.contact_person_phone_alt}
+              </p>
+            )}
+            {customer.contact_person_address && (
+              <p>
+                <span className="text-text-3">{t("cust_label_contact_address")}</span>{" "}
+                {customer.contact_person_address}
+              </p>
+            )}
           </CardBody>
         </Card>
 

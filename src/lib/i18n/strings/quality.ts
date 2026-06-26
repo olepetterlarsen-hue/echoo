@@ -355,6 +355,7 @@ export const QUALITY: TranslationDict = {
   },
   routine_not_uploaded: { no: "Ikke lastet opp ennå", en: "Not uploaded yet" },
   routine_download: { no: "Last ned", en: "Download" },
+  routine_open: { no: "Åpne", en: "Open" },
   routine_upload_no_title: {
     no: "Last opp norsk versjon",
     en: "Upload Norwegian version",

@@ -1274,6 +1274,9 @@ export type Database = {
           last_name: string | null;
           org_number: string | null;
           contact_person: string | null;
+          contact_person_role: string | null;
+          contact_person_phone_alt: string | null;
+          contact_person_address: string | null;
           email: string | null;
           phone: string | null;
           address: string | null;
@@ -1295,6 +1298,9 @@ export type Database = {
           last_name?: string | null;
           org_number?: string | null;
           contact_person?: string | null;
+          contact_person_role?: string | null;
+          contact_person_phone_alt?: string | null;
+          contact_person_address?: string | null;
           email?: string | null;
           phone?: string | null;
           address?: string | null;
@@ -1313,6 +1319,9 @@ export type Database = {
           last_name?: string | null;
           org_number?: string | null;
           contact_person?: string | null;
+          contact_person_role?: string | null;
+          contact_person_phone_alt?: string | null;
+          contact_person_address?: string | null;
           email?: string | null;
           phone?: string | null;
           address?: string | null;

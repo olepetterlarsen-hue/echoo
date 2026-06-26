@@ -13,6 +13,9 @@ interface CustomerInput {
   last_name?: string;
   org_number?: string;
   contact_person?: string;
+  contact_person_role?: string;
+  contact_person_phone_alt?: string;
+  contact_person_address?: string;
   email?: string;
   phone?: string;
   address?: string;
@@ -55,6 +58,9 @@ export async function createCustomer(input: CustomerInput): Promise<{
       last_name: customerType === "privat" ? clean(input.last_name) : null,
       org_number: customerType === "bedrift" ? clean(input.org_number) : null,
       contact_person: clean(input.contact_person),
+      contact_person_role: clean(input.contact_person_role),
+      contact_person_phone_alt: clean(input.contact_person_phone_alt),
+      contact_person_address: clean(input.contact_person_address),
       email: clean(input.email),
       phone: clean(input.phone),
       address: clean(input.address),
@@ -97,6 +103,9 @@ export async function updateCustomer(
       last_name: customerType === "privat" ? clean(rest.last_name) : null,
       org_number: customerType === "bedrift" ? clean(rest.org_number) : null,
       contact_person: clean(rest.contact_person),
+      contact_person_role: clean(rest.contact_person_role),
+      contact_person_phone_alt: clean(rest.contact_person_phone_alt),
+      contact_person_address: clean(rest.contact_person_address),
       email: clean(rest.email),
       phone: clean(rest.phone),
       address: clean(rest.address),

@@ -434,6 +434,14 @@ export const PROJECTS: TranslationDict = {
   },
   proj_doc_restore_yes: { no: "Gjenopprett", en: "Restore" },
   proj_doc_restore_no: { no: "Forkast", en: "Discard" },
+  proj_doc_mark_all_uakt: {
+    no: "Markér alle som ikke aktuelt",
+    en: "Mark all as not applicable",
+  },
+  proj_doc_mark_all_uakt_confirm: {
+    no: "Sett 'ikke aktuelt' på alle spørsmål i denne seksjonen?",
+    en: "Set 'not applicable' on all questions in this section?",
+  },
 
   // Document editor inline subforms
   proj_doc_field_question: { no: "Spørsmål", en: "Question" },

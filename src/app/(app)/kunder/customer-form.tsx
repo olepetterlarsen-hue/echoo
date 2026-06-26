@@ -37,6 +37,15 @@ export function CustomerForm({ mode, customer }: Props) {
     name: customer?.name ?? "",
     org_number: customer?.org_number ?? "",
     contact_person: customer?.contact_person ?? "",
+    contact_person_role:
+      (customer as { contact_person_role?: string | null } | undefined)
+        ?.contact_person_role ?? "",
+    contact_person_phone_alt:
+      (customer as { contact_person_phone_alt?: string | null } | undefined)
+        ?.contact_person_phone_alt ?? "",
+    contact_person_address:
+      (customer as { contact_person_address?: string | null } | undefined)
+        ?.contact_person_address ?? "",
     email: customer?.email ?? "",
     phone: customer?.phone ?? "",
     address: customer?.address ?? "",
@@ -207,6 +216,13 @@ export function CustomerForm({ mode, customer }: Props) {
                 onChange={(e) => update("contact_person", e.target.value)}
               />
             </Field>
+            <Field label={tr("cust_field_contact_role", locale)}>
+              <Input
+                value={form.contact_person_role}
+                onChange={(e) => update("contact_person_role", e.target.value)}
+                placeholder={tr("cust_field_contact_role_ph", locale)}
+              />
+            </Field>
             <Field label={tr("cust_field_email", locale)}>
               <Input
                 type="email"
@@ -219,6 +235,25 @@ export function CustomerForm({ mode, customer }: Props) {
                 type="tel"
                 value={form.phone}
                 onChange={(e) => update("phone", e.target.value)}
+              />
+            </Field>
+            <Field label={tr("cust_field_contact_phone_alt", locale)}>
+              <Input
+                type="tel"
+                value={form.contact_person_phone_alt}
+                onChange={(e) =>
+                  update("contact_person_phone_alt", e.target.value)
+                }
+                placeholder={tr("cust_field_contact_phone_alt_ph", locale)}
+              />
+            </Field>
+            <Field label={tr("cust_field_contact_address", locale)}>
+              <Input
+                value={form.contact_person_address}
+                onChange={(e) =>
+                  update("contact_person_address", e.target.value)
+                }
+                placeholder={tr("cust_field_contact_address_ph", locale)}
               />
             </Field>
           </div>

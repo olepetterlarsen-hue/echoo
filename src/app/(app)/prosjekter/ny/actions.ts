@@ -52,6 +52,36 @@ export async function createProject(
     return { error: (e as Error).message || t("proj_err_not_signed_in") };
   }
 
+  // Auto-sync: hvis brukeren fyller inn site-adresse uten å velge eksisterende
+  // site, opprett en site-rad samtidig så anlegget dukker opp i /sites og /kart.
+  // Brukeren (Erik) klaget: "alle disse bør snakke sammen uten at du må legge
+  // til alt manuelt i hver boks. rød tråd baby."
+  let resolvedSiteId: string | null = input.site_id || null;
+  const siteAddr = clean(input.site_address);
+  if (!resolvedSiteId && siteAddr) {
+    const siteName =
+      clean(input.site_company) ||
+      clean(input.site_address) ||
+      input.title.trim();
+    const { data: newSite, error: siteErr } = await supabase
+      .from("sites")
+      .insert({
+        organization_id: orgId,
+        customer_id: input.customer_id || null,
+        name: siteName,
+        address: siteAddr,
+        postal_code: clean(input.site_postal_code),
+        city: clean(input.site_city),
+        ssb_number: clean(input.site_ssb_number),
+        active: true,
+        created_by: userId,
+      })
+      .select("id")
+      .single();
+    if (siteErr) return { error: siteErr.message };
+    resolvedSiteId = newSite.id;
+  }
+
   const { data, error } = await supabase
     .from("projects")
     .insert({
@@ -61,7 +91,7 @@ export async function createProject(
       description: clean(input.description),
       installation_type: input.installation_type ?? "bolig",
       customer_id: input.customer_id || null,
-      site_id: input.site_id || null,
+      site_id: resolvedSiteId,
       stage_id: input.stage_id || null,
       customer_name: clean(input.customer_name),
       customer_org_number: clean(input.customer_org_number),
@@ -85,5 +115,6 @@ export async function createProject(
 
   if (error) return { error: error.message };
   revalidatePath("/prosjekter");
+  if (resolvedSiteId) revalidatePath("/sites");
   return { id: data.id };
 }

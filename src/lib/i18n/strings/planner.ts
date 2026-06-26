@@ -241,6 +241,33 @@ export const PLANNER: TranslationDict = {
     en: "A customer with this organisation number already exists in your company.",
   },
   cust_field_contact_person: { no: "Kontaktperson", en: "Contact person" },
+  cust_field_contact_role: {
+    no: "Rolle/tittel",
+    en: "Role/title",
+  },
+  cust_field_contact_role_ph: {
+    no: "F.eks. Byggeleder, Prosjektleder",
+    en: "E.g. Site manager, Project manager",
+  },
+  cust_field_contact_phone_alt: {
+    no: "Alt. telefon",
+    en: "Alt. phone",
+  },
+  cust_field_contact_phone_alt_ph: {
+    no: "Privat mobil e.l.",
+    en: "Personal mobile etc.",
+  },
+  cust_field_contact_address: {
+    no: "Privat adresse",
+    en: "Personal address",
+  },
+  cust_field_contact_address_ph: {
+    no: "Hvis ulik fra firmaadresse",
+    en: "If different from company address",
+  },
+  cust_label_contact_role: { no: "Rolle:", en: "Role:" },
+  cust_label_contact_phone_alt: { no: "Alt. tlf:", en: "Alt. phone:" },
+  cust_label_contact_address: { no: "Adresse:", en: "Address:" },
   cust_field_email: { no: "E-post", en: "Email" },
   cust_field_phone: { no: "Telefon", en: "Phone" },
   cust_card_address: { no: "Adresse", en: "Address" },
@@ -512,6 +539,31 @@ export const PLANNER: TranslationDict = {
   sched_next_week: { no: "Neste uke →", en: "Next week →" },
   sched_place_job: { no: "Plasser oppdrag", en: "Place job" },
   gantt_header_team: { no: "Team / Gruppe", en: "Team / Group" },
+  gantt_lane_open_detail: {
+    no: "Åpne team-detalj",
+    en: "Open team details",
+  },
+  gantt_lane_email: { no: "E-post:", en: "Email:" },
+  gantt_lane_entries_count: {
+    no: "{n} oppføringer i perioden",
+    en: "{n} entries in the period",
+  },
+  gantt_lane_empty: {
+    no: "Ingen planlagte oppføringer for dette teamet i perioden.",
+    en: "No scheduled entries for this team in the period.",
+  },
+  gantt_date_open_detail: {
+    no: "Åpne dag-detalj",
+    en: "Open day details",
+  },
+  gantt_date_entries_count: {
+    no: "{n} oppføringer aktive denne dagen",
+    en: "{n} entries active on this day",
+  },
+  gantt_date_empty: {
+    no: "Ingen planlagt aktivitet denne dagen.",
+    en: "No scheduled activity on this day.",
+  },
   gantt_no_team: { no: "Uten team", en: "No team" },
   gantt_untitled: { no: "Uten tittel", en: "Untitled" },
   gantt_locked_prefix: { no: "Låst: ", en: "Locked: " },

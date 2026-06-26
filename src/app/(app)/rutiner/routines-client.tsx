@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Search, Upload, FileDown, AlertCircle } from "lucide-react";
+import { FileText, Search, Upload, FileDown, AlertCircle, X } from "lucide-react";
 import type { Routine } from "@/lib/types/database";
 import { downloadRoutine, uploadRoutine } from "./actions";
 import { useLocale } from "@/lib/i18n";
@@ -122,6 +122,8 @@ function RoutineRow({
   const { locale } = useLocale();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Inline PDF-viewer state — Erik klaget over at "trykk" tvang nedlasting.
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
 
   const title = language === "no" ? routine.title_no : routine.title_en;
   const filePath =
@@ -135,13 +137,13 @@ function RoutineRow({
         ? tr("routine_only_lang_norwegian", locale)
         : null;
 
-  function onDownload() {
+  function onOpen() {
     if (!filePath) return;
     setError(null);
     startTransition(async () => {
       const res = await downloadRoutine({ filePath });
       if (res.error) setError(res.error);
-      else if (res.url) window.open(res.url, "_blank");
+      else if (res.url) setViewerUrl(res.url);
     });
   }
 
@@ -202,12 +204,12 @@ function RoutineRow({
           {filePath && (
             <Button
               size="sm"
-              variant="secondary"
-              onClick={onDownload}
+              onClick={onOpen}
               disabled={pending}
+              title={tr("routine_open", locale)}
             >
-              <FileDown className="size-4" />
-              {tr("routine_download", locale)}
+              <FileText className="size-4" />
+              {tr("routine_open", locale)}
             </Button>
           )}
           {isAdmin && (
@@ -230,6 +232,72 @@ function RoutineRow({
           )}
         </div>
       </CardBody>
+      {viewerUrl && (
+        <PdfViewerModal
+          url={viewerUrl}
+          title={title ?? ""}
+          onClose={() => setViewerUrl(null)}
+        />
+      )}
     </Card>
+  );
+}
+
+// Modal med iframe-PDF + last-ned-knapp. Erik klaget: "la det være noe man kan
+// trykke på så blir bare siden lengre, så kan man lese og velge om man vil
+// laste ned eller ikke". Bruker iframe-rendering (alle moderne nettlesere
+// støtter PDF inline).
+function PdfViewerModal({
+  url,
+  title,
+  onClose,
+}: {
+  url: string;
+  title: string;
+  onClose: () => void;
+}) {
+  const { locale } = useLocale();
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-4"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="w-full max-w-4xl h-[90vh] bg-surface border border-border rounded-lg shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+          <h2 className="text-base font-semibold truncate flex items-center gap-2">
+            <FileText className="size-4 text-orange" />
+            {title}
+          </h2>
+          <div className="flex gap-2 shrink-0">
+            <a href={url} download className="inline-flex">
+              <Button size="sm" variant="secondary" title={tr("routine_download", locale)}>
+                <FileDown className="size-4" />
+                {tr("routine_download", locale)}
+              </Button>
+            </a>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onClose}
+              aria-label={tr("close", locale)}
+              title={tr("close", locale)}
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+        </div>
+        <iframe
+          src={url}
+          title={title}
+          className="flex-1 w-full bg-bg"
+        />
+      </div>
+    </div>
   );
 }

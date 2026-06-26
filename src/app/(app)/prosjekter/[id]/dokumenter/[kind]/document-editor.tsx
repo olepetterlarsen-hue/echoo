@@ -818,8 +818,36 @@ function YnaGroup({
     });
   }
 
+  function markAllUakt() {
+    const next: Record<string, YnaResponse> = { ...value };
+    for (const item of items) {
+      next[item.key] = {
+        ...(value[item.key] ?? { kommentar: "" }),
+        svar: "uakt",
+      };
+    }
+    onChange(next);
+  }
+
   return (
     <div className="overflow-x-auto -mx-5">
+      {!disabled && items.length > 1 && (
+        <div className="px-5 pb-2 flex justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                confirm(tr("proj_doc_mark_all_uakt_confirm", locale))
+              ) {
+                markAllUakt();
+              }
+            }}
+            className="text-xs text-text-3 hover:text-orange underline"
+          >
+            {tr("proj_doc_mark_all_uakt", locale)}
+          </button>
+        </div>
+      )}
       <table className="w-full text-sm">
         <thead className="text-xs uppercase tracking-wider text-text-3 border-b border-border">
           <tr>
