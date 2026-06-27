@@ -120,9 +120,10 @@ export default async function TasksPage({ searchParams }: PageProps) {
         </Link>
       </header>
 
-      {/* Tabs */}
-      <div className="border-b border-border -mx-6 px-6">
-        <nav className="flex gap-1">
+      {/* Tabs — horisontalt scrollbart på mobil så 4 fane-labels ikke
+          scrambler layouten på 375 px iPhone. */}
+      <div className="border-b border-border -mx-6 px-6 overflow-x-auto">
+        <nav className="flex gap-1 min-w-max">
           <TabLink
             href="/oppgaver?view=mine"
             active={view === "mine"}
@@ -297,7 +298,7 @@ function TabLink({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+      className={`inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 ${
         active
           ? "border-orange text-orange"
           : "border-transparent text-text-2 hover:text-text-1"

@@ -179,7 +179,8 @@ export function TaskTypesClient({
               {tr("task_types_empty", locale)}
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[420px]">
               <thead className="bg-card-hover text-text-3 text-xs uppercase tracking-wider">
                 <tr>
                   <th className="text-left px-4 py-2.5">
@@ -194,7 +195,7 @@ export function TaskTypesClient({
                   <th className="text-left px-4 py-2.5">
                     {tr("task_types_col_active", locale)}
                   </th>
-                  <th className="text-right px-4 py-2.5">Bruk</th>
+                  <th className="text-right px-4 py-2.5 hidden sm:table-cell">Bruk</th>
                   {canEdit && <th className="text-right px-4 py-2.5"></th>}
                 </tr>
               </thead>
@@ -219,6 +220,7 @@ export function TaskTypesClient({
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </CardBody>
       </Card>
@@ -299,7 +301,7 @@ function TaskTypeRow({
         <td className="px-4 py-3 text-text-3 text-xs">
           {t.is_active ? "Aktiv" : tr("task_types_inactive", locale)}
         </td>
-        <td className="px-4 py-3 text-right text-text-3 text-xs">
+        <td className="px-4 py-3 text-right text-text-3 text-xs hidden sm:table-cell">
           {t.usage_count}
         </td>
         <td className="px-4 py-3 text-right space-x-1 whitespace-nowrap">
@@ -344,7 +346,7 @@ function TaskTypeRow({
           <Badge tone="neutral">{tr("task_types_inactive", locale)}</Badge>
         )}
       </td>
-      <td className="px-4 py-3 text-right text-text-2 text-xs">
+      <td className="px-4 py-3 text-right text-text-2 text-xs hidden sm:table-cell">
         {t.usage_count}
       </td>
       {canEdit && (
