@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Textarea, Field } from "@/components/ui/input";
@@ -26,6 +26,15 @@ import {
   createCustomTemplate,
   generateTemplateWithAi,
 } from "../custom/actions";
+import {
+  TokenPalette,
+  insertAtCursor,
+} from "@/components/app/token-palette";
+import {
+  applyTokens,
+  hasTokens,
+  samplePreviewProject,
+} from "@/lib/document-templates/tokens";
 
 interface Props {
   startInAiMode: boolean;
@@ -481,6 +490,13 @@ function FieldEditor({
         />
       )}
 
+      {(field.kind === "text" || field.kind === "textarea") && (
+        <DefaultValueEditor
+          field={field}
+          onChange={(v) => onChange({ defaultValue: v })}
+        />
+      )}
+
       <label className="inline-flex items-center gap-2 text-xs text-text-2">
         <input
           type="checkbox"
@@ -490,6 +506,92 @@ function FieldEditor({
         />
         {tr("adm_tpl_ny_required", locale)}
       </label>
+    </div>
+  );
+}
+
+/**
+ * Default-verdi-editor med token-palette og live preview.
+ * Tokens kan klikkes (settes inn ved markøren) eller dras inn i feltet.
+ * Live preview viser hvordan default-verdien blir seedet med eksempel-
+ * prosjektet i samplePreviewProject().
+ */
+function DefaultValueEditor({
+  field,
+  onChange,
+}: {
+  field: FieldDef;
+  onChange: (value: string | undefined) => void;
+}) {
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const value = typeof field.defaultValue === "string" ? field.defaultValue : "";
+
+  function handleInsert(tokenKey: string) {
+    const { value: next, nextSelection } = insertAtCursor(
+      inputRef.current,
+      value,
+      tokenKey,
+    );
+    onChange(next || undefined);
+    // Re-fokuser så markøren havner rett etter token-en
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(nextSelection, nextSelection);
+      }
+    });
+  }
+
+  function onDragOver(e: DragEvent<HTMLTextAreaElement>) {
+    if (
+      e.dataTransfer.types.includes("application/x-echoo-token") ||
+      e.dataTransfer.types.includes("text/plain")
+    ) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    }
+  }
+
+  function onDrop(e: DragEvent<HTMLTextAreaElement>) {
+    e.preventDefault();
+    const token =
+      e.dataTransfer.getData("application/x-echoo-token") ||
+      e.dataTransfer.getData("text/plain");
+    if (!token.startsWith("$")) return;
+    handleInsert(token);
+  }
+
+  const showPreview = hasTokens(value);
+  const previewProject = samplePreviewProject();
+  const previewText = showPreview ? applyTokens(value, previewProject) : "";
+
+  return (
+    <div className="space-y-2 border-t border-border pt-3">
+      <div className="text-xs text-text-3">
+        Default-verdi (med tokens)
+      </div>
+      <TokenPalette onInsert={handleInsert} />
+      <textarea
+        ref={inputRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value || undefined)}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+        rows={2}
+        placeholder="F.eks. Bestilling fra $kunde_navn på prosjekt $prosjektnummer"
+        className="w-full rounded px-2 py-1.5 text-base sm:text-sm bg-surface border border-border focus:border-orange focus:outline-none"
+      />
+      {showPreview && (
+        <div className="rounded border border-border bg-card px-3 py-2">
+          <div className="text-[10px] uppercase tracking-wider text-text-3 mb-1">
+            Forhåndsvisning (med eksempel-data)
+          </div>
+          <div className="text-sm text-text-1 whitespace-pre-wrap">
+            {previewText}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

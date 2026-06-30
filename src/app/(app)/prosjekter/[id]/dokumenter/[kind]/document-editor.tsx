@@ -34,6 +34,7 @@ import { Trash2, Plus as PlusIcon } from "lucide-react";
 import { saveDraft, signDocument, startInternalControl } from "./actions";
 import { useLocale } from "@/lib/i18n";
 import { tr } from "@/lib/i18n/strings";
+import { applyTokens } from "@/lib/document-templates/tokens";
 
 interface Props {
   project: Project | null;
@@ -475,7 +476,14 @@ function seedData(
         const value = pickProjectValue(project, field.prefilledFrom);
         if (value) data[field.key] = value;
       } else if (field.defaultValue !== undefined) {
-        data[field.key] = field.defaultValue;
+        // Hvis defaultValue er en streng som inneholder $-tokens, erstatt
+        // dem med verdier fra Project. Ukjente tokens beholdes som tekst
+        // så brukeren ser hva som mangler.
+        if (typeof field.defaultValue === "string") {
+          data[field.key] = applyTokens(field.defaultValue, project);
+        } else {
+          data[field.key] = field.defaultValue;
+        }
       }
     }
   }
