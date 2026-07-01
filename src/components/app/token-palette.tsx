@@ -16,7 +16,18 @@ const GROUP_LABELS: Record<Group, string> = {
   prosjekt: "Prosjekt",
   kunde: "Kunde",
   anlegg: "Anlegg",
+  firma: "Firma",
+  installator: "Installatør",
 };
+
+// Rekkefølge gruppene vises i palette-en.
+const GROUP_ORDER: Group[] = [
+  "prosjekt",
+  "kunde",
+  "anlegg",
+  "firma",
+  "installator",
+];
 
 interface Props {
   /** Hvilken funksjon som settes inn ved klikk. Tar token-keyen som arg. */
@@ -33,7 +44,7 @@ export function TokenPalette({ onInsert, compact = false }: Props) {
       (acc[t.group] ??= []).push(t);
       return acc;
     },
-    { prosjekt: [], kunde: [], anlegg: [] },
+    { prosjekt: [], kunde: [], anlegg: [], firma: [], installator: [] },
   );
 
   function onDragStart(e: DragEvent<HTMLButtonElement>, key: string) {
@@ -53,7 +64,7 @@ export function TokenPalette({ onInsert, compact = false }: Props) {
         Dra eller klikk for å sette inn token
       </div>
       <div className={compact ? "flex flex-wrap gap-1" : "space-y-2"}>
-        {(Object.keys(grouped) as Group[]).map((group) => {
+        {GROUP_ORDER.map((group) => {
           const items = grouped[group];
           if (items.length === 0) return null;
           if (compact) {

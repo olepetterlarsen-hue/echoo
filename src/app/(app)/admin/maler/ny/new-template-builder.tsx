@@ -34,6 +34,7 @@ import {
   applyTokens,
   hasTokens,
   samplePreviewProject,
+  samplePreviewSettings,
 } from "@/lib/document-templates/tokens";
 
 interface Props {
@@ -564,7 +565,10 @@ function DefaultValueEditor({
 
   const showPreview = hasTokens(value);
   const previewProject = samplePreviewProject();
-  const previewText = showPreview ? applyTokens(value, previewProject) : "";
+  const previewSettings = samplePreviewSettings();
+  const previewText = showPreview
+    ? applyTokens(value, previewProject, previewSettings)
+    : "";
 
   return (
     <div className="space-y-2 border-t border-border pt-3">

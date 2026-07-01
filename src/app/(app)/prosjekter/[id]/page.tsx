@@ -132,6 +132,15 @@ export default async function ProjectDetailPage({
 
   const hidden = await getHiddenKinds();
 
+  // Egne (custom) maler brukeren har bygget — vises som egen seksjon på
+  // prosjektkortet så man kan opprette dokumenter fra dem. Skjulte maler
+  // filtreres bort (is_hidden = true).
+  const { data: customTemplates } = await supabase
+    .from("custom_templates")
+    .select("id, name, subtitle, description, is_hidden")
+    .eq("is_hidden", false)
+    .order("created_at", { ascending: false });
+
   const { data: deviations } = await supabase
     .from("deviations")
     .select(
@@ -273,6 +282,7 @@ export default async function ProjectDetailPage({
           project={p}
           docsByKind={docsByKind}
           hidden={hidden}
+          customTemplates={customTemplates ?? []}
           deviations={(deviations ?? []) as unknown as Parameters<
             typeof DeviationsBlock
           >[0]["initial"]}
@@ -772,6 +782,7 @@ function QualityTab({
   project: p,
   docsByKind,
   hidden,
+  customTemplates,
   deviations,
   t,
   locale,
@@ -779,6 +790,13 @@ function QualityTab({
   project: ProjectWithLinksParam;
   docsByKind: Record<DocumentKind, DocVersion[]>;
   hidden: Set<DocumentKind>;
+  customTemplates: Array<{
+    id: string;
+    name: string;
+    subtitle: string | null;
+    description: string | null;
+    is_hidden: boolean;
+  }>;
   deviations: Parameters<typeof DeviationsBlock>[0]["initial"];
   t: TFunc;
   locale: Locale;
@@ -863,6 +881,32 @@ function QualityTab({
         </div>
       </section>
 
+      {customTemplates.length > 0 && (
+        <section>
+          <h2 className="text-lg font-semibold mb-1">
+            {t("proj_section_custom")}{" "}
+            <span className="text-text-3 text-sm">
+              {t("proj_n_documents").replace(
+                "{n}",
+                String(customTemplates.length),
+              )}
+            </span>
+          </h2>
+          <p className="text-sm text-text-3 mb-3">
+            {t("proj_custom_help")}
+          </p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {customTemplates.map((tpl) => (
+              <CustomTemplateCard
+                key={tpl.id}
+                template={tpl}
+                projectId={p.id}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       <section id="avvik">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -879,6 +923,40 @@ function QualityTab({
         <DeviationsBlock projectId={p.id} initial={deviations} />
       </section>
     </>
+  );
+}
+
+// Kort som viser en av brukerens custom-maler. Klikk går til
+// /prosjekter/[id]/dokumenter/custom?v={template_id} som spawn'er
+// standard document-editor med custom-mal-innholdet.
+function CustomTemplateCard({
+  template,
+  projectId,
+}: {
+  template: { id: string; name: string; subtitle: string | null };
+  projectId: string;
+}) {
+  return (
+    <Link
+      href={`/prosjekter/${projectId}/dokumenter/custom?v=${template.id}`}
+      className="block border border-border rounded-lg p-4 hover:border-orange/40 hover:bg-card-hover transition-colors"
+    >
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 shrink-0 grid place-items-center size-9 rounded-md bg-orange/10 text-orange">
+          <ClipboardList className="size-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold text-text-1 truncate">
+            {template.name}
+          </div>
+          {template.subtitle && (
+            <div className="text-xs text-text-3 mt-0.5 line-clamp-2">
+              {template.subtitle}
+            </div>
+          )}
+        </div>
+      </div>
+    </Link>
   );
 }
 

@@ -229,6 +229,11 @@ export const PROJECTS: TranslationDict = {
     en: "Detailed risk analysis before execution. Multiple versions can be created per work task.",
   },
   proj_section_hms: { no: "HMS-dokumenter", en: "HSE documents" },
+  proj_section_custom: { no: "Egne maler", en: "Custom templates" },
+  proj_custom_help: {
+    no: "Maler du selv har bygget under /admin/maler. Trykk for å opprette et dokument basert på malen.",
+    en: "Templates you built under /admin/maler. Click to create a document from a template.",
+  },
   proj_hms_help: {
     no: "Helse, miljø og sikkerhet. RUH ved hendelser, oppstartssjekkliste ved skift, stikkprøvekontroll ved tilsyn.",
     en: "Health, safety and environment. RUH for incidents, startup checklist per shift, spot check during inspection.",

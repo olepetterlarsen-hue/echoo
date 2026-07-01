@@ -1,4 +1,4 @@
-import { Users, UsersRound, Settings, Building2, Mail, CreditCard, FileText, Layers } from "lucide-react";
+import { Users, UsersRound, Building2, Mail, CreditCard, FileText, Layers } from "lucide-react";
 import type { AdminTab } from "./admin-tabs";
 
 export const USERS_TABS: AdminTab[] = [
@@ -14,12 +14,11 @@ export const USERS_TABS: AdminTab[] = [
   },
 ];
 
+// Merk: /admin/innstillinger fjernet 2026-07-01. Den siden dupliserte
+// firma/orgnr/adresse-feltene fra /admin/bedrift og skrev til en gammel
+// single-tenant app_settings-tabell. Bedrift-siden er nå master, og
+// getAppSettings leser fra organizations.
 export const SETTINGS_TABS: AdminTab[] = [
-  {
-    href: "/admin/innstillinger",
-    label: "Generelt",
-    icon: <Settings className="size-4" />,
-  },
   {
     href: "/admin/bedrift",
     label: "Bedrift",

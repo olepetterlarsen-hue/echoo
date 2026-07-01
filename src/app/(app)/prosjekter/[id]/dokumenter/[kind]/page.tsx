@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DocumentEditor } from "./document-editor";
 import { getTemplate } from "@/lib/document-templates";
+import { getAppSettings } from "@/lib/settings";
 import type { DocumentKind } from "@/lib/types/database";
 
 const VALID_KINDS: DocumentKind[] = [
@@ -13,6 +14,7 @@ const VALID_KINDS: DocumentKind[] = [
   "ruh",
   "startup_checklist",
   "stikkprovekontroll",
+  "custom",
 ];
 
 interface PageProps {
@@ -71,7 +73,10 @@ export default async function DocumentPage({ params, searchParams }: PageProps) 
       (project.installation_type === "telecom" ? "telekom" : "standard");
   }
 
-  const template = await getTemplate(docKind, variant);
+  const [template, settings] = await Promise.all([
+    getTemplate(docKind, variant),
+    getAppSettings(),
+  ]);
 
   return (
     <DocumentEditor
@@ -80,6 +85,7 @@ export default async function DocumentPage({ params, searchParams }: PageProps) 
       existing={existing}
       profile={myProfile!}
       samsvarVariant={variant}
+      settings={settings}
     />
   );
 }

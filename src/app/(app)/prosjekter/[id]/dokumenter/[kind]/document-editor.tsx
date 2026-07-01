@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileDown, Pencil, Save, PenLine, ShieldCheck, X as XIcon } from "lucide-react";
 import type {
+  AppSettings,
   DocumentRow,
   Project,
   Profile,
@@ -44,6 +45,7 @@ interface Props {
   samsvarVariant?: string;
   backHref?: string;
   backLabel?: string;
+  settings?: AppSettings | null;
 }
 
 export function DocumentEditor({
@@ -54,6 +56,7 @@ export function DocumentEditor({
   samsvarVariant,
   backHref,
   backLabel,
+  settings = null,
 }: Props) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -70,8 +73,8 @@ export function DocumentEditor({
 
   const [data, setData] = useState<Record<string, unknown>>(() => {
     const seeded = project
-      ? seedData(template, project, initialData)
-      : seedDataStandalone(template, initialData);
+      ? seedData(template, project, initialData, settings)
+      : seedDataStandalone(template, initialData, settings);
     // Behold variant-info i data så den persisterer ved lagring
     if (samsvarVariant && !seeded._variant) {
       seeded._variant = samsvarVariant;
@@ -435,16 +438,22 @@ export function DocumentEditor({
 }
 
 // Bruk når dokumentet ikke har prosjekt — fyller bare default-verdier.
+// Settings brukes til firma-tokens ($firma_navn, $installator_navn osv.).
 function seedDataStandalone(
   template: TemplateDef,
   existing: Record<string, unknown>,
+  settings: AppSettings | null,
 ): Record<string, unknown> {
   const data: Record<string, unknown> = { ...existing };
   for (const section of template.sections) {
     for (const field of section.fields) {
       if (data[field.key] !== undefined) continue;
       if (field.defaultValue !== undefined) {
-        data[field.key] = field.defaultValue;
+        if (typeof field.defaultValue === "string") {
+          data[field.key] = applyTokens(field.defaultValue, null, settings);
+        } else {
+          data[field.key] = field.defaultValue;
+        }
       }
     }
   }
@@ -455,6 +464,7 @@ function seedData(
   template: TemplateDef,
   project: Project,
   existing: Record<string, unknown>,
+  settings: AppSettings | null,
 ): Record<string, unknown> {
   const data: Record<string, unknown> = { ...existing };
   for (const section of template.sections) {
@@ -477,10 +487,10 @@ function seedData(
         if (value) data[field.key] = value;
       } else if (field.defaultValue !== undefined) {
         // Hvis defaultValue er en streng som inneholder $-tokens, erstatt
-        // dem med verdier fra Project. Ukjente tokens beholdes som tekst
-        // så brukeren ser hva som mangler.
+        // dem med verdier fra Project + Settings. Ukjente tokens beholdes
+        // som tekst så brukeren ser hva som mangler.
         if (typeof field.defaultValue === "string") {
-          data[field.key] = applyTokens(field.defaultValue, project);
+          data[field.key] = applyTokens(field.defaultValue, project, settings);
         } else {
           data[field.key] = field.defaultValue;
         }
