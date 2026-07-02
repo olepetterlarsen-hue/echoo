@@ -153,6 +153,7 @@ export const PLANNER: TranslationDict = {
 
   // Task detail
   task_back_to_list: { no: "← Oppgaver", en: "← Tasks" },
+  task_open_document: { no: "Åpne dokumentet", en: "Open document" },
   task_card_assignment: { no: "Tildeling", en: "Assignment" },
   task_label_person: { no: "Person:", en: "Person:" },
   task_label_group: { no: "Gruppe:", en: "Group:" },

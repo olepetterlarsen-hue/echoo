@@ -293,11 +293,18 @@ const styles = StyleSheet.create({
   radioItem: { flexDirection: "row", alignItems: "center" },
 });
 
+export interface PdfParticipant {
+  name: string;
+  signedAt: string | null;
+  signature: string | null;
+}
+
 interface Args {
   document: DocumentRow & { signature_snapshot?: string | null };
   project: Project | null;
   signer: Profile;
   settings: AppSettings;
+  participants?: PdfParticipant[];
 }
 
 export async function renderDocumentPdf({
@@ -305,6 +312,7 @@ export async function renderDocumentPdf({
   project,
   signer,
   settings,
+  participants = [],
 }: Args): Promise<Buffer> {
   const data = (document.data ?? {}) as Record<string, unknown>;
   const storedVariant = typeof data._variant === "string" ? data._variant : undefined;
@@ -476,6 +484,38 @@ export async function renderDocumentPdf({
               )}
             </View>
           </View>
+
+          {participants.length > 0 && (
+            <>
+              <Text style={styles.sigTitle}>Deltakere</Text>
+              {participants.map((p, i) => (
+                <View key={i} style={styles.sigRow}>
+                  <View style={styles.sigLeft}>
+                    <Text style={styles.sigLeftText}>
+                      {p.signature
+                        ? `Signert elektronisk av ${p.name}${
+                            p.signedAt
+                              ? `,\nden ${new Date(p.signedAt).toLocaleString("no-NO", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}.`
+                              : "."
+                          }`
+                        : `${p.name} — ikke signert digitalt.`}
+                    </Text>
+                  </View>
+                  <View style={styles.sigBox}>
+                    {p.signature && (
+                      <Image src={p.signature} style={styles.sigImage} />
+                    )}
+                  </View>
+                </View>
+              ))}
+            </>
+          )}
         </View>
 
         {/* Footer */}

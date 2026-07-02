@@ -4,8 +4,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrgId } from "@/lib/supabase/org";
 import { guardOrgWritable, checkStorageQuota } from "@/lib/billing";
-import type { DocumentKind, Project } from "@/lib/types/database";
-import { SAMSVAR_SIGNING_ROLES, DOCUMENT_KIND_LABELS } from "@/lib/types/database";
+import type { DocumentKind, DocumentRow, Project } from "@/lib/types/database";
+import {
+  SAMSVAR_SIGNING_ROLES,
+  DOCUMENT_KIND_LABELS,
+  PARTICIPANT_SIGNING_KINDS,
+} from "@/lib/types/database";
 import { renderDocumentPdf } from "@/lib/pdf/render";
 import { getAppSettings } from "@/lib/settings";
 import { getServerT } from "@/lib/i18n/server";
@@ -180,6 +184,26 @@ export async function signDocument(input: SaveInput): Promise<{
     .single();
   if (!docPre) return { error: t("proj_doc_err_load_failed") };
 
+  // Hent eventuelle deltaker-signaturer (f.eks. SJA) til PDF-en
+  const { data: participantRows } = await supabase
+    .from("document_participants")
+    .select(
+      "status, signed_at, signed_name, signature_snapshot, profile:profiles!document_participants_profile_id_fkey(full_name, email)",
+    )
+    .eq("document_id", documentId!)
+    .order("created_at");
+  const participants = (participantRows ?? []).map((row) => {
+    const p = row.profile as unknown as {
+      full_name: string | null;
+      email: string;
+    } | null;
+    return {
+      name: row.signed_name ?? p?.full_name ?? p?.email ?? "",
+      signedAt: row.signed_at,
+      signature: row.signature_snapshot,
+    };
+  });
+
   // Generer PDF
   const settings = await getAppSettings();
   const pdfBuffer = await renderDocumentPdf({
@@ -192,6 +216,7 @@ export async function signDocument(input: SaveInput): Promise<{
     project,
     signer: profile,
     settings,
+    participants,
   });
 
   const folder = input.projectId ?? `standalone/${user.id}`;
@@ -310,4 +335,291 @@ export async function startInternalControl(input: {
   }
   revalidatePath("/skjemaer");
   return { documentId: data.id };
+}
+
+// ---------------------------------------------------------------------------
+// Deltaker-signering (f.eks. SJA): flere personer signerer samme dokument.
+// Forespørsel oppretter en oppgave på deltakerens «Mine oppgaver»; når
+// deltakeren signerer, løses oppgaven automatisk.
+// ---------------------------------------------------------------------------
+
+function documentPath(
+  projectId: string | null,
+  kind: DocumentKind,
+  documentId: string,
+): string {
+  return projectId
+    ? `/prosjekter/${projectId}/dokumenter/${kind}`
+    : `/skjemaer/${documentId}`;
+}
+
+export async function addDocumentParticipants(
+  input: SaveInput & { profileIds: string[] },
+): Promise<{ error?: string; documentId?: string }> {
+  const supabase = await createClient();
+  const { t, locale } = await getServerT();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: t("proj_err_not_signed_in") };
+
+  if (!PARTICIPANT_SIGNING_KINDS.includes(input.kind)) {
+    return { error: t("proj_doc_participants_err_kind") };
+  }
+  if (input.profileIds.length === 0) {
+    return { error: t("proj_doc_participants_err_none") };
+  }
+
+  // Sørg for at dokumentet finnes (lagre utkast først om nødvendig)
+  const saved = await saveDraft(input);
+  if (saved.error || !saved.documentId) {
+    return { error: saved.error ?? t("proj_doc_err_load_failed") };
+  }
+  const documentId = saved.documentId;
+
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const { data: requester } = await supabase
+    .from("profiles")
+    .select("full_name, email")
+    .eq("id", user.id)
+    .single();
+  const requesterName = requester?.full_name ?? requester?.email ?? "";
+
+  let projectLabel = "";
+  if (input.projectId) {
+    const { data: proj } = await supabase
+      .from("projects")
+      .select("project_number, title")
+      .eq("id", input.projectId)
+      .single();
+    if (proj) projectLabel = `${proj.project_number} ${proj.title}`;
+  }
+
+  // Hopp over profiler som allerede er deltakere på dokumentet
+  const { data: existingRows } = await supabase
+    .from("document_participants")
+    .select("profile_id")
+    .eq("document_id", documentId);
+  const already = new Set((existingRows ?? []).map((r) => r.profile_id));
+  const newIds = input.profileIds.filter((pid) => !already.has(pid));
+
+  const kindLabel = DOCUMENT_KIND_LABELS[input.kind]?.[locale] ?? input.kind;
+  const path = documentPath(input.projectId, input.kind, documentId);
+
+  for (const profileId of newIds) {
+    const { data: task, error: taskError } = await supabase
+      .from("tasks")
+      .insert({
+        title: projectLabel
+          ? `${t("proj_doc_participants_task_title")} ${kindLabel} – ${projectLabel}`
+          : `${t("proj_doc_participants_task_title")} ${kindLabel}`,
+        description: `${t("proj_doc_participants_task_desc").replace("{name}", requesterName).replace("{kind}", kindLabel)}\n\n${path}`,
+        assigned_to: profileId,
+        reported_by: user.id,
+        project_id: input.projectId,
+        organization_id: orgId,
+      })
+      .select("id")
+      .single();
+    if (taskError) return { error: taskError.message };
+
+    const { error: partError } = await supabase
+      .from("document_participants")
+      .insert({
+        organization_id: orgId,
+        document_id: documentId,
+        profile_id: profileId,
+        requested_by: user.id,
+        task_id: task.id,
+      });
+    if (partError) return { error: partError.message };
+  }
+
+  if (input.projectId) {
+    revalidatePath(`/prosjekter/${input.projectId}/dokumenter/${input.kind}`);
+    revalidatePath(`/prosjekter/${input.projectId}`);
+  }
+  revalidatePath("/mine-oppgaver");
+  revalidatePath("/oppgaver");
+  return { documentId };
+}
+
+export async function signAsParticipant(input: {
+  participantId: string;
+}): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { t } = await getServerT();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: t("proj_err_not_signed_in") };
+
+  const { data: participant } = await supabase
+    .from("document_participants")
+    .select("*, document:documents(*)")
+    .eq("id", input.participantId)
+    .single();
+  if (!participant) return { error: t("proj_doc_participants_err_not_found") };
+  if (participant.profile_id !== user.id) {
+    return { error: t("proj_doc_participants_err_not_you") };
+  }
+  if (participant.status === "signert") {
+    return { error: t("proj_doc_participants_err_already") };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, email, signature_data_url")
+    .eq("id", user.id)
+    .single();
+  if (!profile?.signature_data_url) {
+    return { error: t("proj_doc_err_no_sig_profile") };
+  }
+
+  const { error: updateError } = await supabase
+    .from("document_participants")
+    .update({
+      status: "signert",
+      signed_at: new Date().toISOString(),
+      signed_name: profile.full_name ?? profile.email,
+      signature_snapshot: profile.signature_data_url,
+    })
+    .eq("id", input.participantId)
+    .eq("status", "ventende");
+  if (updateError) return { error: updateError.message };
+
+  // Løs den tilhørende oppgaven automatisk
+  if (participant.task_id) {
+    await supabase
+      .from("tasks")
+      .update({
+        status: "resolved",
+        resolved_at: new Date().toISOString(),
+        resolved_by: user.id,
+      })
+      .eq("id", participant.task_id);
+  }
+
+  const doc = participant.document as unknown as DocumentRow | null;
+
+  // Er dokumentet allerede signert av ansvarlig, må PDF-en regenereres slik
+  // at deltakersignaturen kommer med i det arkiverte dokumentet.
+  if (doc && doc.status === "signert" && doc.pdf_path && doc.signed_by) {
+    try {
+      const [{ data: docSigner }, { data: docProject }, settings, { data: allParts }] =
+        await Promise.all([
+          supabase.from("profiles").select("*").eq("id", doc.signed_by).single(),
+          doc.project_id
+            ? supabase.from("projects").select("*").eq("id", doc.project_id).single()
+            : Promise.resolve({ data: null }),
+          getAppSettings(),
+          supabase
+            .from("document_participants")
+            .select(
+              "status, signed_at, signed_name, signature_snapshot, profile:profiles!document_participants_profile_id_fkey(full_name, email)",
+            )
+            .eq("document_id", doc.id)
+            .order("created_at"),
+        ]);
+      if (docSigner) {
+        const pdfBuffer = await renderDocumentPdf({
+          document: doc,
+          project: docProject,
+          signer: docSigner,
+          settings,
+          participants: (allParts ?? []).map((row) => {
+            const p = row.profile as unknown as {
+              full_name: string | null;
+              email: string;
+            } | null;
+            return {
+              name: row.signed_name ?? p?.full_name ?? p?.email ?? "",
+              signedAt: row.signed_at,
+              signature: row.signature_snapshot,
+            };
+          }),
+        });
+        await supabase.storage
+          .from("documents")
+          .upload(doc.pdf_path, pdfBuffer, {
+            contentType: "application/pdf",
+            upsert: true,
+          });
+      }
+    } catch {
+      // PDF-regenerering skal ikke blokkere selve signeringen
+    }
+  }
+
+  try {
+    const orgId = await getCurrentOrgId(supabase);
+    await supabase.from("audit_log").insert({
+      organization_id: orgId,
+      actor_id: user.id,
+      action: "document.participant_signed",
+      entity_type: "document",
+      entity_id: doc?.id ?? participant.document_id,
+      metadata: { kind: doc?.kind, project_id: doc?.project_id },
+    });
+  } catch {
+    // Audit-logg skal ikke blokkere signeringen
+  }
+
+  if (doc?.project_id) {
+    revalidatePath(`/prosjekter/${doc.project_id}/dokumenter/${doc.kind}`);
+    revalidatePath(`/prosjekter/${doc.project_id}`);
+  }
+  revalidatePath("/mine-oppgaver");
+  revalidatePath("/oppgaver");
+  return {};
+}
+
+export async function removeDocumentParticipant(input: {
+  participantId: string;
+}): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { t } = await getServerT();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: t("proj_err_not_signed_in") };
+
+  const { data: participant } = await supabase
+    .from("document_participants")
+    .select("*, document:documents(kind, project_id)")
+    .eq("id", input.participantId)
+    .single();
+  if (!participant) return { error: t("proj_doc_participants_err_not_found") };
+  if (participant.status === "signert") {
+    // Signerte deltakerrader er compliance-spor og kan ikke fjernes
+    return { error: t("proj_doc_participants_err_remove_signed") };
+  }
+
+  const { error: deleteError } = await supabase
+    .from("document_participants")
+    .delete()
+    .eq("id", input.participantId)
+    .eq("status", "ventende");
+  if (deleteError) return { error: deleteError.message };
+
+  if (participant.task_id) {
+    await supabase.from("tasks").delete().eq("id", participant.task_id);
+  }
+
+  const doc = participant.document as unknown as {
+    kind: DocumentKind;
+    project_id: string | null;
+  } | null;
+  if (doc?.project_id) {
+    revalidatePath(`/prosjekter/${doc.project_id}/dokumenter/${doc.kind}`);
+  }
+  revalidatePath("/mine-oppgaver");
+  revalidatePath("/oppgaver");
+  return {};
 }

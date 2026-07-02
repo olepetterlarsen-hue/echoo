@@ -4,6 +4,11 @@ import { DocumentEditor } from "./document-editor";
 import { getTemplate } from "@/lib/document-templates";
 import { getAppSettings } from "@/lib/settings";
 import type { DocumentKind } from "@/lib/types/database";
+import { PARTICIPANT_SIGNING_KINDS } from "@/lib/types/database";
+import type {
+  ParticipantWithProfile,
+  OrgMember,
+} from "./participants-panel";
 
 const VALID_KINDS: DocumentKind[] = [
   "risikovurdering",
@@ -78,6 +83,30 @@ export default async function DocumentPage({ params, searchParams }: PageProps) 
     getAppSettings(),
   ]);
 
+  // Deltaker-signering (f.eks. SJA): hent org-medlemmer + eksisterende
+  // deltakere slik at alle på anlegget kan signere samme dokument.
+  let participants: ParticipantWithProfile[] = [];
+  let orgMembers: OrgMember[] = [];
+  if (PARTICIPANT_SIGNING_KINDS.includes(docKind)) {
+    const { data: members } = await supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .eq("active", true)
+      .order("full_name");
+    orgMembers = members ?? [];
+
+    if (existing) {
+      const { data: parts } = await supabase
+        .from("document_participants")
+        .select(
+          "*, profile:profiles!document_participants_profile_id_fkey(id, full_name, email)",
+        )
+        .eq("document_id", existing.id)
+        .order("created_at");
+      participants = (parts ?? []) as unknown as ParticipantWithProfile[];
+    }
+  }
+
   return (
     <DocumentEditor
       project={project}
@@ -86,6 +115,8 @@ export default async function DocumentPage({ params, searchParams }: PageProps) 
       profile={myProfile!}
       samsvarVariant={variant}
       settings={settings}
+      participants={participants}
+      orgMembers={orgMembers}
     />
   );
 }

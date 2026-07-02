@@ -61,6 +61,17 @@ export default async function TaskDetailPage({ params }: PageProps) {
 
   const dateLocale = locale === "en" ? "en-GB" : "no-NO";
 
+  // Interne app-lenker i beskrivelsen (f.eks. signeringsforespørsler legger
+  // dokument-stien på egen linje) vises som en tydelig knapp i stedet.
+  const rawDescription = taskData.description ?? "";
+  const pathMatch = rawDescription.match(
+    /(?:^|\n)(\/(?:prosjekter|skjemaer)\/\S+)\s*$/,
+  );
+  const documentPath = pathMatch?.[1] ?? null;
+  const descriptionText = documentPath
+    ? rawDescription.replace(pathMatch![0], "").trimEnd()
+    : rawDescription;
+
   return (
     <div className="px-6 py-6 max-w-4xl mx-auto space-y-6">
       <header className="flex items-start justify-between gap-4 flex-wrap">
@@ -103,13 +114,24 @@ export default async function TaskDetailPage({ params }: PageProps) {
         )}
       </header>
 
-      {taskData.description && (
+      {(descriptionText || documentPath) && (
         <Card>
-          <CardBody>
-            <h3 className="text-xs uppercase tracking-wider text-text-3 mb-2">
-              {t("task_label_description")}
-            </h3>
-            <p className="text-sm whitespace-pre-wrap">{taskData.description}</p>
+          <CardBody className="space-y-3">
+            {descriptionText && (
+              <>
+                <h3 className="text-xs uppercase tracking-wider text-text-3 mb-2">
+                  {t("task_label_description")}
+                </h3>
+                <p className="text-sm whitespace-pre-wrap">{descriptionText}</p>
+              </>
+            )}
+            {documentPath && (
+              <Link href={documentPath} className="block sm:inline-block">
+                <Button className="w-full sm:w-auto min-h-11">
+                  {t("task_open_document")}
+                </Button>
+              </Link>
+            )}
           </CardBody>
         </Card>
       )}

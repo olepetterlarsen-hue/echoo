@@ -18,6 +18,7 @@ import type {
   RiskColumn,
 } from "@/lib/document-templates/types";
 import { saveTemplate, restoreDefault } from "./actions";
+import { DefaultValueEditor } from "@/components/app/default-value-editor";
 
 interface Props {
   kind: DocumentKind;
@@ -246,13 +247,23 @@ function FieldEditor({
           <label className="text-xs text-text-3 block mb-1">
             {tr("adm_tpl_static_text", locale)}
           </label>
-          <textarea
+          <DefaultValueEditor
             value={(field.defaultValue as string) ?? ""}
-            onChange={(e) =>
-              onChange({ defaultValue: e.target.value })
-            }
+            onChange={(v) => onChange({ defaultValue: v ?? "" })}
             rows={4}
-            className="w-full rounded-md px-3 py-2 text-sm bg-surface border border-border focus:border-orange focus:outline-none"
+            label="Statisk tekst — bruk tokens for firma/prosjekt/kunde"
+            placeholder="F.eks. Vi bekrefter at $firma_navn har utført arbeid for $kunde_navn på $prosjektnummer"
+          />
+        </div>
+      )}
+
+      {(field.kind === "text" || field.kind === "textarea") && (
+        <div className="border-t border-border pt-3">
+          <DefaultValueEditor
+            value={
+              typeof field.defaultValue === "string" ? field.defaultValue : ""
+            }
+            onChange={(v) => onChange({ defaultValue: v })}
           />
         </div>
       )}

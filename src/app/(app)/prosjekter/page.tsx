@@ -100,7 +100,64 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
         </Button>
       </form>
 
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      {/* Mobil: kort-liste — hele kortet er trykkbart, ingen sidescroll */}
+      <div className="sm:hidden space-y-2">
+        {projects?.map((p) => (
+          <Link
+            key={p.id}
+            href={`/prosjekter/${p.id}`}
+            className="block bg-card border border-border rounded-lg p-3 active:bg-card-hover"
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-mono text-orange text-sm">
+                {p.project_number}
+              </span>
+              <span className="text-[11px] text-text-3">
+                {new Date(p.updated_at).toLocaleDateString(
+                  locale === "en" ? "en-GB" : "no-NO",
+                )}
+              </span>
+            </div>
+            <div className="text-base text-text-1 mt-0.5 truncate">
+              {p.title}
+            </div>
+            {p.customer_name && (
+              <div className="text-xs text-text-3 truncate">
+                {p.customer_name}
+              </div>
+            )}
+            <div className="flex gap-1.5 mt-2">
+              <Badge tone={PHASE_TONE[p.phase as ProjectPhase] ?? "neutral"}>
+                {PROJECT_PHASE_LABELS[p.phase as ProjectPhase]?.[locale] ?? p.phase}
+              </Badge>
+              <Badge
+                tone={
+                  p.status === "aktiv"
+                    ? "green"
+                    : p.status === "paa_vent"
+                    ? "yellow"
+                    : p.status === "ferdigstilt"
+                    ? "blue"
+                    : "neutral"
+                }
+              >
+                {STATUS_LABEL_KEYS[p.status] ? t(STATUS_LABEL_KEYS[p.status]) : p.status}
+              </Badge>
+            </div>
+          </Link>
+        ))}
+        {(!projects || projects.length === 0) && (
+          <p className="bg-card border border-border rounded-lg p-6 text-center text-text-3 text-sm">
+            {t("proj_empty")}{" "}
+            <Link href="/prosjekter/ny" className="text-orange hover:underline">
+              {t("proj_create_one")}
+            </Link>
+            .
+          </p>
+        )}
+      </div>
+
+      <div className="hidden sm:block bg-card border border-border rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-surface text-text-3 text-xs uppercase tracking-wider">
             <tr>

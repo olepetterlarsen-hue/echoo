@@ -14,7 +14,15 @@ import type {
   Project,
   Profile,
 } from "@/lib/types/database";
-import { SAMSVAR_SIGNING_ROLES } from "@/lib/types/database";
+import {
+  SAMSVAR_SIGNING_ROLES,
+  PARTICIPANT_SIGNING_KINDS,
+} from "@/lib/types/database";
+import {
+  ParticipantsPanel,
+  type ParticipantWithProfile,
+  type OrgMember,
+} from "./participants-panel";
 import type {
   TemplateDef,
   FieldDef,
@@ -46,6 +54,8 @@ interface Props {
   backHref?: string;
   backLabel?: string;
   settings?: AppSettings | null;
+  participants?: ParticipantWithProfile[];
+  orgMembers?: OrgMember[];
 }
 
 export function DocumentEditor({
@@ -57,6 +67,8 @@ export function DocumentEditor({
   backHref,
   backLabel,
   settings = null,
+  participants = [],
+  orgMembers = [],
 }: Props) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -364,6 +376,20 @@ export function DocumentEditor({
           </CardBody>
         </Card>
       ))}
+
+      {PARTICIPANT_SIGNING_KINDS.includes(template.kind) &&
+        orgMembers.length > 0 && (
+          <ParticipantsPanel
+            projectId={project?.id ?? null}
+            kind={template.kind}
+            existingId={existing?.id ?? null}
+            data={data}
+            participants={participants}
+            orgMembers={orgMembers}
+            currentProfile={profile}
+            isSigned={isSigned}
+          />
+        )}
 
       {error && (
         <div className="text-sm text-red bg-red/10 border border-red/30 rounded px-3 py-2 flex items-start gap-2">
@@ -873,7 +899,7 @@ function YnaGroup({
                 markAllUakt();
               }
             }}
-            className="text-xs text-text-3 hover:text-orange underline"
+            className="min-h-[44px] sm:min-h-0 px-3 sm:px-0 rounded-md border border-border sm:border-0 text-sm sm:text-xs text-text-2 sm:text-text-3 hover:text-orange sm:underline"
           >
             {tr("proj_doc_mark_all_uakt", locale)}
           </button>
@@ -996,64 +1022,124 @@ function YnaMeasurementGroup({
     });
   }
 
+  const OPTIONS: { value: YnaAnswer; labelKey: Parameters<typeof tr>[0] }[] = [
+    { value: "ja", labelKey: "proj_doc_field_yes" },
+    { value: "nei", labelKey: "proj_doc_field_no" },
+    { value: "uakt", labelKey: "proj_doc_field_na" },
+  ];
+
   return (
-    <div className="overflow-x-auto -mx-5">
-      <table className="w-full text-sm">
-        <thead className="text-xs uppercase tracking-wider text-text-3 border-b border-border">
-          <tr>
-            <th className="text-left px-5 py-2 font-medium">{tr("proj_doc_field_question", locale)}</th>
-            <th className="w-12 text-center py-2 font-medium">{tr("proj_doc_field_yes", locale)}</th>
-            <th className="w-12 text-center py-2 font-medium">{tr("proj_doc_field_no", locale)}</th>
-            <th className="w-12 text-center py-2 font-medium">{tr("proj_doc_field_na", locale)}</th>
-            <th className="w-1/4 text-left px-3 py-2 font-medium">{tr("proj_doc_field_comment", locale)}</th>
-            <th className="w-24 text-left px-3 py-2 font-medium">{header}</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {items.map((item) => {
-            const r = value[item.key] ?? { svar: null, kommentar: "", verdi: "" };
-            return (
-              <tr key={item.key} className="align-top">
-                <td className="px-5 py-2 text-text-1">{item.label}</td>
-                {(["ja", "nei", "uakt"] as YnaAnswer[]).map((opt) => (
-                  <td key={opt} className="text-center py-2">
-                    <input
-                      type="radio"
-                      name={`ynam_${item.key}`}
-                      checked={r.svar === opt}
-                      onChange={() => setItem(item.key, { svar: opt })}
+    <div className="-mx-5 sm:mx-0">
+      {/* Mobil: kort-stack — store touch-target-knapper, ingen sidescroll */}
+      <div className="sm:hidden space-y-3 px-5">
+        {items.map((item) => {
+          const r = value[item.key] ?? { svar: null, kommentar: "", verdi: "" };
+          return (
+            <div
+              key={item.key}
+              className="border border-border rounded-md bg-card p-3 space-y-2"
+            >
+              <div className="text-sm text-text-1">{item.label}</div>
+              <div className="grid grid-cols-3 gap-2">
+                {OPTIONS.map((opt) => {
+                  const active = r.svar === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setItem(item.key, { svar: opt.value })}
                       disabled={disabled}
-                      className="size-4 accent-orange cursor-pointer"
+                      className={`min-h-[44px] rounded-md text-sm font-medium border transition-colors ${
+                        active
+                          ? "bg-orange text-bg border-orange"
+                          : "bg-surface text-text-2 border-border hover:bg-card-hover"
+                      } disabled:opacity-50`}
+                    >
+                      {tr(opt.labelKey, locale)}
+                    </button>
+                  );
+                })}
+              </div>
+              <input
+                type="text"
+                value={r.verdi}
+                onChange={(e) => setItem(item.key, { verdi: e.target.value })}
+                disabled={disabled}
+                placeholder={header}
+                className="w-full h-10 rounded-md px-3 text-base bg-surface border border-border focus:border-orange focus:outline-none"
+              />
+              <input
+                type="text"
+                value={r.kommentar}
+                onChange={(e) => setItem(item.key, { kommentar: e.target.value })}
+                disabled={disabled}
+                placeholder={tr("proj_doc_field_comment", locale)}
+                className="w-full h-10 rounded-md px-3 text-base bg-surface border border-border focus:border-orange focus:outline-none"
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop: kompakt tabell */}
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-xs uppercase tracking-wider text-text-3 border-b border-border">
+            <tr>
+              <th className="text-left px-5 py-2 font-medium">{tr("proj_doc_field_question", locale)}</th>
+              <th className="w-12 text-center py-2 font-medium">{tr("proj_doc_field_yes", locale)}</th>
+              <th className="w-12 text-center py-2 font-medium">{tr("proj_doc_field_no", locale)}</th>
+              <th className="w-12 text-center py-2 font-medium">{tr("proj_doc_field_na", locale)}</th>
+              <th className="w-1/4 text-left px-3 py-2 font-medium">{tr("proj_doc_field_comment", locale)}</th>
+              <th className="w-24 text-left px-3 py-2 font-medium">{header}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {items.map((item) => {
+              const r = value[item.key] ?? { svar: null, kommentar: "", verdi: "" };
+              return (
+                <tr key={item.key} className="align-top">
+                  <td className="px-5 py-2 text-text-1">{item.label}</td>
+                  {(["ja", "nei", "uakt"] as YnaAnswer[]).map((opt) => (
+                    <td key={opt} className="text-center py-2">
+                      <input
+                        type="radio"
+                        name={`ynam_${item.key}`}
+                        checked={r.svar === opt}
+                        onChange={() => setItem(item.key, { svar: opt })}
+                        disabled={disabled}
+                        className="size-4 accent-orange cursor-pointer"
+                      />
+                    </td>
+                  ))}
+                  <td className="px-3 py-2">
+                    <input
+                      type="text"
+                      value={r.kommentar}
+                      onChange={(e) =>
+                        setItem(item.key, { kommentar: e.target.value })
+                      }
+                      disabled={disabled}
+                      className="w-full h-8 rounded px-2 text-sm bg-surface border border-border focus:border-orange focus:outline-none"
                     />
                   </td>
-                ))}
-                <td className="px-3 py-2">
-                  <input
-                    type="text"
-                    value={r.kommentar}
-                    onChange={(e) =>
-                      setItem(item.key, { kommentar: e.target.value })
-                    }
-                    disabled={disabled}
-                    className="w-full h-8 rounded px-2 text-sm bg-surface border border-border focus:border-orange focus:outline-none"
-                  />
-                </td>
-                <td className="px-3 py-2">
-                  <input
-                    type="text"
-                    value={r.verdi}
-                    onChange={(e) =>
-                      setItem(item.key, { verdi: e.target.value })
-                    }
-                    disabled={disabled}
-                    className="w-full h-8 rounded px-2 text-sm bg-surface border border-border focus:border-orange focus:outline-none"
-                  />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  <td className="px-3 py-2">
+                    <input
+                      type="text"
+                      value={r.verdi}
+                      onChange={(e) =>
+                        setItem(item.key, { verdi: e.target.value })
+                      }
+                      disabled={disabled}
+                      className="w-full h-8 rounded px-2 text-sm bg-surface border border-border focus:border-orange focus:outline-none"
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -1268,7 +1354,45 @@ function RiskTable({
 
   return (
     <div className="space-y-2">
-      <div className="overflow-x-auto -mx-5">
+      {/* Mobil: kort per rad — kolonner vertikalt, ingen sidescroll */}
+      <div className="sm:hidden space-y-3">
+        {value.length === 0 && (
+          <p className="text-center py-3 text-text-3 text-xs">
+            {tr("proj_doc_risk_empty", locale)}
+          </p>
+        )}
+        {value.map((row, i) => (
+          <div
+            key={i}
+            className="border border-border rounded-md bg-card p-3 space-y-2"
+          >
+            {columns.map((c) => (
+              <div key={c.key}>
+                <label className="text-xs text-text-3">{c.label}</label>
+                <input
+                  value={row[c.key] ?? ""}
+                  onChange={(e) => update(i, c.key, e.target.value)}
+                  disabled={disabled}
+                  className="w-full h-10 rounded-md px-3 text-base bg-surface border border-border focus:border-orange focus:outline-none"
+                />
+              </div>
+            ))}
+            {!disabled && (
+              <button
+                type="button"
+                onClick={() => remove(i)}
+                className="min-h-[44px] w-full rounded-md border border-border text-sm text-text-2 hover:text-red flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="size-4" />
+                {tr("proj_doc_remove_row", locale)}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: kompakt tabell */}
+      <div className="hidden sm:block overflow-x-auto -mx-5">
         <table className="w-full text-sm">
           <thead className="text-xs uppercase tracking-wider text-text-3 border-b border-border">
             <tr>
@@ -1327,12 +1451,12 @@ function RiskTable({
         <button
           type="button"
           onClick={add}
-          className="text-sm text-orange hover:underline inline-flex items-center gap-1 px-5"
+          className="min-h-[44px] sm:min-h-0 text-sm text-orange hover:underline inline-flex items-center gap-1 sm:px-5"
         >
           <PlusIcon className="size-4" /> {tr("proj_doc_add_row", locale)}
         </button>
       )}
-      <p className="text-xs text-text-3 px-5">
+      <p className="text-xs text-text-3 sm:px-5">
         {tr("proj_doc_risk_legend", locale)}
       </p>
     </div>

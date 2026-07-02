@@ -38,6 +38,7 @@ export type DocumentStatus =
   | "approved"
   | "rejected"
   | "signert";
+export type ParticipantStatus = "ventende" | "signert";
 export type DeviationSeverity = "lav" | "middels" | "hoey" | "kritisk";
 export type DeviationStatus = "apen" | "under_arbeid" | "lukket";
 export type DeviationRootCauseCategory =
@@ -956,6 +957,53 @@ export type Database = {
           {
             foreignKeyName: "documents_signed_by_fkey";
             columns: ["signed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      document_participants: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          document_id: string;
+          profile_id: string;
+          requested_by: string | null;
+          task_id: string | null;
+          status: ParticipantStatus;
+          signed_at: string | null;
+          signed_name: string | null;
+          signature_snapshot: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          document_id: string;
+          profile_id: string;
+          requested_by?: string | null;
+          task_id?: string | null;
+          status?: ParticipantStatus;
+        };
+        Update: {
+          status?: ParticipantStatus;
+          task_id?: string | null;
+          signed_at?: string | null;
+          signed_name?: string | null;
+          signature_snapshot?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "document_participants_document_id_fkey";
+            columns: ["document_id"];
+            isOneToOne: false;
+            referencedRelation: "documents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "document_participants_profile_id_fkey";
+            columns: ["profile_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -2013,6 +2061,12 @@ export type Site = Database["public"]["Tables"]["sites"]["Row"];
 export type ProjectStage = Database["public"]["Tables"]["project_stages"]["Row"];
 export type Group = Database["public"]["Tables"]["groups"]["Row"];
 export type GroupMember = Database["public"]["Tables"]["group_members"]["Row"];
+export type DocumentParticipant =
+  Database["public"]["Tables"]["document_participants"]["Row"];
+
+// Dokumenttyper der flere deltakere kan signere samme dokument fra egen
+// bruker (f.eks. alle på anlegget signerer samme SJA).
+export const PARTICIPANT_SIGNING_KINDS: DocumentKind[] = ["sja"];
 
 export const DOCUMENT_KIND_LABELS: Record<DocumentKind, { no: string; en: string }> = {
   risikovurdering: { no: "Risikovurdering", en: "Risk assessment" },

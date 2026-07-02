@@ -437,6 +437,82 @@ export const PROJECTS: TranslationDict = {
     no: "Vi fant tekst du skrev tidligere som ikke ble lagret. Vil du gjenopprette?",
     en: "We found text you typed earlier that wasn't saved. Restore it?",
   },
+  proj_doc_participants_title: {
+    no: "Deltakersignaturer",
+    en: "Participant signatures",
+  },
+  proj_doc_participants_desc: {
+    no: "Be alle på arbeidsstedet signere dette dokumentet fra sin egen bruker. Hver deltaker får en oppgave på «Mine oppgaver».",
+    en: "Ask everyone on site to sign this document from their own account. Each participant gets a task in “My tasks”.",
+  },
+  proj_doc_participants_empty: {
+    no: "Ingen deltakere er lagt til ennå.",
+    en: "No participants added yet.",
+  },
+  proj_doc_participants_add: {
+    no: "Legg til deltakere",
+    en: "Add participants",
+  },
+  proj_doc_participants_none_left: {
+    no: "Alle aktive brukere er lagt til",
+    en: "All active users are added",
+  },
+  proj_doc_participants_pick: {
+    no: "Velg hvem som skal signere",
+    en: "Choose who should sign",
+  },
+  proj_doc_participants_send: {
+    no: "Send signeringsforespørsel",
+    en: "Send signing request",
+  },
+  proj_doc_participants_sending: { no: "Sender…", en: "Sending…" },
+  proj_doc_participants_cancel: { no: "Avbryt", en: "Cancel" },
+  proj_doc_participants_task_hint: {
+    no: "Dokumentet lagres som utkast og deltakerne får en oppgave med lenke til dokumentet.",
+    en: "The document is saved as a draft and participants get a task with a link to the document.",
+  },
+  proj_doc_participant_sign_self: {
+    no: "Signér som deltaker",
+    en: "Sign as participant",
+  },
+  proj_doc_participant_signed: { no: "Signert", en: "Signed" },
+  proj_doc_participant_pending: {
+    no: "Venter på signatur",
+    en: "Awaiting signature",
+  },
+  proj_doc_participant_confirm_sign: {
+    no: "Signere som deltaker? Signaturen din legges på dokumentet og kan ikke fjernes.",
+    en: "Sign as participant? Your signature is added to the document and cannot be removed.",
+  },
+  proj_doc_participants_task_title: { no: "Signér:", en: "Sign:" },
+  proj_doc_participants_task_desc: {
+    no: "{name} ber deg signere {kind} som deltaker. Åpne dokumentet og trykk «Signér som deltaker».",
+    en: "{name} asks you to sign {kind} as a participant. Open the document and tap “Sign as participant”.",
+  },
+  proj_doc_participants_err_kind: {
+    no: "Denne dokumenttypen støtter ikke deltakersignering.",
+    en: "This document type does not support participant signing.",
+  },
+  proj_doc_participants_err_none: {
+    no: "Velg minst én deltaker.",
+    en: "Select at least one participant.",
+  },
+  proj_doc_participants_err_not_found: {
+    no: "Fant ikke deltakeren.",
+    en: "Participant not found.",
+  },
+  proj_doc_participants_err_not_you: {
+    no: "Du kan bare signere din egen deltakerrad.",
+    en: "You can only sign your own participant entry.",
+  },
+  proj_doc_participants_err_already: {
+    no: "Du har allerede signert dette dokumentet.",
+    en: "You have already signed this document.",
+  },
+  proj_doc_participants_err_remove_signed: {
+    no: "Signerte deltakere kan ikke fjernes.",
+    en: "Signed participants cannot be removed.",
+  },
   proj_doc_restore_yes: { no: "Gjenopprett", en: "Restore" },
   proj_doc_restore_no: { no: "Forkast", en: "Discard" },
   proj_doc_mark_all_uakt: {
