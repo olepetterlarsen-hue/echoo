@@ -15,3 +15,10 @@ tsconfig.tsbuildinfo
 
 # Supabase CLI lokal state (link-credentials, gitignored per Supabase-anbefaling)
 supabase/.temp/
+
+# Playwright / E2E
+e2e/.auth/
+playwright-report/
+test-results/
+/blob-report/
+.playwright/

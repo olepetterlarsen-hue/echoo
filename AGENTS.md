@@ -13,13 +13,24 @@ Obligatorisk før deploy:
 1. `npm run lint` — ingen feil.
 2. `npm run build` — må bygge rent.
 3. `npm run test:isolation` — tenant-isolasjon (org A skal aldri se org B sine data) må passere.
-4. E2E-suiten — må passere (se under).
+4. `npm run test:e2e` — Playwright-suiten må passere (se under).
 
 Nye features SKAL ha E2E-dekning. Når du legger til eller endrer en feature, skriv eller
 utvid E2E-tester som dekker hovedflyten før du deployer — f.eks. signup → onboarding →
 opprett kunde/anlegg/prosjekt → registrer avvik → opprett og signer skjema → last opp
 kompetansebevis. En feature regnes ikke som ferdig før E2E-testen for den er grønn.
 
-> Merk: Per nå finnes ingen E2E-suite i repoet (kun `test:isolation`). Sett opp Playwright
-> og et `npm run test:e2e`-script med de kritiske brukerflytene. Inntil det er på plass er
-> dette et åpent punkt som må lukkes før produksjonslansering.
+## E2E-oppsett (Playwright)
+
+- Konfig: `playwright.config.ts`. Tester ligger i `e2e/`. Kjør med `npm run test:e2e`.
+- `e2e/global-setup.ts` lager en fersk test-organisasjon + admin (med signatur) via
+  service_role mot Supabase og skriver credentials til `e2e/.auth/creds.json`
+  (gitignorert). `e2e/global-teardown.ts` sletter orgen etterpå (cascade rydder data).
+- `e2e/auth.setup.ts` er et "setup"-prosjekt som logger inn via UI og lagrer sesjonen til
+  `e2e/.auth/admin.json` (storageState). Øvrige tester gjenbruker den innloggede sesjonen.
+- Webserver startes automatisk av Playwright (`npm run build && npm run start`).
+- Testene treffer samme Supabase som `test:isolation`; all test-data er merket `e2e-*` og
+  ryddes bort. Krever `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` og
+  `SUPABASE_SERVICE_ROLE_KEY` i `.env.local`.
+- Dekker i dag: auth-guard (redirect uinnlogget), innlogging, dashboard/prosjektliste,
+  opprett kunde. Utvid mot avvik → skjema-signering → kompetansebevis etter hvert.

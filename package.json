@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:isolation": "node scripts/tenant-isolation-test.mjs",
+    "test:e2e": "playwright test",
     "test:tokens": "node scripts/test-tokens.mjs && node scripts/test-tokens-runtime.mjs",
     "stripe:setup": "node scripts/setup-stripe-products.mjs",
     "seed:demo": "node scripts/seed-demo-orgs.mjs"
@@ -35,6 +36,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
