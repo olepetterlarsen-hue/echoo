@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search } from "lucide-react";
 import { PROJECT_PHASE_LABELS, type ProjectPhase } from "@/lib/types/database";
 import { getServerT } from "@/lib/i18n/server";
+import { sanitizeSearchTerm } from "@/lib/search";
 
 interface PageProps {
   searchParams: Promise<{ q?: string; status?: string; phase?: string }>;
@@ -40,9 +41,12 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
   if (status) query = query.eq("status", status as never);
   if (phase) query = query.eq("phase", phase as never);
   if (q) {
-    query = query.or(
-      `title.ilike.%${q}%,project_number.ilike.%${q}%,customer_name.ilike.%${q}%`,
-    );
+    const s = sanitizeSearchTerm(q);
+    if (s) {
+      query = query.or(
+        `title.ilike.%${s}%,project_number.ilike.%${s}%,customer_name.ilike.%${s}%`,
+      );
+    }
   }
 
   const { data: projects } = await query;

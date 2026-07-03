@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Building2 } from "lucide-react";
 import { DEFAULT_MAP_COLOR } from "@/lib/customer-colors";
 import { getServerT } from "@/lib/i18n/server";
+import { sanitizeSearchTerm } from "@/lib/search";
 
 interface PageProps {
   searchParams: Promise<{ q?: string; show?: "active" | "all" }>;
@@ -28,9 +29,12 @@ export default async function CustomersPage({ searchParams }: PageProps) {
   }
 
   if (q) {
-    query = query.or(
-      `name.ilike.%${q}%,org_number.ilike.%${q}%,contact_person.ilike.%${q}%,city.ilike.%${q}%`,
-    );
+    const s = sanitizeSearchTerm(q);
+    if (s) {
+      query = query.or(
+        `name.ilike.%${s}%,org_number.ilike.%${s}%,contact_person.ilike.%${s}%,city.ilike.%${s}%`,
+      );
+    }
   }
 
   const { data: customers } = await query;

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, FlaskConical, FileDown, Upload } from "lucide-react";
 import { GHS_PICTOGRAMS, type GhsCode } from "@/lib/ghs-pictograms";
 import { getServerT } from "@/lib/i18n/server";
+import { sanitizeSearchTerm } from "@/lib/search";
 
 interface PageProps {
   searchParams: Promise<{ q?: string; ghs?: string }>;
@@ -25,9 +26,12 @@ export default async function StoffkartotekPage({ searchParams }: PageProps) {
     .order("name");
 
   if (q) {
-    query = query.or(
-      `name.ilike.%${q}%,manufacturer.ilike.%${q}%,cas_number.ilike.%${q}%,usage_area.ilike.%${q}%`,
-    );
+    const s = sanitizeSearchTerm(q);
+    if (s) {
+      query = query.or(
+        `name.ilike.%${s}%,manufacturer.ilike.%${s}%,cas_number.ilike.%${s}%,usage_area.ilike.%${s}%`,
+      );
+    }
   }
   if (ghs) {
     query = query.contains("ghs_pictograms", [ghs]);

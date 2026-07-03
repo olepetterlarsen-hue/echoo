@@ -278,6 +278,80 @@ async function run() {
     assert((data ?? []).length === 0, `organizations: A ser ikke Bs org`);
   }
 
+  step("Privilege-escalation: medlem skal ikke kunne heve egen rolle (migration 071)");
+  {
+    const memberClient = await userClient(B.member.email);
+
+    const { error: adminErr } = await memberClient
+      .from("profiles")
+      .update({ role: "admin" })
+      .eq("id", B.member.id);
+    assert(
+      !!adminErr,
+      `profiles: medlem kan IKKE sette role=admin på seg selv (got: ${adminErr?.message ?? "INGEN FEIL — SIKKERHETSHULL"})`,
+    );
+
+    const { error: instErr } = await memberClient
+      .from("profiles")
+      .update({ role: "installator" })
+      .eq("id", B.member.id);
+    assert(
+      !!instErr,
+      `profiles: medlem kan IKKE sette role=installator (samsvarssignering) (got: ${instErr?.message ?? "INGEN FEIL — SIKKERHETSHULL"})`,
+    );
+
+    // Rollen skal fortsatt være uendret i databasen
+    const { data: after } = await admin
+      .from("profiles")
+      .select("role")
+      .eq("id", B.member.id)
+      .single();
+    assert(
+      after?.role === "elektriker",
+      `profiles: rollen forble elektriker etter forsøk (er nå: ${after?.role})`,
+    );
+
+    // Ufarlige felt skal fortsatt kunne oppdateres av brukeren selv
+    const { error: nameErr } = await memberClient
+      .from("profiles")
+      .update({ full_name: "Oppdatert Navn" })
+      .eq("id", B.member.id);
+    assert(
+      !nameErr,
+      `profiles: medlem kan fortsatt endre eget navn (err=${nameErr?.message ?? "none"})`,
+    );
+  }
+
+  step("Audit-logg: append-only — bruker skal ikke kunne UPDATE/DELETE (migration 071)");
+  {
+    const memberClient = await userClient(B.member.email);
+    const { data: logRow, error: insErr } = await memberClient
+      .from("audit_log")
+      .insert({
+        actor_id: B.member.id,
+        action: "test.tamper_probe",
+        entity_type: "test",
+      })
+      .select("id")
+      .single();
+
+    if (insErr || !logRow) {
+      assert(true, `audit_log: insert ikke testbart (${insErr?.message ?? "ingen rad"}) — hopper over tamper-test`);
+    } else {
+      const { count: upCount } = await memberClient
+        .from("audit_log")
+        .update({ action: "tampered" }, { count: "exact" })
+        .eq("id", logRow.id);
+      assert(!upCount, `audit_log: bruker kan IKKE UPDATE revisjonsspor (matched=${upCount ?? 0})`);
+
+      const { count: delCount } = await memberClient
+        .from("audit_log")
+        .delete({ count: "exact" })
+        .eq("id", logRow.id);
+      assert(!delCount, `audit_log: bruker kan IKKE DELETE revisjonsspor (matched=${delCount ?? 0})`);
+    }
+  }
+
   // Cleanup
   if (cleanup) {
     step("Rydder opp");

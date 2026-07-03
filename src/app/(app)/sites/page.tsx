@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, MapPin, Upload } from "lucide-react";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { getServerT } from "@/lib/i18n/server";
+import { sanitizeSearchTerm } from "@/lib/search";
 import { GeocodeButton } from "./geocode-button";
 
 interface PageProps {
@@ -26,9 +27,12 @@ export default async function SitesPage({ searchParams }: PageProps) {
     .order("name");
 
   if (q) {
-    query = query.or(
-      `name.ilike.%${q}%,external_site_id.ilike.%${q}%,address.ilike.%${q}%,city.ilike.%${q}%`,
-    );
+    const s = sanitizeSearchTerm(q);
+    if (s) {
+      query = query.or(
+        `name.ilike.%${s}%,external_site_id.ilike.%${s}%,address.ilike.%${s}%,city.ilike.%${s}%`,
+      );
+    }
   }
   if (customer) query = query.eq("customer_id", customer);
 
