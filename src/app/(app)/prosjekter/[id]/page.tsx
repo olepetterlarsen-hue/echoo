@@ -86,13 +86,85 @@ export default async function ProjectDetailPage({
 
   const supabase = await createClient();
   const { t, locale } = await getServerT();
-  const { data: project } = await supabase
-    .from("projects")
-    .select(
-      "*, customer:customers(id, name, contact_person, phone, email, map_color), site:sites(id, name, external_site_id, address, postal_code, city, latitude, longitude), stage:project_stages(id, name, color)",
-    )
-    .eq("id", id)
-    .single();
+
+  // Auth + rolle i én kjede så den kan kjøre parallelt med datakallene under.
+  const authPromise = supabase.auth.getUser().then(async ({ data: { user } }) => {
+    if (!user) return { currentUser: null, currentProfile: null };
+    const { data: currentProfile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    return { currentUser: user, currentProfile };
+  });
+
+  // Alle datakall er uavhengige av hverandre (kun avhengige av id) — hent alt
+  // i én parallell bølge i stedet for sekvensielt.
+  const [
+    { data: project },
+    { data: documents },
+    hidden,
+    { data: customTemplates },
+    { data: deviations },
+    { currentUser, currentProfile },
+    { data: rawComments },
+    { data: rawTasks },
+    { data: scheduleEntries },
+  ] = await Promise.all([
+    supabase
+      .from("projects")
+      .select(
+        "*, customer:customers(id, name, contact_person, phone, email, map_color), site:sites(id, name, external_site_id, address, postal_code, city, latitude, longitude), stage:project_stages(id, name, color)",
+      )
+      .eq("id", id)
+      .single(),
+    // Hopper over JSONB-feltet "data" — det er stort (skjema-innhold) og
+    // brukes ikke i listevisningen, kun når brukeren åpner ett dokument.
+    supabase
+      .from("documents")
+      .select("id, kind, version, status, pdf_path, signed_at")
+      .eq("project_id", id)
+      .order("version", { ascending: false }),
+    getHiddenKinds(),
+    // Egne (custom) maler brukeren har bygget — vises som egen seksjon på
+    // prosjektkortet så man kan opprette dokumenter fra dem. Skjulte maler
+    // filtreres bort (is_hidden = true).
+    supabase
+      .from("custom_templates")
+      .select("id, name, subtitle, description, is_hidden")
+      .eq("is_hidden", false)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("deviations")
+      .select(
+        "*, reported_by_profile:profiles!deviations_reported_by_fkey(full_name), assigned_to_profile:profiles!deviations_assigned_to_fkey(full_name)",
+      )
+      .eq("project_id", id)
+      .order("created_at", { ascending: false }),
+    authPromise,
+    supabase
+      .from("project_comments")
+      .select(
+        "id, body, created_at, author_id, author:profiles!project_comments_author_id_fkey(full_name, email)",
+      )
+      .eq("project_id", id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("tasks")
+      .select(
+        "id, title, status, due_date, assigned_to, assignee:profiles!tasks_assigned_to_fkey(full_name, email), task_type:task_types(label_no)",
+      )
+      .eq("project_id", id)
+      .order("status")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("schedule_entries")
+      .select(
+        "id, title, start_date, end_date, status, locked, group:groups(name, color)",
+      )
+      .eq("project_id", id)
+      .order("start_date"),
+  ]);
   if (!project) notFound();
 
   type ProjectWithLinks = typeof project & {
@@ -122,51 +194,6 @@ export default async function ProjectDetailPage({
   };
   const p = project as ProjectWithLinks;
 
-  // Hopper over JSONB-feltet "data" — det er stort (skjema-innhold) og
-  // brukes ikke i listevisningen, kun når brukeren åpner ett dokument.
-  const { data: documents } = await supabase
-    .from("documents")
-    .select("id, kind, version, status, pdf_path, signed_at")
-    .eq("project_id", id)
-    .order("version", { ascending: false });
-
-  const hidden = await getHiddenKinds();
-
-  // Egne (custom) maler brukeren har bygget — vises som egen seksjon på
-  // prosjektkortet så man kan opprette dokumenter fra dem. Skjulte maler
-  // filtreres bort (is_hidden = true).
-  const { data: customTemplates } = await supabase
-    .from("custom_templates")
-    .select("id, name, subtitle, description, is_hidden")
-    .eq("is_hidden", false)
-    .order("created_at", { ascending: false });
-
-  const { data: deviations } = await supabase
-    .from("deviations")
-    .select(
-      "*, reported_by_profile:profiles!deviations_reported_by_fkey(full_name), assigned_to_profile:profiles!deviations_assigned_to_fkey(full_name)",
-    )
-    .eq("project_id", id)
-    .order("created_at", { ascending: false });
-
-  // Hent kommentarer + current user info for autorisasjon
-  const { data: { user: currentUser } } = await supabase.auth.getUser();
-  const { data: currentProfile } = currentUser
-    ? await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", currentUser.id)
-        .single()
-    : { data: null };
-
-  const { data: rawComments } = await supabase
-    .from("project_comments")
-    .select(
-      "id, body, created_at, author_id, author:profiles!project_comments_author_id_fkey(full_name, email)",
-    )
-    .eq("project_id", id)
-    .order("created_at", { ascending: false });
-
   type CommentRow = {
     id: string;
     body: string;
@@ -175,16 +202,6 @@ export default async function ProjectDetailPage({
     author?: { full_name: string | null; email: string | null } | null;
   };
   const comments = (rawComments ?? []) as unknown as CommentRow[];
-
-  // Tasks knyttet til prosjektet
-  const { data: rawTasks } = await supabase
-    .from("tasks")
-    .select(
-      "id, title, status, due_date, assigned_to, assignee:profiles!tasks_assigned_to_fkey(full_name, email), task_type:task_types(label_no)",
-    )
-    .eq("project_id", id)
-    .order("status")
-    .order("created_at", { ascending: false });
 
   type ProjectTaskRow = {
     id: string;
@@ -197,15 +214,6 @@ export default async function ProjectDetailPage({
   };
   const projectTasks = (rawTasks ?? []) as unknown as ProjectTaskRow[];
   const openTasks = projectTasks.filter((t) => t.status !== "resolved");
-
-  // Hent schedule entries for prosjektet (om det er plassert i produksjonsplanen)
-  const { data: scheduleEntries } = await supabase
-    .from("schedule_entries")
-    .select(
-      "id, title, start_date, end_date, status, locked, group:groups(name, color)",
-    )
-    .eq("project_id", id)
-    .order("start_date");
 
   type ScheduleRow = {
     id: string;

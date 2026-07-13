@@ -80,7 +80,7 @@ export async function importSites(input: {
             organization_id: orgId,
             name,
             // Sett kun farge hvis vi har et kjede-forslag — ellers la stå
-            // på null så kunden bruker OPCOM-oransje default.
+            // på null så kunden bruker Echoo-oransje default.
             map_color: color !== DEFAULT_MAP_COLOR ? color : null,
             created_by: user.id,
           };

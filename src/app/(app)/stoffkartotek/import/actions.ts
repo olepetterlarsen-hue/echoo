@@ -1,11 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { getOrgAndUser } from "@/lib/supabase/org";
 import { guardOrgWritable } from "@/lib/billing";
-import { safeParseJson } from "@/lib/ai/assistant";
+import { guardedMessage, safeParseJson } from "@/lib/ai/assistant";
 import type { GhsCode } from "@/lib/ghs-pictograms";
 
 /**
@@ -171,9 +170,8 @@ export async function classifySdsPdf(args: {
   const buf = Buffer.from(await data.arrayBuffer());
   const base64 = buf.toString("base64");
 
-  const client = new Anthropic({ apiKey });
   try {
-    const msg = await client.messages.create({
+    const msg = await guardedMessage({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1500,
       system: SDS_SYSTEM_PROMPT,

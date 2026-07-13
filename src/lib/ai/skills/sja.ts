@@ -1,5 +1,6 @@
 import {
   anthropicClient,
+  guardedMessage,
   DEFAULT_MODEL,
   safeParseJson,
 } from "@/lib/ai/assistant";
@@ -91,7 +92,7 @@ export async function generateSjaDraft(args: {
     : `Jobben skal:\n${args.description}\n\nLag SJA-utkast. Svar bare med JSON.`;
 
   try {
-    const msg = await client.messages.create({
+    const msg = await guardedMessage({
       model: DEFAULT_MODEL,
       max_tokens: 2500,
       system: SYSTEM_PROMPT,

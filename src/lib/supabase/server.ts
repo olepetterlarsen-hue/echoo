@@ -1,8 +1,11 @@
+import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "@/lib/types/database";
 
-export async function createClient() {
+// React.cache: samme klient-instans per request, så layout + page + helpers
+// deler auth-state og cache-nøkler (getOrgAndUser m.fl. dedupes på instansen).
+export const createClient = cache(async () => {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(
@@ -25,7 +28,7 @@ export async function createClient() {
       },
     },
   );
-}
+});
 
 export async function createAdminClient() {
   // Eksplisitt sjekk så vi får tydelig feilmelding hvis env-varen mangler i
@@ -48,7 +51,7 @@ export async function createAdminClient() {
   // har en sb-access-token-cookie og vi sender den til Supabase sammen med
   // service-role-nøkkelen, evaluerer Supabase RLS som om brukeren er auth'et
   // — service-role-bypassen forsvinner. Det førte til at /team-dashbordet
-  // bare viste data fra Ole Petters egen OPCOM-org i stedet for cross-tenant.
+  // bare viste data fra én enkelt org i stedet for cross-tenant.
   // Returner tom cookies-array så klienten kjører ren service-role.
   return createServerClient<Database>(
     url,

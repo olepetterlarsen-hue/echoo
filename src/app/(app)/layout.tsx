@@ -30,15 +30,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
 
+  // Én org-query (2FA-policy + billing-lås) parallelt med locale-oppslag.
+  const [{ data: org }, locale] = await Promise.all([
+    supabase
+      .from("organizations")
+      .select(
+        "require_2fa, locked_at, subscription_status, trial_ends_at, plan_tier",
+      )
+      .eq("id", profile.organization_id)
+      .single(),
+    getLocale(),
+  ]);
+
   // 2FA-policy: hvis org krever 2FA, må brukeren ha enrollet en verified
   // TOTP-faktor. /profil og /logout er alltid tilgjengelig så brukeren kan
   // enrolle / komme seg ut.
-  const { data: org } = await supabase
-    .from("organizations")
-    .select("require_2fa")
-    .eq("id", profile.organization_id)
-    .single();
-
   if (org?.require_2fa) {
     const { data: factors } = await supabase.auth.mfa.listFactors();
     const hasVerified =
@@ -64,26 +70,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Vi REDIRECTER ikke — brukeren skal kunne se data + navigere til
   // abonnement-siden. Banner i AppShell varsler, og write-actions
   // sjekker selv via guardOrgWritable() (lib/billing.ts).
-  const { data: orgFull } = await supabase
-    .from("organizations")
-    .select(
-      "locked_at, subscription_status, trial_ends_at, plan_tier",
-    )
-    .eq("id", profile.organization_id)
-    .single();
-
   // Server component — Date.now() er trygg her (kjører én gang per request).
   // eslint-disable-next-line react-hooks/purity
   const nowMs = Date.now();
-  const locked = orgFull
-    ? !!orgFull.locked_at ||
-      ((orgFull.subscription_status !== "active" &&
-        orgFull.subscription_status !== "trialing") &&
-        orgFull.trial_ends_at !== null &&
-        new Date(orgFull.trial_ends_at).getTime() < nowMs)
+  const locked = org
+    ? !!org.locked_at ||
+      ((org.subscription_status !== "active" &&
+        org.subscription_status !== "trialing") &&
+        org.trial_ends_at !== null &&
+        new Date(org.trial_ends_at).getTime() < nowMs)
     : false;
 
-  const locale = await getLocale();
   const isEchooStaff = profile.is_echoo_staff === true;
   // Tema fra profil — fallback til "lin" hvis kolonnen mangler (før migration 062)
   const profileTheme = (profile as { theme_preference?: "lin" | "dark" })

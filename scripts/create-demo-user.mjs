@@ -17,10 +17,10 @@ if (!URL || !SVC) { console.error("Mangler env"); process.exit(2); }
 
 const admin = createClient(URL, SVC, { auth: { persistSession: false } });
 
-const EMAIL = "ole@opcom.no";
+const EMAIL = "demo@echoo.no";
 const PASSWORD = "Demo1234!";
-const FIRMA = "Echoo demo (OPCOM)";
-const FULL_NAME = "Ole Petter Larsen";
+const FIRMA = "Echoo demo";
+const FULL_NAME = "Demo bruker";
 
 const { data: created, error: e1 } = await admin.auth.admin.createUser({
   email: EMAIL,

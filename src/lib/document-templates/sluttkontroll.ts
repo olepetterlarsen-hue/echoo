@@ -1,6 +1,6 @@
 import type { TemplateDef } from "./types";
 
-// OPCOM Sluttkontroll v3.4 (rev 19.10.2022)
+// Sluttkontroll v3.4 (rev 19.10.2022)
 // Rapport fra sluttkontroll etter arbeid på elektriske anlegg.
 
 export const SLUTTKONTROLL: TemplateDef = {

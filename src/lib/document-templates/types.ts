@@ -1,6 +1,5 @@
-// Skjema-definisjon for OPCOM-dokumenter (Risikovurdering, Sluttkontroll, Samsvarserklæring).
+// Skjema-definisjon for Echoo-dokumenter (Risikovurdering, Sluttkontroll, Samsvarserklæring).
 // Form og PDF rendres automatisk fra disse definisjonene.
-// Strukturen matcher OneCo/OPCOM Elsikkerhetsdokumentasjon v3.4.
 
 export type FieldKind =
   | "text"
@@ -12,7 +11,7 @@ export type FieldKind =
   | "yes_no"         // JA / NEI radio med farget badge (grønn/rød)
   | "checkbox"       // enkel ja/nei boks
   | "checkmark_group"// flere boxer kan krysses (type arbeid, type spenning)
-  | "yna_group"      // Ja/Nei/Uakt + kommentar pr. item — OPCOMs standard sjekkpunkt-format
+  | "yna_group"      // Ja/Nei/Uakt + kommentar pr. item — standard sjekkpunkt-format
   | "yna_measurement_group" // som yna_group men med ekstra "verdi"-kolonne (måling/prøving)
   | "contact_subform"// Eier/Bruker/Annet + navn/telefon/epost
   | "scope_subform"  // Hele anlegget / Anleggsdel

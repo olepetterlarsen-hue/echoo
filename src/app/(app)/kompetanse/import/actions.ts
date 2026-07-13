@@ -1,11 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { getOrgAndUser } from "@/lib/supabase/org";
 import { guardOrgWritable } from "@/lib/billing";
-import { safeParseJson } from "@/lib/ai/assistant";
+import { guardedMessage, safeParseJson } from "@/lib/ai/assistant";
 
 const SYSTEM_PROMPT = `Du er en ekspert på norske kursbevis og sertifikater for elektrobransjen. Du leser et kursbevis (PDF) og ekstraherer hovedfeltene som JSON.
 
@@ -82,9 +81,8 @@ export async function classifyCertPdf(args: {
   const buf = Buffer.from(await data.arrayBuffer());
   const base64 = buf.toString("base64");
 
-  const client = new Anthropic({ apiKey });
   try {
-    const msg = await client.messages.create({
+    const msg = await guardedMessage({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1200,
       system: SYSTEM_PROMPT,

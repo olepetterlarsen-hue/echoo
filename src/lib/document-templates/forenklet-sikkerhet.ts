@@ -1,6 +1,6 @@
 import type { TemplateDef } from "./types";
 
-// OPCOM Risikovurdering, Sluttkontroll og Samsvarserklæring v3.4 (rev 19.10.2022)
+// Forenklet Risikovurdering, Sluttkontroll og Samsvarserklæring v3.4 (rev 19.10.2022)
 // Dokumentasjon av serviceoppdrag med lav risiko.
 //
 // VIKTIG: Denne dokumentasjonen skal kun benyttes til enkle installasjonsoppdrag

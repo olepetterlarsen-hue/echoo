@@ -1,5 +1,6 @@
 import {
   anthropicClient,
+  guardedMessage,
   DEFAULT_MODEL,
   safeParseJson,
 } from "@/lib/ai/assistant";
@@ -63,7 +64,7 @@ export async function generateAvvikDraft(args: {
     : `Beskrivelse av hendelsen:\n${args.description}\n\nLag avvik-utkast. Svar bare med JSON.`;
 
   try {
-    const msg = await client.messages.create({
+    const msg = await guardedMessage({
       model: DEFAULT_MODEL,
       max_tokens: 1500,
       system: SYSTEM_PROMPT,

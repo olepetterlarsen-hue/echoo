@@ -1,6 +1,6 @@
 import type { TemplateDef } from "./types";
 
-// OPCOM Risikovurdering — basert på OneCo v3.4-mal, forenklet til bolig/næring.
+// Risikovurdering v3.4 (rev 19.10.2022) — forenklet til bolig/næring.
 // Telekom-spesifikke sjekkpunkter er fjernet siden de fleste prosjekter ikke
 // involverer Telenor-infrastruktur. Hvis det trengs kan admin legge til via
 // /admin/maler eller lage en egendefinert variant.

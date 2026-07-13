@@ -30,14 +30,14 @@ interface SendResult {
 
 const RESEND_API = "https://api.resend.com/emails";
 
-// Lest fra env. Du må sette RESEND_API_KEY i Netlify (Site → Settings → Env).
-// FROM_EMAIL defaulter til "Echoo <noreply@opcom.no>" — endre i env hvis ønskelig.
+// Lest fra env. RESEND_API_KEY settes i Vercel Project → Settings → Environment.
+// EMAIL_FROM må matche en verifisert avsender i Resend (SPF + DKIM på echoo.no).
 function getApiKey(): string | null {
   return process.env.RESEND_API_KEY ?? null;
 }
 
 function getFromAddress(): string {
-  return process.env.EMAIL_FROM ?? "Echoo <noreply@opcom.no>";
+  return process.env.EMAIL_FROM ?? "Echoo <noreply@echoo.no>";
 }
 
 export async function sendEmail(input: SendInput): Promise<SendResult> {
@@ -126,7 +126,7 @@ async function logEmail(
   );
 }
 
-// Default OPCOM-stylet HTML-wrapper (mørk header, lys body).
+// Default HTML-wrapper (mørk header, lys body).
 export function wrapHtml(body: string, title: string): string {
   const safeBody = body
     .replace(/&/g, "&amp;")

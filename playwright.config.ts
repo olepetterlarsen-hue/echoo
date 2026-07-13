@@ -27,7 +27,8 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"]],
   use: {
-    baseURL: "http://localhost:3000",
+    // E2E_BASE_URL lar suiten kjøre mot en deployet instans (f.eks. Vercel)
+    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
     trace: "on-first-retry",
     locale: "nb-NO",
   },
@@ -43,10 +44,13 @@ export default defineConfig({
       testIgnore: /auth\.setup\.ts/,
     },
   ],
-  webServer: {
-    command: "npm run build && npm run start",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 240_000,
-  },
+  // Med E2E_BASE_URL satt testes en ekstern instans, ingen lokal server
+  webServer: process.env.E2E_BASE_URL
+    ? undefined
+    : {
+        command: "npm run build && npm run start",
+        url: "http://localhost:3000",
+        reuseExistingServer: !process.env.CI,
+        timeout: 240_000,
+      },
 });

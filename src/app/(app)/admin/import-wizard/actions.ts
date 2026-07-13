@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { getOrgAndUser } from "@/lib/supabase/org";
 import { guardOrgWritable } from "@/lib/billing";
+import { guardedMessage } from "@/lib/ai/assistant";
 
 /**
  * AI-guided import wizard.
@@ -153,8 +153,6 @@ export async function classifyFile(args: {
     };
   }
 
-  const client = new Anthropic({ apiKey });
-
   const userMessage = [
     {
       type: "document" as const,
@@ -178,7 +176,7 @@ export async function classifyFile(args: {
   ];
 
   try {
-    const msg = await client.messages.create({
+    const msg = await guardedMessage({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1500,
       system: SYSTEM_PROMPT,

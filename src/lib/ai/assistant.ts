@@ -12,10 +12,29 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import { createClient } from "@/lib/supabase/server";
 
 export type AssistantSkill = "avvik" | "sja" | "doc_qa" | "iso" | "template";
 
 const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
+
+/**
+ * Månedlig AI-kostnadstak per bruker (USD). Håndheves før hvert AI-kall via
+ * guardedMessage(). Hindrer at én innlogget bruker kjører opp regningen.
+ * Det harde taket er fortsatt spend-grensen i Anthropic Console.
+ */
+export const AI_MONTHLY_BUDGET_USD = 70;
+
+// Claude Haiku 4.5-priser (USD per million tokens). Justér ved modellbytte.
+const PRICE_INPUT_PER_MTOK = 1.0;
+const PRICE_OUTPUT_PER_MTOK = 5.0;
+
+function estimateCostUsd(inputTokens: number, outputTokens: number): number {
+  return (
+    (inputTokens / 1_000_000) * PRICE_INPUT_PER_MTOK +
+    (outputTokens / 1_000_000) * PRICE_OUTPUT_PER_MTOK
+  );
+}
 
 let _client: Anthropic | null = null;
 
@@ -46,6 +65,59 @@ export function safeParseJson<T>(raw: string): T | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Kjør et Anthropic-kall MED budsjett-håndhevelse.
+ *
+ * Alle AI-kall i Echoo skal gå gjennom denne (ikke client.messages.create
+ * direkte), slik at hver bruker har et månedlig kostnadstak:
+ *  1. Henter innlogget bruker via SSR-klienten (cookies) — ingen service-role.
+ *  2. Avviser hvis brukeren har passert AI_MONTHLY_BUDGET_USD denne måneden.
+ *  3. Kjører kallet og logger faktisk token-forbruk + estimert kostnad.
+ *
+ * Kaster Error ved manglende nøkkel eller oppbrukt budsjett — kallstedene
+ * fanger dette og returnerer feilmeldingen til UI.
+ */
+export async function guardedMessage(
+  params: Anthropic.MessageCreateParamsNonStreaming,
+): Promise<Anthropic.Message> {
+  const client = anthropicClient();
+  if (!client) {
+    throw new Error(
+      "AI-assistenten er ikke konfigurert (ANTHROPIC_API_KEY mangler).",
+    );
+  }
+
+  const supabase = await createClient();
+  // RPC-navn finnes ikke i den genererte Database-typen ennå.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rpc = supabase.rpc.bind(supabase) as any;
+
+  const { data: usedRaw } = await rpc("ai_usage_this_month");
+  const spent = Number(usedRaw ?? 0);
+  if (Number.isFinite(spent) && spent >= AI_MONTHLY_BUDGET_USD) {
+    throw new Error(
+      `AI-budsjettet for denne måneden er brukt opp (grense $${AI_MONTHLY_BUDGET_USD}). ` +
+        "Det nullstilles ved månedsskiftet — kontakt support hvis du trenger mer.",
+    );
+  }
+
+  const msg = await client.messages.create(params);
+
+  const inputTokens = msg.usage?.input_tokens ?? 0;
+  const outputTokens = msg.usage?.output_tokens ?? 0;
+  try {
+    await rpc("record_ai_usage", {
+      p_input_tokens: inputTokens,
+      p_output_tokens: outputTokens,
+      p_cost: estimateCostUsd(inputTokens, outputTokens),
+    });
+  } catch {
+    // Logging skal aldri velte selve AI-svaret.
+  }
+
+  return msg;
 }
 
 export { DEFAULT_MODEL };

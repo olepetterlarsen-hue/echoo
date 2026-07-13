@@ -53,8 +53,8 @@ const RESOLUTIONS = [
   },
   {
     id: "7e6768a9-c429-4fb9-b4c4-78627e047ce1",
-    issue: "#2 OPCOM-navn i stikkprøvekontroll",
-    note: "Løst 2026-06-22: hardkodet OPCOM-streng fjernet fra stikkprovekontroll.ts + email-footer. Commit e5542a2.",
+    issue: "#2 Eksternt selskapsnavn i stikkprøvekontroll",
+    note: "Løst 2026-06-22: hardkodet streng fjernet fra stikkprovekontroll.ts + email-footer. Commit e5542a2.",
   },
   {
     id: "09d83978-7836-4fa4-9a85-b17c408580d2",

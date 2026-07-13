@@ -61,6 +61,9 @@ export async function bulkImportCustomers(input: {
     (existing ?? []).map((c: { name: string }) => c.name.toLowerCase()),
   );
 
+  // Valider alle rader først, samle payloads, og insert i én batch.
+  const toInsert: { rowNum: number; name: string; payload: object }[] = [];
+
   for (let i = 0; i < input.rows.length; i++) {
     const r = input.rows[i];
     const rowNum = i + 2; // +1 for header, +1 for 1-indexed
@@ -90,31 +93,51 @@ export async function bulkImportCustomers(input: {
       skipped++;
       continue;
     }
-    const { error } = await supabase.from("customers").insert({
-      organization_id: orgId,
-      customer_type: customerType,
+    toInsert.push({
+      rowNum,
       name: resolvedName,
-      first_name:
-        customerType === "privat" ? r.first_name?.trim() || null : null,
-      last_name:
-        customerType === "privat" ? r.last_name?.trim() || null : null,
-      org_number:
-        customerType === "bedrift" ? r.org_number?.trim() || null : null,
-      contact_person: r.contact_person?.trim() || null,
-      email: r.email?.trim() || null,
-      phone: r.phone?.trim() || null,
-      address: r.address?.trim() || null,
-      postal_code: r.postal_code?.trim() || null,
-      city: r.city?.trim() || null,
-      notes: r.notes?.trim() || null,
-      created_by: userId,
-    } as never);
-    if (error) {
-      errors.push(`Rad ${rowNum} (${resolvedName}): ${error.message}`);
-      continue;
-    }
+      payload: {
+        organization_id: orgId,
+        customer_type: customerType,
+        name: resolvedName,
+        first_name:
+          customerType === "privat" ? r.first_name?.trim() || null : null,
+        last_name:
+          customerType === "privat" ? r.last_name?.trim() || null : null,
+        org_number:
+          customerType === "bedrift" ? r.org_number?.trim() || null : null,
+        contact_person: r.contact_person?.trim() || null,
+        email: r.email?.trim() || null,
+        phone: r.phone?.trim() || null,
+        address: r.address?.trim() || null,
+        postal_code: r.postal_code?.trim() || null,
+        city: r.city?.trim() || null,
+        notes: r.notes?.trim() || null,
+        created_by: userId,
+      },
+    });
     existingNames.add(resolvedName.toLowerCase());
-    created++;
+  }
+
+  if (toInsert.length > 0) {
+    const { error } = await supabase
+      .from("customers")
+      .insert(toInsert.map((t) => t.payload) as never[]);
+    if (!error) {
+      created = toInsert.length;
+    } else {
+      // Fallback: rad-for-rad så vi kan rapportere presist hvilke rader feilet.
+      for (const t of toInsert) {
+        const { error: rowErr } = await supabase
+          .from("customers")
+          .insert(t.payload as never);
+        if (rowErr) {
+          errors.push(`Rad ${t.rowNum} (${t.name}): ${rowErr.message}`);
+        } else {
+          created++;
+        }
+      }
+    }
   }
 
   revalidatePath("/kunder");
@@ -194,6 +217,9 @@ export async function bulkImportProjects(input: {
 
   const VALID_STATUS = ["aktiv", "paa_vent", "ferdigstilt", "arkivert"];
 
+  // Valider alle rader først, samle payloads, og insert i én batch.
+  const toInsert: { rowNum: number; number: string; payload: object }[] = [];
+
   for (let i = 0; i < input.rows.length; i++) {
     const r = input.rows[i];
     const rowNum = i + 2;
@@ -216,31 +242,51 @@ export async function bulkImportProjects(input: {
 
     const status = r.status && VALID_STATUS.includes(r.status) ? r.status : "aktiv";
 
-    const { error } = await supabase.from("projects").insert({
-      organization_id: orgId,
-      project_number: r.project_number.trim(),
-      title: r.title.trim(),
-      customer_id,
-      customer_name: r.customer_name?.trim() || null,
-      customer_org_number: r.customer_org_number?.trim() || null,
-      customer_contact: r.customer_contact?.trim() || null,
-      customer_email: r.customer_email?.trim() || null,
-      customer_phone: r.customer_phone?.trim() || null,
-      site_address: r.site_address?.trim() || null,
-      site_postal_code: r.site_postal_code?.trim() || null,
-      site_city: r.site_city?.trim() || null,
-      status,
-      scheduled_start_date: r.scheduled_start_date?.trim() || null,
-      scheduled_end_date: r.scheduled_end_date?.trim() || null,
-      notes: r.notes?.trim() || null,
-      created_by: userId,
-    } as never);
-    if (error) {
-      errors.push(`Rad ${rowNum} (${r.project_number}): ${error.message}`);
-      continue;
-    }
+    toInsert.push({
+      rowNum,
+      number: r.project_number.trim(),
+      payload: {
+        organization_id: orgId,
+        project_number: r.project_number.trim(),
+        title: r.title.trim(),
+        customer_id,
+        customer_name: r.customer_name?.trim() || null,
+        customer_org_number: r.customer_org_number?.trim() || null,
+        customer_contact: r.customer_contact?.trim() || null,
+        customer_email: r.customer_email?.trim() || null,
+        customer_phone: r.customer_phone?.trim() || null,
+        site_address: r.site_address?.trim() || null,
+        site_postal_code: r.site_postal_code?.trim() || null,
+        site_city: r.site_city?.trim() || null,
+        status,
+        scheduled_start_date: r.scheduled_start_date?.trim() || null,
+        scheduled_end_date: r.scheduled_end_date?.trim() || null,
+        notes: r.notes?.trim() || null,
+        created_by: userId,
+      },
+    });
     existingNumbers.add(r.project_number.trim().toLowerCase());
-    created++;
+  }
+
+  if (toInsert.length > 0) {
+    const { error } = await supabase
+      .from("projects")
+      .insert(toInsert.map((t) => t.payload) as never[]);
+    if (!error) {
+      created = toInsert.length;
+    } else {
+      // Fallback: rad-for-rad så vi kan rapportere presist hvilke rader feilet.
+      for (const t of toInsert) {
+        const { error: rowErr } = await supabase
+          .from("projects")
+          .insert(t.payload as never);
+        if (rowErr) {
+          errors.push(`Rad ${t.rowNum} (${t.number}): ${rowErr.message}`);
+        } else {
+          created++;
+        }
+      }
+    }
   }
 
   revalidatePath("/prosjekter");

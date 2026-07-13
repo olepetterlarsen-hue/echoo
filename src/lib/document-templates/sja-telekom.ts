@@ -1,6 +1,6 @@
 import type { TemplateDef } from "./types";
 
-// SJA — Telekom-variant basert på OPCOMs ROT741-mal.
+// SJA — Telekom-variant (ROT741-basert mal).
 // Brukes når project.installation_type = 'telecom'.
 // 12 seksjoner med risikovurdering pr. punkt: Lav / Middels / Høy / N/A
 // + besvarelse (tiltak). Dekker mast, kabling, helikopter osv.

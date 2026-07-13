@@ -1,4 +1,4 @@
-import { anthropicClient, DEFAULT_MODEL } from "@/lib/ai/assistant";
+import { anthropicClient, guardedMessage, DEFAULT_MODEL } from "@/lib/ai/assistant";
 
 /**
  * Onboarding-skillen ("Kom-i-gang") guider nye Echoo-brukere gjennom de
@@ -122,7 +122,7 @@ export async function onboardingTurn(args: {
   }
 
   try {
-    const msg = await client.messages.create({
+    const msg = await guardedMessage({
       model: DEFAULT_MODEL,
       max_tokens: 800,
       system: buildSystemPrompt(args.progress),

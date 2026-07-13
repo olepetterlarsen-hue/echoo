@@ -1,4 +1,4 @@
-import { anthropicClient, DEFAULT_MODEL } from "@/lib/ai/assistant";
+import { anthropicClient, guardedMessage, DEFAULT_MODEL } from "@/lib/ai/assistant";
 
 const SYSTEM_PROMPT = `Du er Echoo sin ISO-veileder for elektrobedrifter. Du hjelper en kunde å forstå hva ISO 9001 (kvalitet) og ISO 14001 (miljø) krever — og hvilken modul i Echoo som dekker det.
 
@@ -42,7 +42,7 @@ export async function isoVeilederTurn(args: {
   }
 
   try {
-    const msg = await client.messages.create({
+    const msg = await guardedMessage({
       model: DEFAULT_MODEL,
       max_tokens: 1500,
       system: SYSTEM_PROMPT,

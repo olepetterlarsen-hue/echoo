@@ -9,7 +9,7 @@
  * preview/import-flyt for begge inputs.
  */
 
-import { anthropicClient } from "@/lib/ai/assistant";
+import { anthropicClient, guardedMessage } from "@/lib/ai/assistant";
 
 // Bruker en sterkere Claude-modell her — Haiku har redusert kvalitet på
 // strukturert ekstraksjon fra bilder. Sonnet er en bra middelvei.
@@ -137,7 +137,7 @@ export async function parseImageToImport(args: {
   }
 
   try {
-    const msg = await client.messages.create({
+    const msg = await guardedMessage({
       model: VISION_MODEL,
       max_tokens: 4000,
       system: SYSTEM_PROMPT,

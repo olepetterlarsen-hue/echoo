@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrgId } from "@/lib/supabase/org";
 import { guardOrgWritable } from "@/lib/billing";
+import { guardedMessage } from "@/lib/ai/assistant";
 import { getServerT } from "@/lib/i18n/server";
 import { captureException } from "@/lib/observability";
 import type { CustomTemplate } from "@/lib/types/database";
@@ -207,9 +207,8 @@ REGLER:
 - key-verdier skal være korte snake_case-strenger uten mellomrom eller spesialtegn.
 - IKKE inkluder forklaringer eller markdown — bare ren JSON.`;
 
-  const client = new Anthropic({ apiKey });
   try {
-    const message = await client.messages.create({
+    const message = await guardedMessage({
       // Haiku 4.5 — billig og rask, god nok for mal-generering
       model: "claude-haiku-4-5-20251001",
       max_tokens: 4000,
