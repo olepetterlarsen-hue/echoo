@@ -28,6 +28,7 @@ export function SignupForm({ initialError, locale, plan }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [employeeRange, setEmployeeRange] = useState("6-20");
+  const [newsletterConsent, setNewsletterConsent] = useState(false);
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [pending, startTransition] = useTransition();
 
@@ -43,6 +44,7 @@ export function SignupForm({ initialError, locale, plan }: Props) {
         password,
         employee_range: employeeRange,
         plan,
+        newsletter_consent: newsletterConsent,
       });
       if (res?.error) setError(res.error);
     });
@@ -114,6 +116,19 @@ export function SignupForm({ initialError, locale, plan }: Props) {
           />
         </Field>
       </div>
+
+      <label className="flex items-start gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={newsletterConsent}
+          onChange={(e) => setNewsletterConsent(e.target.checked)}
+          className="mt-0.5 accent-orange shrink-0"
+        />
+        <span className="text-xs text-text-2">
+          Ja, jeg ønsker å motta nyheter, tips og oppdateringer om Echoo på e-post.
+          Du kan melde deg av når som helst.
+        </span>
+      </label>
 
       {error && (
         <p className="text-sm text-red bg-red/10 border border-red/30 rounded px-3 py-2">

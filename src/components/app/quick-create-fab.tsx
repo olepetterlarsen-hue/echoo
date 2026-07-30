@@ -54,7 +54,7 @@ export function QuickCreateFab() {
   }, [open]);
 
   return (
-    <div ref={ref} className="fixed bottom-36 right-4 z-40">
+    <div ref={ref} className="fixed bottom-16 sm:bottom-36 right-4 z-40">
       {open && (
         <div className="absolute bottom-14 right-0 mb-1 w-56 rounded-lg bg-surface border border-border shadow-2xl overflow-hidden">
           <ul className="py-1">

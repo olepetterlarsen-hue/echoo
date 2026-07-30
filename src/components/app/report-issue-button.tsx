@@ -73,7 +73,7 @@ export function ReportIssueButton() {
         onClick={() => setOpen(true)}
         aria-label={tr("issue_button", locale)}
         title={tr("issue_button", locale)}
-        className="fixed bottom-4 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-orange text-bg px-4 py-2.5 text-sm font-semibold shadow-lg hover:bg-orange/90 transition-colors"
+        className="fixed bottom-4 right-4 z-40 hidden sm:inline-flex items-center gap-2 rounded-full bg-orange text-bg px-4 py-2.5 text-sm font-semibold shadow-lg hover:bg-orange/90 transition-colors"
       >
         <Bug className="size-4" />
         <span className="hidden sm:inline">{tr("issue_button", locale)}</span>

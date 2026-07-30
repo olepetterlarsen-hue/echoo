@@ -15,6 +15,10 @@ interface Option {
   id: string;
   name: string;
 }
+interface ProfileOption {
+  id: string;
+  full_name: string | null;
+}
 interface SiteOption extends Option {
   customer_id: string | null;
 }
@@ -42,6 +46,7 @@ interface SelectedTemplate {
 interface Props {
   customers: Option[];
   sites: SiteOption[];
+  profiles: ProfileOption[];
   stages: StageOption[];
   templates?: TemplateOption[];
   selectedTemplate?: SelectedTemplate | null;
@@ -52,6 +57,7 @@ interface Props {
 export function NewProjectForm({
   customers,
   sites,
+  profiles,
   stages,
   templates = [],
   selectedTemplate = null,
@@ -73,6 +79,7 @@ export function NewProjectForm({
     customer_id: defaultCustomerId ?? "",
     site_id: defaultSiteId ?? "",
     stage_id: selectedTemplate?.default_stage_id ?? stages[0]?.id ?? "",
+    assigned_to: selectedTemplate?.default_assigned_to ?? "",
     customer_name: "",
     customer_org_number: "",
     customer_contact: "",
@@ -114,6 +121,7 @@ export function NewProjectForm({
         customer_id: form.customer_id || undefined,
         site_id: form.site_id || undefined,
         stage_id: form.stage_id || undefined,
+        assigned_to: form.assigned_to || undefined,
       });
       if (res.error) setError(res.error);
       else if (res.id) router.push(`/prosjekter/${res.id}`);
@@ -230,6 +238,21 @@ export function NewProjectForm({
               </select>
             </Field>
           </div>
+
+          <Field label="Tildelt ansatt">
+            <select
+              value={form.assigned_to}
+              onChange={(e) => update("assigned_to", e.target.value)}
+              className="w-full h-10 rounded-md px-3 text-sm bg-surface border border-border focus:border-orange focus:outline-none"
+            >
+              <option value="">— Ingen —</option>
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.full_name ?? p.id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          </Field>
 
           <Field label={tr("proj_new_description", locale)}>
             <Textarea

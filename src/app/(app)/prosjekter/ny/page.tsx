@@ -22,6 +22,7 @@ export default async function NewProjectPage({ searchParams }: PageProps) {
   const [
     { data: customers },
     { data: sites },
+    { data: profiles },
     stages,
     templates,
     templateQuery,
@@ -36,6 +37,11 @@ export default async function NewProjectPage({ searchParams }: PageProps) {
       .select("id, name, customer_id")
       .eq("active", true)
       .order("name"),
+    supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("active", true)
+      .order("full_name"),
     getProjectStages(),
     getActiveTemplates(),
     template
@@ -58,6 +64,7 @@ export default async function NewProjectPage({ searchParams }: PageProps) {
       <NewProjectForm
         customers={customers ?? []}
         sites={sites ?? []}
+        profiles={profiles ?? []}
         stages={stages}
         templates={templates}
         selectedTemplate={selectedTemplate ?? null}
