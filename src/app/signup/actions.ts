@@ -25,6 +25,8 @@ interface SignupArgs {
   password: string;
   employee_range: string;
   plan?: "base" | "iso";
+  newsletter_consent?: boolean;
+  is_qualified_signer?: boolean;
 }
 
 function parseEmployeeRange(range: string): number | null {
@@ -103,10 +105,28 @@ export async function signUpOrganization(args: SignupArgs) {
   // Marker rate-limit-attempt som vellykket (for forensikk)
   await admin.rpc("mark_signup_success", { p_ip: ip, p_email: email });
 
+  // Lagre nyhetsbrev-samtykke på profilen hvis brukeren valgte det
+  if (args.newsletter_consent) {
+    await admin
+      .from("profiles")
+      .update({ marketing_consent: true, marketing_consent_at: new Date().toISOString() })
+      .eq("id", userId);
+  }
+
+  // B5/F-14: la den som registrerer bedriften krysse av at hun selv er
+  // installatør/bemyndiget — ellers kommer en enmannsbedrift aldri i mål,
+  // siden admin-rollen bevisst ikke gir signeringsrett på samsvarserklæringer.
+  if (args.is_qualified_signer) {
+    await admin
+      .from("profiles")
+      .update({ qualified_signer: true })
+      .eq("id", userId);
+  }
+
   // Hvis brukeren kom fra landingssiden med plan-valg, send dem rett
   // til auto-checkout. Ellers vanlig onboarding.
   if (args.plan === "base" || args.plan === "iso") {
     redirect(`/admin/abonnement?prefill=${args.plan}&auto_checkout=1`);
   }
-  redirect("/onboarding");
+  redirect("/onboarding/velkommen");
 }

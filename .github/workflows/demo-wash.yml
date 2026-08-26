@@ -1,0 +1,32 @@
+name: Demo Wash (daglig re-seed)
+
+on:
+  schedule:
+    # 04:00 Oslo-tid (UTC+2 sommer / UTC+1 vinter) → 02:00 UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch: # Manuell trigger fra GitHub Actions-panelet
+
+jobs:
+  seed:
+    name: Re-seed demo-organisasjoner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Re-seed demo-orgs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/seed-demo-orgs.mjs

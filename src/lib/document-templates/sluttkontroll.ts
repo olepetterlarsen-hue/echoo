@@ -88,7 +88,6 @@ export const SLUTTKONTROLL: TemplateDef = {
             { key: "spenningsfall", label: "Er det kontrollert spenningsfall?" },
             { key: "funksjonstest", label: "Er anlegget funksjonstestet?" },
             { key: "polaritet", label: "Er det foretatt polaritetskontroll?" },
-            { key: "telenor_sjekklister", label: "Er det anvendt Telenors sjekklister for «Prosjektering montasje idriftsettelse av elektro» i tillegg til denne sluttkontrollen?" },
           ],
         },
       ],

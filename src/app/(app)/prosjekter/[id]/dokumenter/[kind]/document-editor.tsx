@@ -15,9 +15,10 @@ import type {
   Profile,
 } from "@/lib/types/database";
 import {
-  SAMSVAR_SIGNING_ROLES,
+  canSignSamsvar,
   PARTICIPANT_SIGNING_KINDS,
 } from "@/lib/types/database";
+import { findMissingRequiredFields } from "@/lib/document-templates/validation";
 import {
   ParticipantsPanel,
   type ParticipantWithProfile,
@@ -171,6 +172,19 @@ export function DocumentEditor({
   function onSign() {
     if (!profile.signature_data_url) {
       setError(tr("proj_doc_no_signature_error", locale));
+      return;
+    }
+    // A5/I-39: rask klientside-feedback — server er fasit (samme sjekk i
+    // signDocument), men brukeren skal slippe å vente på en rundtur for å
+    // få vite hva som mangler.
+    const missing = findMissingRequiredFields(template, data);
+    if (missing.length > 0) {
+      setError(
+        tr("proj_doc_err_missing_required", locale).replace(
+          "{fields}",
+          missing.map((f) => f.label).join(", "),
+        ),
+      );
       return;
     }
     if (!confirm(tr("proj_doc_confirm_sign", locale))) {
@@ -421,8 +435,8 @@ export function DocumentEditor({
       {!isSigned &&
         (() => {
           const isSamsvar = template.kind === "samsvarserklaering";
-          const canSignSamsvar = SAMSVAR_SIGNING_ROLES.includes(profile.role);
-          const samsvarBlocked = isSamsvar && !canSignSamsvar;
+          const samsvarBlocked =
+            isSamsvar && !canSignSamsvar(profile.role, profile.qualified_signer);
           const helpText = !profile.signature_data_url
             ? tr("proj_doc_help_no_signature", locale)
             : samsvarBlocked

@@ -50,7 +50,7 @@ export function StatCard({
           title={addTitle ?? "Opprett ny"}
           aria-label={addTitle ?? "Opprett ny"}
           onClick={(e) => e.stopPropagation()}
-          className="absolute bottom-2 right-2 z-20 size-8 grid place-items-center rounded-md bg-orange/15 text-orange hover:bg-orange hover:text-bg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+          className="absolute bottom-2 right-2 z-20 size-8 grid place-items-center rounded-md bg-orange/15 text-orange hover:bg-orange hover:text-bg transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
         >
           <Plus className="size-4" />
         </Link>

@@ -601,4 +601,8 @@ export const PROJECTS: TranslationDict = {
     no: "Internkontroll kan kun startes på signerte dokumenter.",
     en: "Internal control can only be started on signed documents.",
   },
+  proj_doc_err_missing_required: {
+    no: "Kan ikke signeres — obligatoriske felt mangler: {fields}",
+    en: "Cannot be signed — required fields missing: {fields}",
+  },
 };

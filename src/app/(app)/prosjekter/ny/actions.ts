@@ -15,6 +15,7 @@ interface Input {
   customer_id?: string;
   site_id?: string;
   stage_id?: string;
+  assigned_to?: string;
   customer_name?: string;
   customer_org_number?: string;
   customer_contact?: string;
@@ -108,6 +109,7 @@ export async function createProject(
       site_postal_code: clean(input.site_postal_code),
       site_city: clean(input.site_city),
       site_ssb_number: clean(input.site_ssb_number),
+      assigned_to: input.assigned_to || null,
       created_by: userId,
     })
     .select("id")

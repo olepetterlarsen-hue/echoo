@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { AlertTriangle, RefreshCw, ChevronLeft } from "lucide-react";
 import * as Sentry from "@sentry/nextjs";
+import { reloadOnceForChunkError } from "@/lib/chunk-error";
 
 /**
  * Error-boundary for hele (app)-segmentet. Når en client-side render-feil
@@ -22,6 +23,9 @@ export default function AppError({
   reset: () => void;
 }) {
   useEffect(() => {
+    // Stale JS-chunk etter en ny utrulling (fanen har vært åpen fra før) —
+    // reload én gang i stedet for å vise feilsiden (B3/F-18).
+    if (reloadOnceForChunkError(error)) return;
     // Send til Sentry — fanger client-side krasj som ellers ville vært stille
     Sentry.captureException(error, {
       tags: { boundary: "app-segment" },

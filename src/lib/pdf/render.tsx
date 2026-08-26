@@ -1,7 +1,7 @@
-import fs from "fs";
 import path from "path";
 import {
   Document,
+  Font,
   Image,
   Page,
   StyleSheet,
@@ -15,7 +15,8 @@ import type {
   Project,
   AppSettings,
 } from "@/lib/types/database";
-import { getTemplate } from "@/lib/document-templates";
+import { getTemplate, resolveTemplateVariant } from "@/lib/document-templates";
+import { captureException } from "@/lib/observability";
 import type {
   AnvendteNormerValue,
   ContactSubformValue,
@@ -31,6 +32,24 @@ import type {
   YnaResponse,
 } from "@/lib/document-templates/types";
 
+// Standard-14 Helvetica mangler Ω/Δ (gresk) og ²/³ (superscript) — DejaVu
+// Sans dekker fullt (verifisert: Ω Δ µ ° ² ³ ± ø æ å). Fontfilene ligger i
+// repoet (public/fonts/) og hentes IKKE over nett ved render, se A3/I-19.
+Font.register({
+  family: "DejaVuSans",
+  fonts: [
+    { src: path.join(process.cwd(), "public", "fonts", "DejaVuSans.ttf") },
+    {
+      src: path.join(process.cwd(), "public", "fonts", "DejaVuSans-Bold.ttf"),
+      fontWeight: 700,
+    },
+    {
+      src: path.join(process.cwd(), "public", "fonts", "DejaVuSans-Oblique.ttf"),
+      fontStyle: "italic",
+    },
+  ],
+});
+
 const SECTION_BG = "#F4F4F4";
 const BORDER = "#D0D0D0";
 const TEXT_DARK = "#111111";
@@ -39,16 +58,30 @@ const RISK_GREEN = "#1F9D55";
 const RISK_YELLOW = "#D49A14";
 const RISK_RED = "#D43831";
 
-// Lager logo-data-URL én gang
-let cachedLogo: string | null = null;
-function getLogoDataUrl(): string | null {
-  if (cachedLogo !== null) return cachedLogo;
+/**
+ * Henter organisasjonens opplastede logo (org-logos-bucketen, public URL)
+ * server-side og konverterer til en data-URL @react-pdf/renderer kan
+ * rendre direkte — å la react-pdf selv fetche en ekstern URL ved render
+ * er upålitelig (nettverksavhengig, ingen retry). IKKE cachet globalt:
+ * dette kalles én gang per organisasjon per PDF, og en modul-cache ville
+ * lekket org A sin logo inn i org B sine dokumenter.
+ * Returnerer null (→ tekst-fallback i JSX-en) hvis org ikke har logo eller
+ * nedlastingen feiler.
+ */
+async function getLogoDataUrl(
+  logoUrl: string | null | undefined,
+): Promise<string | null> {
+  if (!logoUrl) return null;
   try {
-    const logoPath = path.join(process.cwd(), "public", "logo-dark.png");
-    const buf = fs.readFileSync(logoPath);
-    cachedLogo = `data:image/png;base64,${buf.toString("base64")}`;
-    return cachedLogo;
-  } catch {
+    const res = await fetch(logoUrl);
+    if (!res.ok) {
+      throw new Error(`Logo-nedlasting feilet: HTTP ${res.status}`);
+    }
+    const buf = Buffer.from(await res.arrayBuffer());
+    const contentType = res.headers.get("content-type") ?? "image/png";
+    return `data:${contentType};base64,${buf.toString("base64")}`;
+  } catch (err) {
+    captureException(err, { scope: "pdf-logo", logoUrl });
     return null;
   }
 }
@@ -60,7 +93,7 @@ const styles = StyleSheet.create({
     paddingLeft: 40,
     paddingRight: 40,
     fontSize: 9,
-    fontFamily: "Helvetica",
+    fontFamily: "DejaVuSans",
     color: TEXT_DARK,
   },
   // Fixed header
@@ -223,11 +256,13 @@ const styles = StyleSheet.create({
     padding: 4,
     fontSize: 11,
     textAlign: "center",
+    alignItems: "center",
     borderLeftWidth: 1,
     borderLeftColor: BORDER,
   },
   ynaCellComment: {
     width: "26%",
+    flexShrink: 1,
     padding: 4,
     fontSize: 7,
     borderLeftWidth: 1,
@@ -236,6 +271,7 @@ const styles = StyleSheet.create({
   },
   ynaCellValue: {
     width: "14%",
+    flexShrink: 1,
     padding: 4,
     fontSize: 8,
     borderLeftWidth: 1,
@@ -280,8 +316,21 @@ const styles = StyleSheet.create({
   },
   sigImage: { height: 50, objectFit: "contain" },
 
-  // Inline checkbox glyph
-  checkGlyph: { fontSize: 11 },
+  // Fontuavhengig avkryssingsboks (ikke glyph — Standard-14-fonter mangler ☑/☐)
+  checkboxBox: {
+    minWidth: 16,
+    height: 9,
+    paddingHorizontal: 1,
+    borderWidth: 1,
+    borderColor: TEXT_DARK,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxMark: {
+    fontSize: 7,
+    fontWeight: 700,
+    lineHeight: 1,
+  },
 
   // Inline radio block
   radioBlock: {
@@ -303,8 +352,36 @@ interface Args {
   document: DocumentRow & { signature_snapshot?: string | null };
   project: Project | null;
   signer: Profile;
-  settings: AppSettings;
+  settings: AppSettings & { logo_url?: string | null };
   participants?: PdfParticipant[];
+}
+
+/**
+ * Anleggsadresse for topplokken. Arver fra kunden på prosjektet når site
+ * ikke er utfylt — en samsvarserklæring uten anleggsidentifikasjon er ikke
+ * gyldig dokumentasjon (A2).
+ */
+function buildAnleggsInfo(
+  project: Project | null,
+): { adresse: string; kunde: string } | null {
+  if (!project) return null;
+  const siteStreet = [project.site_address, project.site_house_number, project.site_house_letter]
+    .filter(Boolean)
+    .join(" ");
+  const sitePostnrSted = [project.site_postal_code, project.site_city]
+    .filter(Boolean)
+    .join(" ");
+  const hasSite = !!(siteStreet || sitePostnrSted);
+
+  const street = hasSite ? siteStreet : project.customer_address ?? "";
+  const postnrSted = hasSite
+    ? sitePostnrSted
+    : [project.customer_postal_code, project.customer_city].filter(Boolean).join(" ");
+
+  return {
+    adresse: [street, postnrSted].filter(Boolean).join(", ") || "—",
+    kunde: project.customer_name ?? "—",
+  };
 }
 
 export async function renderDocumentPdf({
@@ -315,26 +392,30 @@ export async function renderDocumentPdf({
   participants = [],
 }: Args): Promise<Buffer> {
   const data = (document.data ?? {}) as Record<string, unknown>;
-  const storedVariant = typeof data._variant === "string" ? data._variant : undefined;
-  const storedTemplateId =
-    typeof data._template_id === "string" ? data._template_id : undefined;
-  let variant: string | undefined;
-  if (document.kind === "samsvarserklaering") {
-    variant = storedVariant ?? project?.installation_type ?? "bolig";
-  } else if (document.kind === "sja") {
-    variant =
-      storedVariant ??
-      (project?.installation_type === "telecom" ? "telekom" : "standard");
-  } else if (document.kind === "custom") {
-    variant = storedTemplateId;
-  }
+  const variant = resolveTemplateVariant(document.kind, data, project?.installation_type);
   const template = await getTemplate(document.kind, variant);
-  const logo = getLogoDataUrl();
+  const logo = await getLogoDataUrl(settings.logo_url);
 
+  // Teller faktiske spørsmål, ikke felt: en yna_group/yna_measurement_group
+  // eller risk_assessment_group er ETT felt i malen men rommer mange
+  // enkeltspørsmål (I-20 — 19 spm ble vist som "8 spørsmål").
   const totalQuestions = template.sections.reduce(
-    (n, s) => n + s.fields.filter((f) => f.kind !== "info").length,
+    (n, s) =>
+      n +
+      s.fields.reduce((m, f) => {
+        if (f.kind === "info") return m;
+        if (f.kind === "yna_group" || f.kind === "yna_measurement_group") {
+          return m + (f.items?.length ?? 0);
+        }
+        if (f.kind === "risk_assessment_group") {
+          return m + (f.riskItems?.length ?? 0);
+        }
+        return m + 1;
+      }, 0),
     0,
   );
+
+  const anlegg = buildAnleggsInfo(project);
 
   return await renderToBuffer(
     <Document
@@ -419,25 +500,20 @@ export async function renderDocumentPdf({
               value={project?.project_number ?? "—"}
             />
             <Meta label="Prosjekt:" value={project?.title ?? "Frittstående skjema"} />
+            {anlegg && (
+              <>
+                <Meta label="Kunde:" value={anlegg.kunde} />
+                <Meta label="Anleggsadresse:" value={anlegg.adresse} />
+              </>
+            )}
           </View>
           <View style={styles.metaCol}>
             <Text style={styles.metaColTitle}>Statistikk</Text>
             <Meta label="Totalt antall spørsmål:" value={`${totalQuestions} spørsmål`} />
-            <Meta label="Versjon av dokument:" value={`v${document.version}`} />
             <Meta
               label="Status:"
-              value={document.status === "signert" ? "Signert" : "Utkast"}
+              value={`${document.status === "signert" ? "Signert" : "Utkast"} · v${document.version}`}
             />
-            {document.signed_at && (
-              <Meta
-                label="Signert:"
-                value={new Date(document.signed_at).toLocaleString("no-NO", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                })}
-              />
-            )}
           </View>
         </View>
 
@@ -458,6 +534,40 @@ export async function renderDocumentPdf({
             ))}
           </View>
         ))}
+
+        {/* Ansvarlig installatør / bemyndiget person (FEL § 12) — kun på
+            samsvarserklæringen, jf. FIXPLAN akseptansekriterie A2. */}
+        {document.kind === "samsvarserklaering" && (
+          <View style={styles.infoBox} wrap={false}>
+            <Text style={styles.infoBoxHeader}>
+              Ansvarlig installatør / bemyndiget person (FEL § 12)
+            </Text>
+            <View style={styles.infoBoxBody}>
+              <Text>
+                {settings.firma}
+                {settings.org_nr ? ` · Org.nr ${settings.org_nr}` : ""}
+              </Text>
+              {settings.selskap_adresse && <Text>{settings.selskap_adresse}</Text>}
+              {(settings.selskap_postnr || settings.selskap_sted) && (
+                <Text>
+                  {[settings.selskap_postnr, settings.selskap_sted]
+                    .filter(Boolean)
+                    .join(" ")}
+                </Text>
+              )}
+              <Text style={{ marginTop: 4, fontWeight: 700 }}>
+                {settings.installator_navn || "Ikke registrert i Innstillinger → Bedrift"}
+                {settings.installator_tittel ? ` · ${settings.installator_tittel}` : ""}
+              </Text>
+              {settings.installator_telefon && (
+                <Text>Tlf: {settings.installator_telefon}</Text>
+              )}
+              {settings.installator_epost && (
+                <Text>E-post: {settings.installator_epost}</Text>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Signaturer */}
         <View style={styles.sigSection} wrap={false} break>
@@ -528,6 +638,17 @@ export async function renderDocumentPdf({
         />
       </Page>
     </Document>,
+  );
+}
+
+function Checkbox({ checked }: { checked: boolean }) {
+  // Boksen tegnes alltid som primitiv (fontuavhengig). Merket er ren ASCII ("[X]"),
+  // ikke et Unicode-glyph — samme rotårsak som Ω-manko i tegnstøtte-fiksen,
+  // og gir i tillegg et entydig tekstuttrekkbart svar for golden-testene.
+  return (
+    <View style={styles.checkboxBox}>
+      {checked && <Text style={styles.checkboxMark}>[X]</Text>}
+    </View>
   );
 }
 
@@ -714,12 +835,11 @@ function RenderField({
               style={{
                 width: "50%",
                 flexDirection: "row",
+                alignItems: "center",
                 marginBottom: 2,
               }}
             >
-              <Text style={styles.checkGlyph}>
-                {arr.includes(o) ? "☑" : "☐"}
-              </Text>
+              <Checkbox checked={arr.includes(o)} />
               <Text style={{ fontSize: 8, marginLeft: 4 }}>{o}</Text>
             </View>
           ))}
@@ -739,9 +859,7 @@ function RenderField({
             <View style={styles.radioBlock}>
               {field.options?.map((o) => (
                 <View key={o} style={styles.radioItem}>
-                  <Text style={styles.checkGlyph}>
-                    {value === o ? "☑" : "☐"}
-                  </Text>
+                  <Checkbox checked={value === o} />
                   <Text style={{ fontSize: 8, marginLeft: 4 }}>{o}</Text>
                 </View>
               ))}
@@ -828,9 +946,15 @@ function YnaTable({
         return (
           <View key={item.key} style={styles.ynaRow} wrap={false}>
             <Text style={styles.ynaCellQuestion}>{item.label}</Text>
-            <Text style={styles.ynaCellCheck}>{r.svar === "ja" ? "☑" : "☐"}</Text>
-            <Text style={styles.ynaCellCheck}>{r.svar === "nei" ? "☑" : "☐"}</Text>
-            <Text style={styles.ynaCellCheck}>{r.svar === "uakt" ? "☑" : "☐"}</Text>
+            <View style={styles.ynaCellCheck}>
+              <Checkbox checked={r.svar === "ja"} />
+            </View>
+            <View style={styles.ynaCellCheck}>
+              <Checkbox checked={r.svar === "nei"} />
+            </View>
+            <View style={styles.ynaCellCheck}>
+              <Checkbox checked={r.svar === "uakt"} />
+            </View>
             <Text style={styles.ynaCellComment}>{r.kommentar || ""}</Text>
           </View>
         );
@@ -869,11 +993,19 @@ function YnaMeasurementTable({
         return (
           <View key={item.key} style={styles.ynaRow} wrap={false}>
             <Text style={styles.ynaCellQuestion}>{item.label}</Text>
-            <Text style={styles.ynaCellCheck}>{r.svar === "ja" ? "☑" : "☐"}</Text>
-            <Text style={styles.ynaCellCheck}>{r.svar === "nei" ? "☑" : "☐"}</Text>
-            <Text style={styles.ynaCellCheck}>{r.svar === "uakt" ? "☑" : "☐"}</Text>
+            <View style={styles.ynaCellCheck}>
+              <Checkbox checked={r.svar === "ja"} />
+            </View>
+            <View style={styles.ynaCellCheck}>
+              <Checkbox checked={r.svar === "nei"} />
+            </View>
+            <View style={styles.ynaCellCheck}>
+              <Checkbox checked={r.svar === "uakt"} />
+            </View>
             <Text style={styles.ynaCellComment}>{r.kommentar || ""}</Text>
-            <Text style={styles.ynaCellValue}>{r.verdi || ""}</Text>
+            <Text style={styles.ynaCellValue} wrap>
+              {r.verdi || ""}
+            </Text>
           </View>
         );
       })}

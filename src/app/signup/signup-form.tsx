@@ -6,6 +6,7 @@ import { Input, Field } from "@/components/ui/input";
 import { signUpOrganization } from "./actions";
 import type { Locale } from "@/lib/i18n";
 import { tr } from "@/lib/i18n/strings";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 
 interface Props {
   initialError?: string;
@@ -28,8 +29,11 @@ export function SignupForm({ initialError, locale, plan }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [employeeRange, setEmployeeRange] = useState("6-20");
+  const [newsletterConsent, setNewsletterConsent] = useState(false);
+  const [isQualifiedSigner, setIsQualifiedSigner] = useState(false);
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [pending, startTransition] = useTransition();
+  const hydrated = useHydrated();
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,6 +47,8 @@ export function SignupForm({ initialError, locale, plan }: Props) {
         password,
         employee_range: employeeRange,
         plan,
+        newsletter_consent: newsletterConsent,
+        is_qualified_signer: isQualifiedSigner,
       });
       if (res?.error) setError(res.error);
     });
@@ -113,7 +119,33 @@ export function SignupForm({ initialError, locale, plan }: Props) {
             onChange={(e) => setPassword(e.target.value)}
           />
         </Field>
+
+        <label className="flex items-start gap-2 cursor-pointer mt-2">
+          <input
+            type="checkbox"
+            checked={isQualifiedSigner}
+            onChange={(e) => setIsQualifiedSigner(e.target.checked)}
+            className="mt-0.5 accent-orange shrink-0"
+          />
+          <span className="text-xs text-text-2">
+            Jeg er registrert installatør / bemyndiget person (FEL § 12) og
+            skal kunne signere samsvarserklæringer for bedriften.
+          </span>
+        </label>
       </div>
+
+      <label className="flex items-start gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={newsletterConsent}
+          onChange={(e) => setNewsletterConsent(e.target.checked)}
+          className="mt-0.5 accent-orange shrink-0"
+        />
+        <span className="text-xs text-text-2">
+          Ja, jeg ønsker å motta nyheter, tips og oppdateringer om Echoo på e-post.
+          Du kan melde deg av når som helst.
+        </span>
+      </label>
 
       {error && (
         <p className="text-sm text-red bg-red/10 border border-red/30 rounded px-3 py-2">
@@ -121,8 +153,12 @@ export function SignupForm({ initialError, locale, plan }: Props) {
         </p>
       )}
 
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? tr("signup_creating", locale) : tr("signup_create_btn", locale)}
+      <Button type="submit" disabled={pending || !hydrated} className="w-full">
+        {!hydrated
+          ? tr("loading", locale)
+          : pending
+            ? tr("signup_creating", locale)
+            : tr("signup_create_btn", locale)}
       </Button>
 
       <p className="text-[11px] text-text-3 text-center">

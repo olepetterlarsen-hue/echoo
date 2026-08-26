@@ -3,6 +3,7 @@
 import * as Sentry from "@sentry/nextjs";
 import NextError from "next/error";
 import { useEffect } from "react";
+import { reloadOnceForChunkError } from "@/lib/chunk-error";
 
 export default function GlobalError({
   error,
@@ -10,6 +11,7 @@ export default function GlobalError({
   error: Error & { digest?: string };
 }) {
   useEffect(() => {
+    if (reloadOnceForChunkError(error)) return;
     Sentry.captureException(error);
   }, [error]);
 

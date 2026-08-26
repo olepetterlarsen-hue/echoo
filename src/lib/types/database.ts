@@ -208,6 +208,10 @@ export type Database = {
           updated_at: string;
           hms_card_number: string | null;
           is_echoo_staff: boolean;
+          marketing_consent: boolean;
+          marketing_consent_at: string | null;
+          qualified_signer: boolean;
+          must_change_password: boolean;
         };
         Insert: {
           id: string;
@@ -227,6 +231,10 @@ export type Database = {
           updated_at?: string;
           hms_card_number?: string | null;
           is_echoo_staff?: boolean;
+          marketing_consent?: boolean;
+          marketing_consent_at?: string | null;
+          qualified_signer?: boolean;
+          must_change_password?: boolean;
         };
         Update: {
           id?: string;
@@ -244,6 +252,10 @@ export type Database = {
           organization_id?: string | null;
           hms_card_number?: string | null;
           is_echoo_staff?: boolean;
+          marketing_consent?: boolean;
+          marketing_consent_at?: string | null;
+          qualified_signer?: boolean;
+          must_change_password?: boolean;
         };
         Relationships: [];
       };
@@ -456,6 +468,114 @@ export type Database = {
           organization_id?: string | null;
         };
         Relationships: [];
+      };
+      employment_contracts: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          employee_email: string;
+          employee_name: string;
+          profile_id: string | null;
+          stilling: string | null;
+          ansettelsesform: string;
+          stillingsprosent: number;
+          arbeidssted: string | null;
+          start_date: string | null;
+          provetid_mnd: number;
+          provetid_slutt: string | null;
+          lonn_type: string;
+          lonn_belop: number | null;
+          oppsigelsestid_mnd: number;
+          terms: Record<string, string>;
+          status: string;
+          source: string;
+          sign_token: string | null;
+          token_expires_at: string | null;
+          employer_signed_by: string | null;
+          employer_signed_at: string | null;
+          employer_signature_snapshot: string | null;
+          employee_signed_at: string | null;
+          employee_signed_name: string | null;
+          employee_signature_snapshot: string | null;
+          pdf_path: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          employee_email: string;
+          employee_name: string;
+          profile_id?: string | null;
+          stilling?: string | null;
+          ansettelsesform?: string;
+          stillingsprosent?: number;
+          arbeidssted?: string | null;
+          start_date?: string | null;
+          provetid_mnd?: number;
+          provetid_slutt?: string | null;
+          lonn_type?: string;
+          lonn_belop?: number | null;
+          oppsigelsestid_mnd?: number;
+          terms?: Record<string, string>;
+          status?: string;
+          source?: string;
+          sign_token?: string | null;
+          token_expires_at?: string | null;
+          employer_signed_by?: string | null;
+          employer_signed_at?: string | null;
+          employer_signature_snapshot?: string | null;
+          employee_signed_at?: string | null;
+          employee_signed_name?: string | null;
+          employee_signature_snapshot?: string | null;
+          pdf_path?: string | null;
+          created_by?: string | null;
+        };
+        Update: {
+          organization_id?: string | null;
+          employee_email?: string;
+          employee_name?: string;
+          profile_id?: string | null;
+          stilling?: string | null;
+          ansettelsesform?: string;
+          stillingsprosent?: number;
+          arbeidssted?: string | null;
+          start_date?: string | null;
+          provetid_mnd?: number;
+          provetid_slutt?: string | null;
+          lonn_type?: string;
+          lonn_belop?: number | null;
+          oppsigelsestid_mnd?: number;
+          terms?: Record<string, string>;
+          status?: string;
+          source?: string;
+          sign_token?: string | null;
+          token_expires_at?: string | null;
+          employer_signed_by?: string | null;
+          employer_signed_at?: string | null;
+          employer_signature_snapshot?: string | null;
+          employee_signed_at?: string | null;
+          employee_signed_name?: string | null;
+          employee_signature_snapshot?: string | null;
+          pdf_path?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "employment_contracts_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "employment_contracts_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       tasks: {
         Row: {
@@ -1039,6 +1159,7 @@ export type Database = {
           verified_at: string | null;
           verification_evidence: string | null;
           ai_generated: boolean;
+          image_urls: string[];
         };
         Insert: {
           id?: string;
@@ -1049,6 +1170,7 @@ export type Database = {
           status?: DeviationStatus;
           reported_by: string;
           assigned_to?: string | null;
+          image_urls?: string[];
           resolution?: string | null;
           resolved_by?: string | null;
           resolved_at?: string | null;
@@ -2119,6 +2241,18 @@ export const SAMSVAR_SIGNING_ROLES: UserRole[] = [
   "installator",
   "bemyndiget",
 ];
+
+// B5/F-14: skiller systemrolle fra faglig kvalifikasjon. En admin som selv
+// er installatør/bemyndiget (typisk enmannsforetak) krysser av for dette
+// ved registrering (eller får det satt manuelt) — uten at admin-rollen
+// generelt får signeringsrett. Delt mellom server-sjekken (actions.ts) og
+// klient-UI-en (document-editor.tsx) så de aldri kan komme ut av sync.
+export function canSignSamsvar(
+  role: UserRole,
+  qualifiedSigner: boolean,
+): boolean {
+  return SAMSVAR_SIGNING_ROLES.includes(role) || qualifiedSigner;
+}
 
 // Roller som har forhøyede rettigheter (ser alle dokumenter, kan tildele oppgaver)
 export const ELEVATED_ROLES: UserRole[] = [

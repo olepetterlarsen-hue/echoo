@@ -34,17 +34,23 @@ export const SAMSVAR_VARIANTS: Record<SamsvarVariant, TemplateDef> = {
 };
 
 // 2 SJA-varianter: standard (bolig/næring/EV) og telekom (ROT741).
-export type SjaVariant = "standard" | "telekom";
+export type { SjaVariant } from "./validation";
+import type { SjaVariant } from "./validation";
 export const SJA_VARIANTS: Record<SjaVariant, TemplateDef> = {
   standard: SJA,
   telekom: SJA_TELEKOM,
 };
 
-export function sjaVariantFromInstallationType(
-  type: InstallationType | null | undefined,
-): SjaVariant {
-  return type === "telecom" ? "telekom" : "standard";
-}
+// Rene hjelpefunksjoner (ingen supabase/server-avhengighet) — se
+// validation.ts. Re-eksportert herfra så eksisterende importer
+// (render.tsx, actions.ts) ikke trenger å endre sti. Klientkomponenter
+// (document-editor.tsx) importerer fra ./validation direkte for å unngå å
+// dra next/headers inn i klient-bundlen.
+export {
+  sjaVariantFromInstallationType,
+  resolveTemplateVariant,
+  findMissingRequiredFields,
+} from "./validation";
 
 // Tomt fallback-mal for custom kind når template_id mangler.
 const CUSTOM_EMPTY: TemplateDef = {

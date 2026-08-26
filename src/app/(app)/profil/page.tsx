@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ProfileEditor } from "./profile-editor";
 import { MfaSection } from "./mfa-section";
+import { ChangePasswordSection } from "./change-password-section";
 import { getServerT } from "@/lib/i18n/server";
 
 export default async function ProfilePage() {
@@ -46,6 +47,7 @@ export default async function ProfilePage() {
         orgRequires2fa={org?.require_2fa ?? false}
       />
       <ProfileEditor profile={profile} />
+      <ChangePasswordSection />
     </div>
   );
 }

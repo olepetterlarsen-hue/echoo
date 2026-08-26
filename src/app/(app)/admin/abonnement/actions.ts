@@ -5,6 +5,18 @@ import { createClient } from "@/lib/supabase/server";
 import { stripe, STRIPE_PRICE_BASE, STRIPE_PRICE_ISO_ADDON } from "@/lib/stripe";
 import { getAppOrigin } from "@/lib/origin";
 
+// Kampanjekoder som forlenger gratis prøveperiode ved checkout. Verdien er
+// antall dager før første betaling ("vaskedag" = betaling starter 30 dager
+// etter checkout). Koden skrives inn i abonnement-siden, valideres server-side.
+const CAMPAIGN_TRIAL_DAYS: Record<string, number> = {
+  vaskedag: 30,
+};
+
+function campaignTrialDays(code?: string): number | undefined {
+  if (!code) return undefined;
+  return CAMPAIGN_TRIAL_DAYS[code.trim().toLowerCase()];
+}
+
 async function requireAdminOrg() {
   const supabase = await createClient();
   const {
@@ -28,6 +40,7 @@ async function requireAdminOrg() {
  */
 export async function startCheckout(args: {
   include_iso?: boolean;
+  campaign_code?: string;
 }): Promise<{ url?: string; error?: string }> {
   let ctx;
   try {
@@ -84,6 +97,13 @@ export async function startCheckout(args: {
     trial_period_days = 14;
   }
 
+  // Kampanjekode overstyrer trial oppover (aldri nedover): "vaskedag" gjør at
+  // første betaling først skjer 30 dager etter checkout.
+  const campaignDays = campaignTrialDays(args.campaign_code);
+  if (campaignDays) {
+    trial_period_days = Math.max(trial_period_days ?? 0, campaignDays);
+  }
+
   try {
     const session = await stripe().checkout.sessions.create({
       mode: "subscription",
@@ -92,6 +112,15 @@ export async function startCheckout(args: {
       // (f.eks. 60DAGER for 60 dager gratis) opprettes i Stripe Dashboard
       // eller via API.
       allow_promotion_codes: true,
+      // Norsk mva: prisene er satt eks. mva (tax_behavior=exclusive),
+      // Stripe Tax legger på 25 % basert på kundens adresse.
+      // Krever at kunden fyller inn adresse i Checkout.
+      automatic_tax: { enabled: true },
+      customer_update: org.stripe_customer_id
+        ? { address: "auto", name: "auto" }
+        : undefined,
+      billing_address_collection: "required",
+      tax_id_collection: { enabled: true },
       line_items: lineItems,
       success_url: `${origin}/onboarding/velkommen`,
       cancel_url: `${origin}/admin/abonnement?status=cancel`,
@@ -140,7 +169,8 @@ export async function openPortal(): Promise<{ url?: string; error?: string }> {
  */
 export async function checkoutAndRedirect(formData: FormData) {
   const include_iso = formData.get("include_iso") === "1";
-  const res = await startCheckout({ include_iso });
+  const campaign_code = (formData.get("campaign_code") as string) || undefined;
+  const res = await startCheckout({ include_iso, campaign_code });
   if (res.error || !res.url) {
     throw new Error(res.error ?? "Klarte ikke starte Checkout.");
   }

@@ -220,25 +220,40 @@ export default async function AbonnementPage({ searchParams }: PageProps) {
                 Velg om du vil starte med basis-pakken alene eller inkludere
                 ISO-modulen fra dag én. Du kan endre dette når som helst senere.
               </p>
-              <div className="flex flex-wrap gap-2">
-                <form action={checkoutAndRedirect}>
+              <form action={checkoutAndRedirect} className="space-y-3">
+                <div className="max-w-xs">
+                  <label
+                    htmlFor="campaign_code"
+                    className="block text-xs uppercase tracking-wider text-text-3 mb-1"
+                  >
+                    Kampanjekode (valgfritt)
+                  </label>
+                  <input
+                    id="campaign_code"
+                    name="campaign_code"
+                    type="text"
+                    autoComplete="off"
+                    placeholder="F.eks. VASKEDAG"
+                    className="w-full h-10 px-3 rounded-md bg-card border border-border text-sm text-text-1 placeholder:text-text-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange/40"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
                   <Button
                     type="submit"
                     variant={prefill === "iso" ? "secondary" : "primary"}
                   >
                     Abonner — kun basis-pakke
                   </Button>
-                </form>
-                <form action={checkoutAndRedirect}>
-                  <input type="hidden" name="include_iso" value="1" />
                   <Button
                     type="submit"
+                    name="include_iso"
+                    value="1"
                     variant={prefill === "iso" ? "primary" : "secondary"}
                   >
                     Abonner — basis + ISO-modul
                   </Button>
-                </form>
-              </div>
+                </div>
+              </form>
             </>
           ) : (
             <>

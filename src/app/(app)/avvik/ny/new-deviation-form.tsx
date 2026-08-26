@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardBody } from "@/components/ui/card";
 import { Input, Textarea, Field } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
+import { Camera, Sparkles, X } from "lucide-react";
 import { createDeviationFromForm } from "./actions";
 import type {
   DeviationSeverity,
@@ -52,6 +52,8 @@ interface FormState {
   responsible_id: string;
   due_date: string;
   ai_generated: boolean;
+  image_files: File[];
+  image_previews: string[];
 }
 
 export function NewDeviationForm({
@@ -66,6 +68,7 @@ export function NewDeviationForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // Initial form-state — last AI-utkast fra localStorage via useState-
   // initializer hvis vi kom fra assistenten. Lazy init kjører kun på mount,
   // ikke i en useEffect — det unngår cascade-render og lint-warning.
@@ -83,6 +86,8 @@ export function NewDeviationForm({
       responsible_id: "",
       due_date: "",
       ai_generated: false,
+      image_files: [],
+      image_previews: [],
     };
     if (!fromAi || typeof window === "undefined") return base;
     try {
@@ -100,6 +105,8 @@ export function NewDeviationForm({
         containment_action: draft.containment_action || "",
         corrective_action: draft.corrective_action || "",
         ai_generated: true,
+        image_files: [],
+        image_previews: [],
       };
     } catch {
       return base;
@@ -118,6 +125,8 @@ export function NewDeviationForm({
       return;
     }
     startTransition(async () => {
+      const fd = new FormData();
+      form.image_files.forEach((f) => fd.append("images", f));
       const res = await createDeviationFromForm({
         project_id: form.project_id,
         title: form.title,
@@ -131,6 +140,7 @@ export function NewDeviationForm({
         responsible_id: form.responsible_id || null,
         due_date: form.due_date || null,
         ai_generated: form.ai_generated,
+        images: form.image_files,
       });
       if (res.error) {
         setError(res.error);
@@ -188,6 +198,63 @@ export function NewDeviationForm({
               rows={4}
             />
           </Field>
+
+          <div>
+            <div className="text-xs uppercase tracking-wider text-text-3 mb-1.5">
+              Bilder (valgfritt, maks 10)
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              multiple
+              className="sr-only"
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? []).slice(0, 10 - form.image_files.length);
+                if (!files.length) return;
+                const previews = files.map((f) => URL.createObjectURL(f));
+                setForm((prev) => ({
+                  ...prev,
+                  image_files: [...prev.image_files, ...files].slice(0, 10),
+                  image_previews: [...prev.image_previews, ...previews].slice(0, 10),
+                }));
+                e.target.value = "";
+              }}
+            />
+            {form.image_previews.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {form.image_previews.map((src, i) => (
+                  <div key={i} className="relative size-20 rounded-md overflow-hidden border border-border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt={`Bilde ${i + 1}`} className="object-cover w-full h-full" />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          image_files: prev.image_files.filter((_, j) => j !== i),
+                          image_previews: prev.image_previews.filter((_, j) => j !== i),
+                        }))
+                      }
+                      className="absolute top-0.5 right-0.5 bg-black/60 rounded-full p-0.5 text-white"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={form.image_files.length >= 10}
+            >
+              <Camera className="size-4 mr-1.5" />
+              {form.image_files.length === 0 ? "Legg til bilde" : "Legg til flere"}
+            </Button>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Alvorlighet">

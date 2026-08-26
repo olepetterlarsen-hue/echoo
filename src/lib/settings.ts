@@ -2,8 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrgId } from "@/lib/supabase/org";
 import type { AppSettings } from "@/lib/types/database";
 
+export type CompanySettings = AppSettings & { logo_url: string | null };
+
 // Placeholder-fallback brukt før org er konfigurert.
-const FALLBACK: AppSettings = {
+const FALLBACK: CompanySettings = {
   id: "company",
   firma: "Bedriftsnavn",
   org_nr: "",
@@ -16,6 +18,7 @@ const FALLBACK: AppSettings = {
   installator_tittel: "",
   installator_telefon: "",
   installator_epost: "",
+  logo_url: null,
   updated_at: new Date().toISOString(),
   updated_by: null,
 };
@@ -33,14 +36,14 @@ const FALLBACK: AppSettings = {
  * er ikke lenger master, men beholdes i DB inntil videre for at gammel
  * kode som ev. skriver til den ikke feiler.
  */
-export async function getAppSettings(): Promise<AppSettings> {
+export async function getAppSettings(): Promise<CompanySettings> {
   const supabase = await createClient();
   try {
     const orgId = await getCurrentOrgId(supabase);
     const { data } = await supabase
       .from("organizations")
       .select(
-        "firma, org_nr, selskap_adresse, selskap_postnr, selskap_sted, selskap_telefon, selskap_epost, installator_navn, installator_tittel, installator_telefon, installator_epost, updated_at",
+        "firma, org_nr, selskap_adresse, selskap_postnr, selskap_sted, selskap_telefon, selskap_epost, installator_navn, installator_tittel, installator_telefon, installator_epost, logo_url, updated_at",
       )
       .eq("id", orgId)
       .single();
@@ -58,6 +61,7 @@ export async function getAppSettings(): Promise<AppSettings> {
         installator_tittel: data.installator_tittel ?? "",
         installator_telefon: data.installator_telefon ?? "",
         installator_epost: data.installator_epost ?? "",
+        logo_url: data.logo_url ?? null,
         updated_at: data.updated_at ?? new Date().toISOString(),
         updated_by: null,
       };

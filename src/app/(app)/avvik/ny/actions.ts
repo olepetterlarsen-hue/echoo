@@ -22,6 +22,7 @@ export async function createDeviationFromForm(input: {
   responsible_id: string | null;
   due_date: string | null;
   ai_generated: boolean;
+  images?: File[];
 }): Promise<{ id?: string; error?: string }> {
   const supabase = await createClient();
   let orgId: string;
@@ -35,6 +36,19 @@ export async function createDeviationFromForm(input: {
 
   if (!input.project_id) return { error: "Prosjekt er påkrevd." };
   if (!input.title.trim()) return { error: "Tittel er påkrevd." };
+
+  // Upload images first (fail fast before inserting the row)
+  const image_urls: string[] = [];
+  for (const file of input.images ?? []) {
+    if (file.size === 0) continue;
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const path = `${orgId}/${crypto.randomUUID()}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("avvik")
+      .upload(path, file, { contentType: file.type || "image/jpeg", upsert: false });
+    if (upErr) return { error: `Bildeopplasting feilet: ${upErr.message}` };
+    image_urls.push(path);
+  }
 
   const { data, error } = await supabase
     .from("deviations")
@@ -54,6 +68,7 @@ export async function createDeviationFromForm(input: {
       responsible_id: input.responsible_id,
       due_date: input.due_date,
       ai_generated: input.ai_generated,
+      image_urls,
     })
     .select("id, project_id")
     .single();

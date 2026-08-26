@@ -6,10 +6,15 @@ import { getCurrentOrgId } from "@/lib/supabase/org";
 import { guardOrgWritable, checkStorageQuota } from "@/lib/billing";
 import type { DocumentKind, DocumentRow, Project } from "@/lib/types/database";
 import {
-  SAMSVAR_SIGNING_ROLES,
+  canSignSamsvar,
   DOCUMENT_KIND_LABELS,
   PARTICIPANT_SIGNING_KINDS,
 } from "@/lib/types/database";
+import {
+  findMissingRequiredFields,
+  getTemplate,
+  resolveTemplateVariant,
+} from "@/lib/document-templates";
 import { renderDocumentPdf } from "@/lib/pdf/render";
 import { getAppSettings } from "@/lib/settings";
 import { getServerT } from "@/lib/i18n/server";
@@ -123,7 +128,7 @@ export async function signDocument(input: SaveInput): Promise<{
 
   if (
     input.kind === "samsvarserklaering" &&
-    !SAMSVAR_SIGNING_ROLES.includes(profile.role)
+    !canSignSamsvar(profile.role, profile.qualified_signer)
   ) {
     return {
       error: t("proj_doc_err_samsvar_role"),
@@ -140,6 +145,25 @@ export async function signDocument(input: SaveInput): Promise<{
       .single();
     project = data;
     if (!project) return { error: t("proj_doc_err_project_not_found") };
+  }
+
+  // A5/I-39: håndhev obligatoriske felt server-side — dette er fasit, ikke
+  // bare en klientside-sperre. En oppstartssjekkliste med f.eks. tomt
+  // "Bilens registreringsnummer" (required:true) skal ikke kunne signeres.
+  const variant = resolveTemplateVariant(
+    input.kind,
+    input.data,
+    project?.installation_type,
+  );
+  const template = await getTemplate(input.kind, variant);
+  const missingFields = findMissingRequiredFields(template, input.data);
+  if (missingFields.length > 0) {
+    return {
+      error: t("proj_doc_err_missing_required").replace(
+        "{fields}",
+        missingFields.map((f) => f.label).join(", "),
+      ),
+    };
   }
 
   let documentId = input.existingId;
@@ -209,6 +233,7 @@ export async function signDocument(input: SaveInput): Promise<{
   const pdfBuffer = await renderDocumentPdf({
     document: {
       ...docPre,
+      status: "signert",
       signed_by: user.id,
       signature_snapshot: profile.signature_data_url,
       signed_at: new Date().toISOString(),

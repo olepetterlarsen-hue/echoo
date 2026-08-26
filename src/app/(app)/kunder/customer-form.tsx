@@ -12,6 +12,7 @@ import { tr } from "@/lib/i18n/strings";
 import { createCustomer, updateCustomer } from "./actions";
 import { CustomerColorPicker } from "./color-picker";
 import { brregLookupByOrgNumber } from "@/app/(app)/actions/brreg";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 
 interface Props {
   mode: "create" | "edit";
@@ -22,6 +23,7 @@ export function CustomerForm({ mode, customer }: Props) {
   const router = useRouter();
   const { locale } = useLocale();
   const [pending, startTransition] = useTransition();
+  const hydrated = useHydrated();
   const [error, setError] = useState<string | null>(null);
   const [brregPending, setBrregPending] = useState(false);
   const [brregMsg, setBrregMsg] = useState<string | null>(null);
@@ -352,12 +354,14 @@ export function CustomerForm({ mode, customer }: Props) {
         <Button type="button" variant="ghost" onClick={() => router.back()}>
           {tr("cancel", locale)}
         </Button>
-        <Button type="submit" disabled={pending}>
-          {pending
-            ? tr("task_saving", locale)
-            : mode === "create"
-              ? tr("cust_create_btn", locale)
-              : tr("task_save_changes", locale)}
+        <Button type="submit" disabled={pending || !hydrated}>
+          {!hydrated
+            ? tr("loading", locale)
+            : pending
+              ? tr("task_saving", locale)
+              : mode === "create"
+                ? tr("cust_create_btn", locale)
+                : tr("task_save_changes", locale)}
         </Button>
       </div>
     </form>

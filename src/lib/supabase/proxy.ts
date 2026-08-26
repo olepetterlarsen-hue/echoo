@@ -2,6 +2,31 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/types/database";
 
+export type AdminGateDecision =
+  | { action: "allow" }
+  | { action: "forbidden" }
+  | { action: "redirect"; to: string };
+
+/**
+ * Ren beslutningsfunksjon for A7/I-04, I-28, I-29 — ingen Next.js/Supabase-
+ * avhengighet, så den kan enhetstestes uten å mocke request/response eller
+ * en Supabase-klient. updateSession() under kaller denne og utfører selve
+ * navigeringen/svaret.
+ */
+export function adminGateDecision(
+  pathname: string,
+  role: string | undefined,
+): AdminGateDecision {
+  if (!pathname.startsWith("/admin")) return { action: "allow" };
+  if (role === "admin") return { action: "allow" };
+  // Route handlers (ikke sider) skal svare 403, ikke redirecte — maskin-
+  // klienten (nedlastingsknappen) forventer en HTTP-status, ikke en 3xx.
+  if (pathname === "/admin/bulk-import/template") {
+    return { action: "forbidden" };
+  }
+  return { action: "redirect", to: "/dashboard" };
+}
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -60,6 +85,30 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/dashboard";
     url.searchParams.delete("redirectTo");
     return NextResponse.redirect(url);
+  }
+
+  // A7/I-04, I-28, I-29: sentral rollesjekk for HELE /admin/*-prefikset.
+  // Før dette var hver admin-side/action ansvarlig for å sjekke role ===
+  // "admin" selv — noe som ga reelle hull: admin/import-wizard hadde INGEN
+  // sjekk noe sted (enhver rolle kunne kjøre AI-import og skrive til
+  // storage), GET /admin/bulk-import/template hadde ingen sjekk, og
+  // admin/abonnement/page.tsx hadde ingen sjekk på selve siden (kun på
+  // actionen). Kun ett ekstra DB-oppslag, og kun for /admin/*-requests.
+  if (user && pathname.startsWith("/admin")) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    const decision = adminGateDecision(pathname, profile?.role);
+    if (decision.action === "forbidden") {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+    if (decision.action === "redirect") {
+      const url = request.nextUrl.clone();
+      url.pathname = decision.to;
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;
