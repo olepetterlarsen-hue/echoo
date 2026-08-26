@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useId, useRef } from "react";
+import { useState, useTransition, useId, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardBody } from "@/components/ui/card";
 import { Input, Textarea, Field } from "@/components/ui/input";
@@ -68,6 +68,24 @@ export function ImportWizard() {
   const [items, setItems] = useState<ItemState[]>([]);
   const [pending, startTransition] = useTransition();
   const [globalError, setGlobalError] = useState<string | null>(null);
+  // Sjekk AI-helse før brukeren rekker å laste opp — unngår at feilen først
+  // vises etter at hun har fylt ut et helt skjema (I-26).
+  const [aiHealthy, setAiHealthy] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/health/ai")
+      .then((r) => r.json())
+      .then((d: { ok: boolean }) => {
+        if (!cancelled) setAiHealthy(d.ok);
+      })
+      .catch(() => {
+        if (!cancelled) setAiHealthy(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function patchItem(id: string, patch: Partial<ItemState>) {
     setItems((curr) =>
@@ -256,27 +274,39 @@ export function ImportWizard() {
     <div className="space-y-4">
       <Card>
         <CardBody>
-          <label
-            htmlFor={fileInputId}
-            className="block border-2 border-dashed border-border rounded-md p-8 text-center cursor-pointer hover:bg-card-hover transition-colors"
-          >
-            <Upload className="size-6 mx-auto text-text-3 mb-2" />
-            <div className="text-sm font-medium text-text-1">
-              Last opp PDF-er
+          {aiHealthy === false ? (
+            <div className="border-2 border-dashed border-border rounded-md p-8 text-center text-text-3">
+              <AlertCircle className="size-6 mx-auto mb-2" />
+              <div className="text-sm font-medium text-text-1">
+                AI-tjenesten er utilgjengelig akkurat nå
+              </div>
+              <div className="text-xs mt-1">
+                Prøv igjen om litt, eller registrer dokumentet manuelt.
+              </div>
             </div>
-            <div className="text-xs text-text-3 mt-1">
-              Du kan velge flere filer samtidig. Andre formater må konverteres
-              til PDF først.
-            </div>
-            <input
-              id={fileInputId}
-              type="file"
-              accept="application/pdf"
-              multiple
-              className="hidden"
-              onChange={(e) => onFilesSelected(e.target.files)}
-            />
-          </label>
+          ) : (
+            <label
+              htmlFor={fileInputId}
+              className="block border-2 border-dashed border-border rounded-md p-8 text-center cursor-pointer hover:bg-card-hover transition-colors"
+            >
+              <Upload className="size-6 mx-auto text-text-3 mb-2" />
+              <div className="text-sm font-medium text-text-1">
+                Last opp PDF-er
+              </div>
+              <div className="text-xs text-text-3 mt-1">
+                Du kan velge flere filer samtidig. Andre formater må konverteres
+                til PDF først.
+              </div>
+              <input
+                id={fileInputId}
+                type="file"
+                accept="application/pdf"
+                multiple
+                className="hidden"
+                onChange={(e) => onFilesSelected(e.target.files)}
+              />
+            </label>
+          )}
         </CardBody>
       </Card>
 

@@ -13,6 +13,28 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
+import { captureException } from "@/lib/observability";
+
+/**
+ * Feilmelding vist til sluttbruker når AI-tjenesten svikter. Aldri
+ * leverandørnavn, statuskoder eller rått upstream-JSON i UI — se
+ * guardedMessage() som er eneste sted client.messages.create() kalles fra.
+ */
+export const AI_UNAVAILABLE_MESSAGE =
+  "AI-tjenesten er utilgjengelig akkurat nå. Prøv igjen om litt, eller registrer dokumentet manuelt.";
+
+/**
+ * Logger full upstream-feil server-side (med request-id om tilgjengelig) og
+ * returnerer en fast, norsk feil uten leverandørnavn/statuskode/JSON — det
+ * er ALDRI trygt å videreformidle `err.message` fra Anthropic-SDK-et til UI,
+ * f.eks. `401 {"type":"error","error":{"type":"authentication_error",...}}`.
+ */
+export function toSafeAiError(err: unknown, scope: string): Error {
+  const requestID =
+    err instanceof Anthropic.APIError ? err.requestID : undefined;
+  captureException(err, { scope, requestID });
+  return new Error(AI_UNAVAILABLE_MESSAGE);
+}
 
 export type AssistantSkill = "avvik" | "sja" | "doc_qa" | "iso" | "template";
 
@@ -103,7 +125,12 @@ export async function guardedMessage(
     );
   }
 
-  const msg = await client.messages.create(params);
+  let msg: Anthropic.Message;
+  try {
+    msg = await client.messages.create(params);
+  } catch (err) {
+    throw toSafeAiError(err, "guardedMessage");
+  }
 
   const inputTokens = msg.usage?.input_tokens ?? 0;
   const outputTokens = msg.usage?.output_tokens ?? 0;
