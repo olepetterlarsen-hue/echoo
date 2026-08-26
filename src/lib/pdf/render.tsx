@@ -15,7 +15,7 @@ import type {
   Project,
   AppSettings,
 } from "@/lib/types/database";
-import { getTemplate } from "@/lib/document-templates";
+import { getTemplate, resolveTemplateVariant } from "@/lib/document-templates";
 import { captureException } from "@/lib/observability";
 import type {
   AnvendteNormerValue,
@@ -392,19 +392,7 @@ export async function renderDocumentPdf({
   participants = [],
 }: Args): Promise<Buffer> {
   const data = (document.data ?? {}) as Record<string, unknown>;
-  const storedVariant = typeof data._variant === "string" ? data._variant : undefined;
-  const storedTemplateId =
-    typeof data._template_id === "string" ? data._template_id : undefined;
-  let variant: string | undefined;
-  if (document.kind === "samsvarserklaering") {
-    variant = storedVariant ?? project?.installation_type ?? "bolig";
-  } else if (document.kind === "sja") {
-    variant =
-      storedVariant ??
-      (project?.installation_type === "telecom" ? "telekom" : "standard");
-  } else if (document.kind === "custom") {
-    variant = storedTemplateId;
-  }
+  const variant = resolveTemplateVariant(document.kind, data, project?.installation_type);
   const template = await getTemplate(document.kind, variant);
   const logo = await getLogoDataUrl(settings.logo_url);
 

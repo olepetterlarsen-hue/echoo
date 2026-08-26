@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npm run test:tokens && npm run test:pdf && npm run test:pdf-meta && npm run test:pdf-font && npm run test:ai && npm run test:chunk-error && npm run test:signing-role",
+    "test": "npm run test:tokens && npm run test:pdf && npm run test:pdf-meta && npm run test:pdf-font && npm run test:ai && npm run test:chunk-error && npm run test:signing-role && npm run test:required-fields",
     "test:isolation": "node scripts/tenant-isolation-test.mjs",
     "test:e2e": "playwright test",
     "test:tokens": "node scripts/test-tokens.mjs && node scripts/test-tokens-runtime.mjs",
@@ -17,6 +17,7 @@
     "test:ai": "tsx scripts/qa/ai-error-handling.test.ts",
     "test:chunk-error": "tsx scripts/qa/chunk-error.test.ts",
     "test:signing-role": "tsx scripts/qa/samsvar-signing-role.test.ts",
+    "test:required-fields": "tsx scripts/qa/required-fields.test.ts",
     "stripe:setup": "node scripts/setup-stripe-products.mjs",
     "seed:demo": "node scripts/seed-demo-orgs.mjs"
   },

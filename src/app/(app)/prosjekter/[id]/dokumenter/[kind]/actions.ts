@@ -10,6 +10,11 @@ import {
   DOCUMENT_KIND_LABELS,
   PARTICIPANT_SIGNING_KINDS,
 } from "@/lib/types/database";
+import {
+  findMissingRequiredFields,
+  getTemplate,
+  resolveTemplateVariant,
+} from "@/lib/document-templates";
 import { renderDocumentPdf } from "@/lib/pdf/render";
 import { getAppSettings } from "@/lib/settings";
 import { getServerT } from "@/lib/i18n/server";
@@ -140,6 +145,25 @@ export async function signDocument(input: SaveInput): Promise<{
       .single();
     project = data;
     if (!project) return { error: t("proj_doc_err_project_not_found") };
+  }
+
+  // A5/I-39: håndhev obligatoriske felt server-side — dette er fasit, ikke
+  // bare en klientside-sperre. En oppstartssjekkliste med f.eks. tomt
+  // "Bilens registreringsnummer" (required:true) skal ikke kunne signeres.
+  const variant = resolveTemplateVariant(
+    input.kind,
+    input.data,
+    project?.installation_type,
+  );
+  const template = await getTemplate(input.kind, variant);
+  const missingFields = findMissingRequiredFields(template, input.data);
+  if (missingFields.length > 0) {
+    return {
+      error: t("proj_doc_err_missing_required").replace(
+        "{fields}",
+        missingFields.map((f) => f.label).join(", "),
+      ),
+    };
   }
 
   let documentId = input.existingId;
