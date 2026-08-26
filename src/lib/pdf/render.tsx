@@ -1,5 +1,7 @@
+import path from "path";
 import {
   Document,
+  Font,
   Image,
   Page,
   StyleSheet,
@@ -29,6 +31,24 @@ import type {
   YnaMeasurementResponse,
   YnaResponse,
 } from "@/lib/document-templates/types";
+
+// Standard-14 Helvetica mangler Ω/Δ (gresk) og ²/³ (superscript) — DejaVu
+// Sans dekker fullt (verifisert: Ω Δ µ ° ² ³ ± ø æ å). Fontfilene ligger i
+// repoet (public/fonts/) og hentes IKKE over nett ved render, se A3/I-19.
+Font.register({
+  family: "DejaVuSans",
+  fonts: [
+    { src: path.join(process.cwd(), "public", "fonts", "DejaVuSans.ttf") },
+    {
+      src: path.join(process.cwd(), "public", "fonts", "DejaVuSans-Bold.ttf"),
+      fontWeight: 700,
+    },
+    {
+      src: path.join(process.cwd(), "public", "fonts", "DejaVuSans-Oblique.ttf"),
+      fontStyle: "italic",
+    },
+  ],
+});
 
 const SECTION_BG = "#F4F4F4";
 const BORDER = "#D0D0D0";
@@ -73,7 +93,7 @@ const styles = StyleSheet.create({
     paddingLeft: 40,
     paddingRight: 40,
     fontSize: 9,
-    fontFamily: "Helvetica",
+    fontFamily: "DejaVuSans",
     color: TEXT_DARK,
   },
   // Fixed header
@@ -242,6 +262,7 @@ const styles = StyleSheet.create({
   },
   ynaCellComment: {
     width: "26%",
+    flexShrink: 1,
     padding: 4,
     fontSize: 7,
     borderLeftWidth: 1,
@@ -250,6 +271,7 @@ const styles = StyleSheet.create({
   },
   ynaCellValue: {
     width: "14%",
+    flexShrink: 1,
     padding: 4,
     fontSize: 8,
     borderLeftWidth: 1,
@@ -993,7 +1015,9 @@ function YnaMeasurementTable({
               <Checkbox checked={r.svar === "uakt"} />
             </View>
             <Text style={styles.ynaCellComment}>{r.kommentar || ""}</Text>
-            <Text style={styles.ynaCellValue}>{r.verdi || ""}</Text>
+            <Text style={styles.ynaCellValue} wrap>
+              {r.verdi || ""}
+            </Text>
           </View>
         );
       })}
