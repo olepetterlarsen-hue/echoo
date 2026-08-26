@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLocale } from "@/lib/i18n";
 import { tr } from "@/lib/i18n/strings";
-import type { Profile, UserRole } from "@/lib/types/database";
+import { ROLE_LABELS, type Profile, type UserRole } from "@/lib/types/database";
 import { createUser, updateUser, toggleActive, sendReset } from "./actions";
 
 interface Props {
@@ -280,7 +280,7 @@ function UserRow({
               : "neutral"
         }
       >
-        {user.role}
+        {ROLE_LABELS[user.role][locale]}
       </Badge>
 
       <Badge tone={user.active ? "green" : "red"}>

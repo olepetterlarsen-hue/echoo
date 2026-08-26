@@ -6,7 +6,7 @@ import { Input, Field } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SignaturePad } from "@/components/app/signature-pad";
 import { saveProfile } from "./actions";
-import type { Profile } from "@/lib/types/database";
+import { ROLE_LABELS, type Profile } from "@/lib/types/database";
 import { useLocale } from "@/lib/i18n";
 import { tr } from "@/lib/i18n/strings";
 
@@ -95,7 +95,7 @@ export function ProfileEditor({ profile }: Props) {
             </Field>
           </div>
           <Field label={tr("profile_role", locale)}>
-            <Input value={profile.role} disabled className="capitalize" />
+            <Input value={ROLE_LABELS[profile.role][locale]} disabled />
           </Field>
         </CardBody>
       </Card>
