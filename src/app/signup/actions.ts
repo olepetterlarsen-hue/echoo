@@ -26,6 +26,7 @@ interface SignupArgs {
   employee_range: string;
   plan?: "base" | "iso";
   newsletter_consent?: boolean;
+  is_qualified_signer?: boolean;
 }
 
 function parseEmployeeRange(range: string): number | null {
@@ -109,6 +110,16 @@ export async function signUpOrganization(args: SignupArgs) {
     await admin
       .from("profiles")
       .update({ marketing_consent: true, marketing_consent_at: new Date().toISOString() })
+      .eq("id", userId);
+  }
+
+  // B5/F-14: la den som registrerer bedriften krysse av at hun selv er
+  // installatør/bemyndiget — ellers kommer en enmannsbedrift aldri i mål,
+  // siden admin-rollen bevisst ikke gir signeringsrett på samsvarserklæringer.
+  if (args.is_qualified_signer) {
+    await admin
+      .from("profiles")
+      .update({ qualified_signer: true })
       .eq("id", userId);
   }
 

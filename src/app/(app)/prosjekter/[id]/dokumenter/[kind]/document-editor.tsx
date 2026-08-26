@@ -15,7 +15,7 @@ import type {
   Profile,
 } from "@/lib/types/database";
 import {
-  SAMSVAR_SIGNING_ROLES,
+  canSignSamsvar,
   PARTICIPANT_SIGNING_KINDS,
 } from "@/lib/types/database";
 import {
@@ -421,8 +421,8 @@ export function DocumentEditor({
       {!isSigned &&
         (() => {
           const isSamsvar = template.kind === "samsvarserklaering";
-          const canSignSamsvar = SAMSVAR_SIGNING_ROLES.includes(profile.role);
-          const samsvarBlocked = isSamsvar && !canSignSamsvar;
+          const samsvarBlocked =
+            isSamsvar && !canSignSamsvar(profile.role, profile.qualified_signer);
           const helpText = !profile.signature_data_url
             ? tr("proj_doc_help_no_signature", locale)
             : samsvarBlocked

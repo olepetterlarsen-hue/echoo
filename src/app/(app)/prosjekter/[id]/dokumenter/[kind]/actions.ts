@@ -6,7 +6,7 @@ import { getCurrentOrgId } from "@/lib/supabase/org";
 import { guardOrgWritable, checkStorageQuota } from "@/lib/billing";
 import type { DocumentKind, DocumentRow, Project } from "@/lib/types/database";
 import {
-  SAMSVAR_SIGNING_ROLES,
+  canSignSamsvar,
   DOCUMENT_KIND_LABELS,
   PARTICIPANT_SIGNING_KINDS,
 } from "@/lib/types/database";
@@ -123,7 +123,7 @@ export async function signDocument(input: SaveInput): Promise<{
 
   if (
     input.kind === "samsvarserklaering" &&
-    !SAMSVAR_SIGNING_ROLES.includes(profile.role)
+    !canSignSamsvar(profile.role, profile.qualified_signer)
   ) {
     return {
       error: t("proj_doc_err_samsvar_role"),

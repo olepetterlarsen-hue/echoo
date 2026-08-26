@@ -30,6 +30,7 @@ export function SignupForm({ initialError, locale, plan }: Props) {
   const [password, setPassword] = useState("");
   const [employeeRange, setEmployeeRange] = useState("6-20");
   const [newsletterConsent, setNewsletterConsent] = useState(false);
+  const [isQualifiedSigner, setIsQualifiedSigner] = useState(false);
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [pending, startTransition] = useTransition();
   const hydrated = useHydrated();
@@ -47,6 +48,7 @@ export function SignupForm({ initialError, locale, plan }: Props) {
         employee_range: employeeRange,
         plan,
         newsletter_consent: newsletterConsent,
+        is_qualified_signer: isQualifiedSigner,
       });
       if (res?.error) setError(res.error);
     });
@@ -117,6 +119,19 @@ export function SignupForm({ initialError, locale, plan }: Props) {
             onChange={(e) => setPassword(e.target.value)}
           />
         </Field>
+
+        <label className="flex items-start gap-2 cursor-pointer mt-2">
+          <input
+            type="checkbox"
+            checked={isQualifiedSigner}
+            onChange={(e) => setIsQualifiedSigner(e.target.checked)}
+            className="mt-0.5 accent-orange shrink-0"
+          />
+          <span className="text-xs text-text-2">
+            Jeg er registrert installatør / bemyndiget person (FEL § 12) og
+            skal kunne signere samsvarserklæringer for bedriften.
+          </span>
+        </label>
       </div>
 
       <label className="flex items-start gap-2 cursor-pointer">

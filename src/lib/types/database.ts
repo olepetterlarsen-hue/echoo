@@ -210,6 +210,7 @@ export type Database = {
           is_echoo_staff: boolean;
           marketing_consent: boolean;
           marketing_consent_at: string | null;
+          qualified_signer: boolean;
         };
         Insert: {
           id: string;
@@ -231,6 +232,7 @@ export type Database = {
           is_echoo_staff?: boolean;
           marketing_consent?: boolean;
           marketing_consent_at?: string | null;
+          qualified_signer?: boolean;
         };
         Update: {
           id?: string;
@@ -250,6 +252,7 @@ export type Database = {
           is_echoo_staff?: boolean;
           marketing_consent?: boolean;
           marketing_consent_at?: string | null;
+          qualified_signer?: boolean;
         };
         Relationships: [];
       };
@@ -2235,6 +2238,18 @@ export const SAMSVAR_SIGNING_ROLES: UserRole[] = [
   "installator",
   "bemyndiget",
 ];
+
+// B5/F-14: skiller systemrolle fra faglig kvalifikasjon. En admin som selv
+// er installatør/bemyndiget (typisk enmannsforetak) krysser av for dette
+// ved registrering (eller får det satt manuelt) — uten at admin-rollen
+// generelt får signeringsrett. Delt mellom server-sjekken (actions.ts) og
+// klient-UI-en (document-editor.tsx) så de aldri kan komme ut av sync.
+export function canSignSamsvar(
+  role: UserRole,
+  qualifiedSigner: boolean,
+): boolean {
+  return SAMSVAR_SIGNING_ROLES.includes(role) || qualifiedSigner;
+}
 
 // Roller som har forhøyede rettigheter (ser alle dokumenter, kan tildele oppgaver)
 export const ELEVATED_ROLES: UserRole[] = [
