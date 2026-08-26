@@ -24,6 +24,7 @@ import {
   type ParticipantWithProfile,
   type OrgMember,
 } from "./participants-panel";
+import { AttachmentsPanel, type AttachmentItem } from "./attachments-panel";
 import type {
   TemplateDef,
   FieldDef,
@@ -57,6 +58,7 @@ interface Props {
   settings?: AppSettings | null;
   participants?: ParticipantWithProfile[];
   orgMembers?: OrgMember[];
+  attachments?: AttachmentItem[];
 }
 
 export function DocumentEditor({
@@ -70,6 +72,7 @@ export function DocumentEditor({
   settings = null,
   participants = [],
   orgMembers = [],
+  attachments = [],
 }: Props) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -404,6 +407,12 @@ export function DocumentEditor({
             isSigned={isSigned}
           />
         )}
+
+      <AttachmentsPanel
+        documentId={existing?.id ?? null}
+        disabled={isSigned}
+        initialAttachments={attachments}
+      />
 
       {error && (
         <div className="text-sm text-red bg-red/10 border border-red/30 rounded px-3 py-2 flex items-start gap-2">

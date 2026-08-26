@@ -1,8 +1,10 @@
 # QA-fiksplan — status
 
-Branch: `fix/qa-pre-launch`. Punkt 7 (bildevedlegg) er bevisst utelatt fra
-denne PR-en — se `docs/qa/FIXPLAN.md`: "Ta det i egen PR hvis punkt 1–6 er
-klare før det." Kommer som egen, oppfølgende PR.
+Denne filen dekker to branches:
+- `fix/qa-pre-launch` (punkt 1–6, 8–11) — se hver seksjon under.
+- `feat/document-image-attachments` (punkt 7, bygget oppå
+  `fix/qa-pre-launch` per FIXPLAN: "Ta det i egen PR hvis punkt 1–6 er
+  klare før det") — se punkt 7 under.
 
 Alle commits bygger (`npm run build`), linter (`npm run lint`) og passerer
 `npm test` (aggregat av alle golden-testene under `scripts/qa/`) individuelt
@@ -107,9 +109,47 @@ Alle commits bygger (`npm run build`), linter (`npm run lint`) og passerer
 - **Ikke gjort**: UI i Innstillinger → Bedrift for å sette flagget på
   eksisterende organisasjoner — AC gjelder eksplisitt "Ny bedrift".
 
-## 7. Bildevedlegg — BLOKKER B4 — EGEN PR (ikke i denne)
+## 7. Bildevedlegg — BLOKKER B4 ✅ (branch `feat/document-image-attachments`)
 
-Se punkt 7 i `FIXPLAN.md`. Følger som separat, oppfølgende PR.
+- **Datamodell**: `document_attachments` (migrasjon 079) + Storage-bucket
+  `document-attachments` (opprettet via SQL i samme migrasjon — ikke
+  manuelt, følger 002-mønsteret). RLS på både tabellen (org-scopet,
+  speiler `document_participants`) og `storage.objects` (org-scopet path
+  `{org_id}/{document_id}/{uuid}.{ext}`, speiler `substance-sds`-mønsteret
+  i 043_storage_org_isolation.sql). `question_id` er med i skjemaet for
+  fremtidig per-sjekkpunkt-bruk, men ikke koblet til noen UI ennå (se
+  "Ikke gjort").
+- **Opplaster**: `src/lib/image-compress.ts` (klientside canvas-komprimering,
+  maks 1600px + iterativ JPEG-kvalitet mot ~300 KB) + ny
+  `attachments-panel.tsx` (`accept="image/*" capture="environment"`,
+  miniatyrgrid, slett-knapp, synlig feilmelding med "Prøv igjen" per
+  mislykket opplasting). Vist som en "Vedlegg"-seksjon på dokumentnivå i
+  `document-editor.tsx` — dekker samsvarserklæring/RUH/oppstartssjekkliste
+  m.fl.
+- **Låsing**: `uploadAttachment`/`deleteAttachment` avviser begge med en
+  tydelig feilmelding når dokumentet allerede er `signert`.
+- **PDF**: nytt kapittel "Vedlegg — bilder" i `render.tsx` (to per rad,
+  bildetekst = filnavn + dato). Vedleggene hentes og bakes inn i PDF-en på
+  signeringstidspunktet (`signDocument` i actions.ts laster ned hvert bilde
+  fra Storage og konverterer til data-URL) — låst sammen med dokumentet
+  akkurat som resten av innholdet.
+- **Bevis**: `scripts/qa/golden-pdf-attachments.test.ts`
+  (`npm run test:pdf-attachments`) — verifiserer at kapittelet er
+  fraværende uten vedlegg, og at det med 3 vedlegg viser alle 3 filnavn +
+  korrekt datoformat som bildetekst, over flere sider.
+- **Ikke gjort**:
+  - Per-sjekkpunkt-plassering ("Legg til bilde" på et konkret spørsmål i
+    sluttkontroll/risikovurdering) — kun dokumentnivå er bygget. Skjemaet
+    (`question_id`) er klart for dette, men ingen UI kobler det til et
+    faktisk spørsmål ennå.
+  - Offline køopplasting (IndexedDB) — FIXPLAN sier selv "kan tas som fase
+    2".
+  - Manuell/live-verifisering: RLS-testen ("bruker i annen organisasjon får
+    403") og hele opplaster-flyten (kamera på faktisk mobilenhet, 4 bilder
+    som overlever sidelast) kan ikke automatiseres uten en kjørende app +
+    ekte Supabase-instans — RLS-policyene følger nøyaktig samme mønster som
+    allerede verifiserte buckets (`substance-sds`), men bør stikkprøves
+    manuelt mot en test-org før launch.
 
 ## 8. Obligatoriske felt ved signering — A5 ✅
 
@@ -183,6 +223,7 @@ samlet (`npm test`, som også kjører de eksisterende `test:tokens`):
 | `golden-pdf-checkboxes.ts` | Punkt 1 |
 | `golden-pdf-metadata.test.ts` | Punkt 3 |
 | `golden-pdf-font.test.ts` | Punkt 4 |
+| `golden-pdf-attachments.test.ts` | Punkt 7 |
 | `ai-error-handling.test.ts` | Punkt 2 |
 | `chunk-error.test.ts` | Punkt 5 |
 | `samsvar-signing-role.test.ts` | Punkt 6 |

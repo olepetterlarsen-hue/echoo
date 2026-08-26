@@ -316,6 +316,22 @@ const styles = StyleSheet.create({
   },
   sigImage: { height: 50, objectFit: "contain" },
 
+  // Vedlegg — bilder (B4/F-15): to per rad
+  attachmentBox: {
+    width: "48%",
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 4,
+  },
+  attachmentImage: { width: "100%", height: 200, objectFit: "contain" },
+  attachmentCaption: {
+    fontSize: 7,
+    color: TEXT_MUTED,
+    marginTop: 4,
+    textAlign: "center",
+  },
+
   // Fontuavhengig avkryssingsboks (ikke glyph — Standard-14-fonter mangler ☑/☐)
   checkboxBox: {
     minWidth: 16,
@@ -348,12 +364,19 @@ export interface PdfParticipant {
   signature: string | null;
 }
 
+export interface PdfAttachment {
+  dataUrl: string;
+  filename: string;
+  date: string;
+}
+
 interface Args {
   document: DocumentRow & { signature_snapshot?: string | null };
   project: Project | null;
   signer: Profile;
   settings: AppSettings & { logo_url?: string | null };
   participants?: PdfParticipant[];
+  attachments?: PdfAttachment[];
 }
 
 /**
@@ -390,6 +413,7 @@ export async function renderDocumentPdf({
   signer,
   settings,
   participants = [],
+  attachments = [],
 }: Args): Promise<Buffer> {
   const data = (document.data ?? {}) as Record<string, unknown>;
   const variant = resolveTemplateVariant(document.kind, data, project?.installation_type);
@@ -627,6 +651,30 @@ export async function renderDocumentPdf({
             </>
           )}
         </View>
+
+        {/* Vedlegg — bilder (B4/F-15): låst sammen med dokumentet fordi
+            attachments-listen hentes på signeringstidspunktet (actions.ts),
+            ikke live fra databasen ved hver PDF-visning. */}
+        {attachments.length > 0 && (
+          <View break>
+            <Text style={styles.sigTitle}>Vedlegg — bilder</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
+              {attachments.map((a, i) => (
+                <View key={i} style={styles.attachmentBox} wrap={false}>
+                  <Image src={a.dataUrl} style={styles.attachmentImage} />
+                  <Text style={styles.attachmentCaption}>
+                    {a.filename} —{" "}
+                    {new Date(a.date).toLocaleDateString("no-NO", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Footer */}
         <Text

@@ -1130,6 +1130,52 @@ export type Database = {
           },
         ];
       };
+      document_attachments: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          document_id: string;
+          question_id: string | null;
+          storage_path: string;
+          filename: string;
+          mime: string;
+          size: number;
+          taken_at: string | null;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          document_id: string;
+          question_id?: string | null;
+          storage_path: string;
+          filename: string;
+          mime: string;
+          size: number;
+          taken_at?: string | null;
+          uploaded_by?: string | null;
+        };
+        Update: {
+          question_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "document_attachments_document_id_fkey";
+            columns: ["document_id"];
+            isOneToOne: false;
+            referencedRelation: "documents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "document_attachments_uploaded_by_fkey";
+            columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       deviations: {
         Row: {
           id: string;
@@ -2172,6 +2218,8 @@ export type Organization = Database["public"]["Tables"]["organizations"]["Row"];
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Project = Database["public"]["Tables"]["projects"]["Row"];
 export type DocumentRow = Database["public"]["Tables"]["documents"]["Row"];
+export type DocumentAttachment =
+  Database["public"]["Tables"]["document_attachments"]["Row"];
 export type Deviation = Database["public"]["Tables"]["deviations"]["Row"];
 export type Certificate = Database["public"]["Tables"]["certificates"]["Row"];
 export type AuditLog = Database["public"]["Tables"]["audit_log"]["Row"];

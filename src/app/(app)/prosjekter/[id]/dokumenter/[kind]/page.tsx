@@ -3,12 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { DocumentEditor } from "./document-editor";
 import { getTemplate } from "@/lib/document-templates";
 import { getAppSettings } from "@/lib/settings";
-import type { DocumentKind } from "@/lib/types/database";
+import type { DocumentAttachment, DocumentKind } from "@/lib/types/database";
 import { PARTICIPANT_SIGNING_KINDS } from "@/lib/types/database";
 import type {
   ParticipantWithProfile,
   OrgMember,
 } from "./participants-panel";
+import type { AttachmentItem } from "./attachments-panel";
 
 const VALID_KINDS: DocumentKind[] = [
   "risikovurdering",
@@ -107,6 +108,33 @@ export default async function DocumentPage({ params, searchParams }: PageProps) 
     }
   }
 
+  // B4/F-15: bildevedlegg — hentes kun for eksisterende (lagrede) dokumenter,
+  // et utkast som ikke er lagret ennå har ingen document_id å henge dem på.
+  // Signerte URL-er genereres server-side (bucketen er privat).
+  let attachments: AttachmentItem[] = [];
+  if (existing) {
+    const { data: atts } = await supabase
+      .from("document_attachments")
+      .select("*")
+      .eq("document_id", existing.id)
+      .order("created_at");
+    const rows: DocumentAttachment[] = atts ?? [];
+    attachments = await Promise.all(
+      rows.map(async (a) => {
+        const { data: signed } = await supabase.storage
+          .from("document-attachments")
+          .createSignedUrl(a.storage_path, 3600);
+        return {
+          id: a.id,
+          filename: a.filename,
+          size: a.size,
+          created_at: a.created_at,
+          url: signed?.signedUrl ?? null,
+        };
+      }),
+    );
+  }
+
   return (
     <DocumentEditor
       project={project}
@@ -117,6 +145,7 @@ export default async function DocumentPage({ params, searchParams }: PageProps) 
       settings={settings}
       participants={participants}
       orgMembers={orgMembers}
+      attachments={attachments}
     />
   );
 }
