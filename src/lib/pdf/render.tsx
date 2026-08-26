@@ -223,6 +223,7 @@ const styles = StyleSheet.create({
     padding: 4,
     fontSize: 11,
     textAlign: "center",
+    alignItems: "center",
     borderLeftWidth: 1,
     borderLeftColor: BORDER,
   },
@@ -280,8 +281,21 @@ const styles = StyleSheet.create({
   },
   sigImage: { height: 50, objectFit: "contain" },
 
-  // Inline checkbox glyph
-  checkGlyph: { fontSize: 11 },
+  // Fontuavhengig avkryssingsboks (ikke glyph — Standard-14-fonter mangler ☑/☐)
+  checkboxBox: {
+    minWidth: 16,
+    height: 9,
+    paddingHorizontal: 1,
+    borderWidth: 1,
+    borderColor: TEXT_DARK,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxMark: {
+    fontSize: 7,
+    fontWeight: 700,
+    lineHeight: 1,
+  },
 
   // Inline radio block
   radioBlock: {
@@ -531,6 +545,17 @@ export async function renderDocumentPdf({
   );
 }
 
+function Checkbox({ checked }: { checked: boolean }) {
+  // Boksen tegnes alltid som primitiv (fontuavhengig). Merket er ren ASCII ("[X]"),
+  // ikke et Unicode-glyph — samme rotårsak som Ω-manko i tegnstøtte-fiksen,
+  // og gir i tillegg et entydig tekstuttrekkbart svar for golden-testene.
+  return (
+    <View style={styles.checkboxBox}>
+      {checked && <Text style={styles.checkboxMark}>[X]</Text>}
+    </View>
+  );
+}
+
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.metaItem}>
@@ -714,12 +739,11 @@ function RenderField({
               style={{
                 width: "50%",
                 flexDirection: "row",
+                alignItems: "center",
                 marginBottom: 2,
               }}
             >
-              <Text style={styles.checkGlyph}>
-                {arr.includes(o) ? "☑" : "☐"}
-              </Text>
+              <Checkbox checked={arr.includes(o)} />
               <Text style={{ fontSize: 8, marginLeft: 4 }}>{o}</Text>
             </View>
           ))}
@@ -739,9 +763,7 @@ function RenderField({
             <View style={styles.radioBlock}>
               {field.options?.map((o) => (
                 <View key={o} style={styles.radioItem}>
-                  <Text style={styles.checkGlyph}>
-                    {value === o ? "☑" : "☐"}
-                  </Text>
+                  <Checkbox checked={value === o} />
                   <Text style={{ fontSize: 8, marginLeft: 4 }}>{o}</Text>
                 </View>
               ))}
@@ -828,9 +850,15 @@ function YnaTable({
         return (
           <View key={item.key} style={styles.ynaRow} wrap={false}>
             <Text style={styles.ynaCellQuestion}>{item.label}</Text>
-            <Text style={styles.ynaCellCheck}>{r.svar === "ja" ? "☑" : "☐"}</Text>
-            <Text style={styles.ynaCellCheck}>{r.svar === "nei" ? "☑" : "☐"}</Text>
-            <Text style={styles.ynaCellCheck}>{r.svar === "uakt" ? "☑" : "☐"}</Text>
+            <View style={styles.ynaCellCheck}>
+              <Checkbox checked={r.svar === "ja"} />
+            </View>
+            <View style={styles.ynaCellCheck}>
+              <Checkbox checked={r.svar === "nei"} />
+            </View>
+            <View style={styles.ynaCellCheck}>
+              <Checkbox checked={r.svar === "uakt"} />
+            </View>
             <Text style={styles.ynaCellComment}>{r.kommentar || ""}</Text>
           </View>
         );
@@ -869,9 +897,15 @@ function YnaMeasurementTable({
         return (
           <View key={item.key} style={styles.ynaRow} wrap={false}>
             <Text style={styles.ynaCellQuestion}>{item.label}</Text>
-            <Text style={styles.ynaCellCheck}>{r.svar === "ja" ? "☑" : "☐"}</Text>
-            <Text style={styles.ynaCellCheck}>{r.svar === "nei" ? "☑" : "☐"}</Text>
-            <Text style={styles.ynaCellCheck}>{r.svar === "uakt" ? "☑" : "☐"}</Text>
+            <View style={styles.ynaCellCheck}>
+              <Checkbox checked={r.svar === "ja"} />
+            </View>
+            <View style={styles.ynaCellCheck}>
+              <Checkbox checked={r.svar === "nei"} />
+            </View>
+            <View style={styles.ynaCellCheck}>
+              <Checkbox checked={r.svar === "uakt"} />
+            </View>
             <Text style={styles.ynaCellComment}>{r.kommentar || ""}</Text>
             <Text style={styles.ynaCellValue}>{r.verdi || ""}</Text>
           </View>

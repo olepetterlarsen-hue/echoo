@@ -7,9 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "npm run test:tokens && npm run test:pdf",
     "test:isolation": "node scripts/tenant-isolation-test.mjs",
     "test:e2e": "playwright test",
     "test:tokens": "node scripts/test-tokens.mjs && node scripts/test-tokens-runtime.mjs",
+    "test:pdf": "tsx scripts/qa/golden-pdf-checkboxes.ts",
     "stripe:setup": "node scripts/setup-stripe-products.mjs",
     "seed:demo": "node scripts/seed-demo-orgs.mjs"
   },
@@ -43,7 +45,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "pdf-parse": "^2.4.5",
     "tailwindcss": "^4",
+    "tsx": "^4.23.12",
     "typescript": "^5"
   }
 }
