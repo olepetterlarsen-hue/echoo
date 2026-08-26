@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrgId } from "@/lib/supabase/org";
 import { guardOrgWritable, checkStorageQuota } from "@/lib/billing";
-import type { DocumentKind, DocumentRow, Project } from "@/lib/types/database";
+import type {
+  DocumentAttachment,
+  DocumentKind,
+  DocumentRow,
+  Project,
+} from "@/lib/types/database";
 import {
   canSignSamsvar,
   DOCUMENT_KIND_LABELS,
@@ -228,6 +233,33 @@ export async function signDocument(input: SaveInput): Promise<{
     };
   });
 
+  // B4/F-15: bildevedlegg — lastes ned server-side og bakes inn i PDF-en som
+  // et eget kapittel. Vedleggene låses sammen med dokumentet i og med at de
+  // hentes HER, på signeringstidspunktet — nye vedlegg etter signering
+  // vises aldri i den signerte PDF-en (uploadAttachment avviser dem uansett
+  // siden status er "signert" da).
+  const { data: attachmentRows } = await supabase
+    .from("document_attachments")
+    .select("storage_path, filename, taken_at, created_at")
+    .eq("document_id", documentId!)
+    .order("created_at");
+  const attachments = (
+    await Promise.all(
+      (attachmentRows ?? []).map(async (a) => {
+        const { data: file } = await supabase.storage
+          .from("document-attachments")
+          .download(a.storage_path);
+        if (!file) return null;
+        const buf = Buffer.from(await file.arrayBuffer());
+        return {
+          dataUrl: `data:${file.type || "image/jpeg"};base64,${buf.toString("base64")}`,
+          filename: a.filename,
+          date: a.taken_at ?? a.created_at,
+        };
+      }),
+    )
+  ).filter((a): a is NonNullable<typeof a> => a !== null);
+
   // Generer PDF
   const settings = await getAppSettings();
   const pdfBuffer = await renderDocumentPdf({
@@ -242,6 +274,7 @@ export async function signDocument(input: SaveInput): Promise<{
     signer: profile,
     settings,
     participants,
+    attachments,
   });
 
   const folder = input.projectId ?? `standalone/${user.id}`;
@@ -646,5 +679,152 @@ export async function removeDocumentParticipant(input: {
   }
   revalidatePath("/mine-oppgaver");
   revalidatePath("/oppgaver");
+  return {};
+}
+
+// B4/F-15, I-25: bildevedlegg på dokumenter (sjekkpunkt eller dokumentnivå).
+const MAX_ATTACHMENTS_PER_DOCUMENT = 30;
+const MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024; // klienten komprimerer til ~300 KB — server-grense er en bakstopper, ikke den primære kontrollen.
+
+export async function uploadAttachment(input: {
+  documentId: string;
+  questionId: string | null;
+  file: File;
+}): Promise<{ error?: string; attachment?: DocumentAttachment; url?: string }> {
+  const supabase = await createClient();
+  const { t } = await getServerT();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: t("proj_err_not_signed_in") };
+
+  if (!input.file || input.file.size === 0) {
+    return { error: "Ingen fil valgt." };
+  }
+  if (!input.file.type.startsWith("image/")) {
+    return { error: "Kun bildefiler er støttet." };
+  }
+  if (input.file.size > MAX_ATTACHMENT_BYTES) {
+    return { error: "Bildet er for stort (maks 2 MB)." };
+  }
+
+  let orgId: string;
+  try {
+    orgId = await getCurrentOrgId(supabase);
+    await guardOrgWritable(supabase, orgId);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const { data: doc } = await supabase
+    .from("documents")
+    .select("id, status, kind, project_id")
+    .eq("id", input.documentId)
+    .single();
+  if (!doc) return { error: "Dokumentet ble ikke funnet." };
+  if (doc.status === "signert") {
+    return {
+      error:
+        "Dokumentet er signert og låst — nye vedlegg kan ikke legges til.",
+    };
+  }
+
+  const { count } = await supabase
+    .from("document_attachments")
+    .select("id", { count: "exact", head: true })
+    .eq("document_id", input.documentId);
+  if ((count ?? 0) >= MAX_ATTACHMENTS_PER_DOCUMENT) {
+    return { error: `Maks ${MAX_ATTACHMENTS_PER_DOCUMENT} vedlegg per dokument.` };
+  }
+
+  const quota = await checkStorageQuota(supabase, orgId, input.file.size);
+  if (!quota.ok) {
+    return {
+      error: `Lagringskvoten er nådd (${Math.round(quota.used / 1024 ** 3)} GB av ${Math.round(quota.quota / 1024 ** 3)} GB). Oppgrader abonnementet i /admin/abonnement.`,
+    };
+  }
+
+  const ext = input.file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${orgId}/${input.documentId}/${crypto.randomUUID()}.${ext}`;
+
+  const { error: upErr } = await supabase.storage
+    .from("document-attachments")
+    .upload(path, input.file, {
+      contentType: input.file.type,
+      upsert: false,
+    });
+  if (upErr) return { error: `Opplasting feilet: ${upErr.message}` };
+
+  const { data: attachment, error: insertErr } = await supabase
+    .from("document_attachments")
+    .insert({
+      document_id: input.documentId,
+      question_id: input.questionId,
+      storage_path: path,
+      filename: input.file.name,
+      mime: input.file.type,
+      size: input.file.size,
+      taken_at: new Date().toISOString(),
+      uploaded_by: user.id,
+    })
+    .select()
+    .single();
+  if (insertErr) {
+    // Rull tilbake opplastingen så vi ikke lekker et foreldreløst objekt.
+    await supabase.storage.from("document-attachments").remove([path]);
+    return { error: insertErr.message };
+  }
+
+  if (doc.project_id) {
+    revalidatePath(`/prosjekter/${doc.project_id}/dokumenter/${doc.kind}`);
+  }
+
+  const { data: signed } = await supabase.storage
+    .from("document-attachments")
+    .createSignedUrl(path, 3600);
+
+  return { attachment, url: signed?.signedUrl };
+}
+
+export async function deleteAttachment(input: {
+  id: string;
+}): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { t } = await getServerT();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: t("proj_err_not_signed_in") };
+
+  const { data: attachment } = await supabase
+    .from("document_attachments")
+    .select("*, document:documents(status, kind, project_id)")
+    .eq("id", input.id)
+    .single();
+  if (!attachment) return { error: "Vedlegget ble ikke funnet." };
+
+  const doc = attachment.document as unknown as {
+    status: string;
+    kind: DocumentKind;
+    project_id: string | null;
+  } | null;
+  if (doc?.status === "signert") {
+    return { error: "Dokumentet er signert og låst — vedlegg kan ikke fjernes." };
+  }
+
+  const { error: storageErr } = await supabase.storage
+    .from("document-attachments")
+    .remove([attachment.storage_path]);
+  if (storageErr) return { error: storageErr.message };
+
+  const { error: deleteErr } = await supabase
+    .from("document_attachments")
+    .delete()
+    .eq("id", input.id);
+  if (deleteErr) return { error: deleteErr.message };
+
+  if (doc?.project_id) {
+    revalidatePath(`/prosjekter/${doc.project_id}/dokumenter/${doc.kind}`);
+  }
   return {};
 }
