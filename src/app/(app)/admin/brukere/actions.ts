@@ -77,6 +77,10 @@ export async function createUser(input: CreateInput): Promise<{
       full_name: input.full_name.trim(),
       role: input.role,
       organization_id: orgId,
+      // A6/I-01: admin velger passordet selv her — tving brukeren til å
+      // bytte det ved første innlogging i stedet for å la det midlertidige
+      // passordet (formidlet på SMS/muntlig) leve videre ubegrenset.
+      must_change_password: true,
     })
     .eq("id", data.user.id)
     .select()

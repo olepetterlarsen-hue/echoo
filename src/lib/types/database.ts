@@ -211,6 +211,7 @@ export type Database = {
           marketing_consent: boolean;
           marketing_consent_at: string | null;
           qualified_signer: boolean;
+          must_change_password: boolean;
         };
         Insert: {
           id: string;
@@ -233,6 +234,7 @@ export type Database = {
           marketing_consent?: boolean;
           marketing_consent_at?: string | null;
           qualified_signer?: boolean;
+          must_change_password?: boolean;
         };
         Update: {
           id?: string;
@@ -253,6 +255,7 @@ export type Database = {
           marketing_consent?: boolean;
           marketing_consent_at?: string | null;
           qualified_signer?: boolean;
+          must_change_password?: boolean;
         };
         Relationships: [];
       };

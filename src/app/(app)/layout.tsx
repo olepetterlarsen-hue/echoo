@@ -30,6 +30,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
 
+  // A6/I-01: admin kan opprette brukere med et midlertidig passord — de skal
+  // ikke nå dashbordet før de har byttet det selv. /nytt-passord ligger
+  // utenfor (app)-layouten (samme mønster som /mfa-setup) for å unngå
+  // redirect-loop.
+  if (profile.must_change_password) {
+    redirect("/nytt-passord");
+  }
+
   // Én org-query (2FA-policy + billing-lås) parallelt med locale-oppslag.
   const [{ data: org }, locale] = await Promise.all([
     supabase
