@@ -157,19 +157,29 @@ export function AppShell({
   const router = useRouter();
 
   // Aktiv modus utledes først fra URL (hvis ruten er modus-eksklusiv),
-  // ellers fra localStorage. Default: planner. Lazy initializer leser
-  // localStorage på mount uten setState-in-effect.
+  // ellers fra localStorage. Default: planner.
+  //
+  // VIKTIG: storedMode må starte likt på server og klient. Den forrige
+  // lazy-initializeren leste localStorage direkte i useState(() => ...),
+  // som kjører på klientens FØRSTE render (under hydrering) — for brukere
+  // med "kvalitet" lagret fra før ga det andre navigasjonselementer enn det
+  // serveren rendret (som alltid antar "planner"), og utløste React #418 på
+  // hver eneste (app)-side (B3/F-06). localStorage leses nå kun i en effect
+  // ETTER mount, slik at server- og hydrerings-render er identiske.
   const pathMode = getModeFromPath(pathname);
-  const [storedMode, setStoredMode] = useState<AppMode>(() => {
-    if (typeof window === "undefined") return "planner";
+  const [storedMode, setStoredMode] = useState<AppMode>("planner");
+  useEffect(() => {
     try {
       const saved = localStorage.getItem(MODE_STORAGE_KEY);
-      if (saved === "planner" || saved === "kvalitet") return saved;
+      if (saved === "planner" || saved === "kvalitet") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setStoredMode((curr) => (curr === saved ? curr : saved));
+      }
     } catch {
       /* ignore */
     }
-    return "planner";
-  });
+    // Kun ved mount — pathMode-drevet oppdatering håndteres av effekten under.
+  }, []);
   // Når URL endrer modus, oppdater storedMode + persistens. Pathname-change
   // er ekstern signal — setState er korrekt her, lint-rule er for streng.
   useEffect(() => {

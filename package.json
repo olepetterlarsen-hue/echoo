@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npm run test:tokens && npm run test:pdf && npm run test:pdf-meta && npm run test:pdf-font && npm run test:ai",
+    "test": "npm run test:tokens && npm run test:pdf && npm run test:pdf-meta && npm run test:pdf-font && npm run test:ai && npm run test:chunk-error",
     "test:isolation": "node scripts/tenant-isolation-test.mjs",
     "test:e2e": "playwright test",
     "test:tokens": "node scripts/test-tokens.mjs && node scripts/test-tokens-runtime.mjs",
@@ -15,6 +15,7 @@
     "test:pdf-meta": "tsx scripts/qa/golden-pdf-metadata.test.ts",
     "test:pdf-font": "tsx scripts/qa/golden-pdf-font.test.ts",
     "test:ai": "tsx scripts/qa/ai-error-handling.test.ts",
+    "test:chunk-error": "tsx scripts/qa/chunk-error.test.ts",
     "stripe:setup": "node scripts/setup-stripe-products.mjs",
     "seed:demo": "node scripts/seed-demo-orgs.mjs"
   },

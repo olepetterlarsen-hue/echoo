@@ -6,6 +6,7 @@ import { Input, Field } from "@/components/ui/input";
 import { signUpOrganization } from "./actions";
 import type { Locale } from "@/lib/i18n";
 import { tr } from "@/lib/i18n/strings";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 
 interface Props {
   initialError?: string;
@@ -31,6 +32,7 @@ export function SignupForm({ initialError, locale, plan }: Props) {
   const [newsletterConsent, setNewsletterConsent] = useState(false);
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [pending, startTransition] = useTransition();
+  const hydrated = useHydrated();
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -136,8 +138,12 @@ export function SignupForm({ initialError, locale, plan }: Props) {
         </p>
       )}
 
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? tr("signup_creating", locale) : tr("signup_create_btn", locale)}
+      <Button type="submit" disabled={pending || !hydrated} className="w-full">
+        {!hydrated
+          ? tr("loading", locale)
+          : pending
+            ? tr("signup_creating", locale)
+            : tr("signup_create_btn", locale)}
       </Button>
 
       <p className="text-[11px] text-text-3 text-center">

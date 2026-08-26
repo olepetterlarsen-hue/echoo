@@ -10,6 +10,7 @@ import { INSTALLATION_TYPE_LABELS, type InstallationType } from "@/lib/types/dat
 import { createProject } from "./actions";
 import { useLocale } from "@/lib/i18n";
 import { tr } from "@/lib/i18n/strings";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 
 interface Option {
   id: string;
@@ -67,6 +68,7 @@ export function NewProjectForm({
   const router = useRouter();
   const { locale } = useLocale();
   const [pending, startTransition] = useTransition();
+  const hydrated = useHydrated();
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
@@ -402,8 +404,12 @@ export function NewProjectForm({
         <Button type="button" variant="ghost" onClick={() => router.back()}>
           {tr("proj_new_cancel", locale)}
         </Button>
-        <Button type="submit" disabled={pending}>
-          {pending ? tr("proj_new_creating", locale) : tr("proj_new_create", locale)}
+        <Button type="submit" disabled={pending || !hydrated}>
+          {!hydrated
+            ? tr("loading", locale)
+            : pending
+              ? tr("proj_new_creating", locale)
+              : tr("proj_new_create", locale)}
         </Button>
       </div>
     </form>

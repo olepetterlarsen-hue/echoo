@@ -15,6 +15,7 @@ import {
 } from "./actions";
 import { useLocale } from "@/lib/i18n";
 import { tr } from "@/lib/i18n/strings";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 
 type CertWithProfile = Certificate & {
   profile?: {
@@ -156,6 +157,7 @@ function UploadCard({
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [pending, startTransition] = useTransition();
+  const hydrated = useHydrated();
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -276,11 +278,13 @@ function UploadCard({
           </Field>
           {error && <p className="text-sm text-red">{error}</p>}
           {info && <p className="text-sm text-green">{info}</p>}
-          <Button type="submit" disabled={pending} className="w-full">
+          <Button type="submit" disabled={pending || !hydrated} className="w-full">
             <Upload className="size-4" />
-            {pending
-              ? tr("cert_uploading", locale)
-              : tr("cert_upload_cta", locale)}
+            {!hydrated
+              ? tr("loading", locale)
+              : pending
+                ? tr("cert_uploading", locale)
+                : tr("cert_upload_cta", locale)}
           </Button>
         </form>
       </CardBody>
