@@ -209,6 +209,7 @@ export async function signDocument(input: SaveInput): Promise<{
   const pdfBuffer = await renderDocumentPdf({
     document: {
       ...docPre,
+      status: "signert",
       signed_by: user.id,
       signature_snapshot: profile.signature_data_url,
       signed_at: new Date().toISOString(),

@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import {
   Document,
   Image,
@@ -16,6 +14,7 @@ import type {
   AppSettings,
 } from "@/lib/types/database";
 import { getTemplate } from "@/lib/document-templates";
+import { captureException } from "@/lib/observability";
 import type {
   AnvendteNormerValue,
   ContactSubformValue,
@@ -39,16 +38,30 @@ const RISK_GREEN = "#1F9D55";
 const RISK_YELLOW = "#D49A14";
 const RISK_RED = "#D43831";
 
-// Lager logo-data-URL én gang
-let cachedLogo: string | null = null;
-function getLogoDataUrl(): string | null {
-  if (cachedLogo !== null) return cachedLogo;
+/**
+ * Henter organisasjonens opplastede logo (org-logos-bucketen, public URL)
+ * server-side og konverterer til en data-URL @react-pdf/renderer kan
+ * rendre direkte — å la react-pdf selv fetche en ekstern URL ved render
+ * er upålitelig (nettverksavhengig, ingen retry). IKKE cachet globalt:
+ * dette kalles én gang per organisasjon per PDF, og en modul-cache ville
+ * lekket org A sin logo inn i org B sine dokumenter.
+ * Returnerer null (→ tekst-fallback i JSX-en) hvis org ikke har logo eller
+ * nedlastingen feiler.
+ */
+async function getLogoDataUrl(
+  logoUrl: string | null | undefined,
+): Promise<string | null> {
+  if (!logoUrl) return null;
   try {
-    const logoPath = path.join(process.cwd(), "public", "logo-dark.png");
-    const buf = fs.readFileSync(logoPath);
-    cachedLogo = `data:image/png;base64,${buf.toString("base64")}`;
-    return cachedLogo;
-  } catch {
+    const res = await fetch(logoUrl);
+    if (!res.ok) {
+      throw new Error(`Logo-nedlasting feilet: HTTP ${res.status}`);
+    }
+    const buf = Buffer.from(await res.arrayBuffer());
+    const contentType = res.headers.get("content-type") ?? "image/png";
+    return `data:${contentType};base64,${buf.toString("base64")}`;
+  } catch (err) {
+    captureException(err, { scope: "pdf-logo", logoUrl });
     return null;
   }
 }
@@ -317,8 +330,36 @@ interface Args {
   document: DocumentRow & { signature_snapshot?: string | null };
   project: Project | null;
   signer: Profile;
-  settings: AppSettings;
+  settings: AppSettings & { logo_url?: string | null };
   participants?: PdfParticipant[];
+}
+
+/**
+ * Anleggsadresse for topplokken. Arver fra kunden på prosjektet når site
+ * ikke er utfylt — en samsvarserklæring uten anleggsidentifikasjon er ikke
+ * gyldig dokumentasjon (A2).
+ */
+function buildAnleggsInfo(
+  project: Project | null,
+): { adresse: string; kunde: string } | null {
+  if (!project) return null;
+  const siteStreet = [project.site_address, project.site_house_number, project.site_house_letter]
+    .filter(Boolean)
+    .join(" ");
+  const sitePostnrSted = [project.site_postal_code, project.site_city]
+    .filter(Boolean)
+    .join(" ");
+  const hasSite = !!(siteStreet || sitePostnrSted);
+
+  const street = hasSite ? siteStreet : project.customer_address ?? "";
+  const postnrSted = hasSite
+    ? sitePostnrSted
+    : [project.customer_postal_code, project.customer_city].filter(Boolean).join(" ");
+
+  return {
+    adresse: [street, postnrSted].filter(Boolean).join(", ") || "—",
+    kunde: project.customer_name ?? "—",
+  };
 }
 
 export async function renderDocumentPdf({
@@ -343,12 +384,28 @@ export async function renderDocumentPdf({
     variant = storedTemplateId;
   }
   const template = await getTemplate(document.kind, variant);
-  const logo = getLogoDataUrl();
+  const logo = await getLogoDataUrl(settings.logo_url);
 
+  // Teller faktiske spørsmål, ikke felt: en yna_group/yna_measurement_group
+  // eller risk_assessment_group er ETT felt i malen men rommer mange
+  // enkeltspørsmål (I-20 — 19 spm ble vist som "8 spørsmål").
   const totalQuestions = template.sections.reduce(
-    (n, s) => n + s.fields.filter((f) => f.kind !== "info").length,
+    (n, s) =>
+      n +
+      s.fields.reduce((m, f) => {
+        if (f.kind === "info") return m;
+        if (f.kind === "yna_group" || f.kind === "yna_measurement_group") {
+          return m + (f.items?.length ?? 0);
+        }
+        if (f.kind === "risk_assessment_group") {
+          return m + (f.riskItems?.length ?? 0);
+        }
+        return m + 1;
+      }, 0),
     0,
   );
+
+  const anlegg = buildAnleggsInfo(project);
 
   return await renderToBuffer(
     <Document
@@ -433,25 +490,20 @@ export async function renderDocumentPdf({
               value={project?.project_number ?? "—"}
             />
             <Meta label="Prosjekt:" value={project?.title ?? "Frittstående skjema"} />
+            {anlegg && (
+              <>
+                <Meta label="Kunde:" value={anlegg.kunde} />
+                <Meta label="Anleggsadresse:" value={anlegg.adresse} />
+              </>
+            )}
           </View>
           <View style={styles.metaCol}>
             <Text style={styles.metaColTitle}>Statistikk</Text>
             <Meta label="Totalt antall spørsmål:" value={`${totalQuestions} spørsmål`} />
-            <Meta label="Versjon av dokument:" value={`v${document.version}`} />
             <Meta
               label="Status:"
-              value={document.status === "signert" ? "Signert" : "Utkast"}
+              value={`${document.status === "signert" ? "Signert" : "Utkast"} · v${document.version}`}
             />
-            {document.signed_at && (
-              <Meta
-                label="Signert:"
-                value={new Date(document.signed_at).toLocaleString("no-NO", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                })}
-              />
-            )}
           </View>
         </View>
 
@@ -472,6 +524,40 @@ export async function renderDocumentPdf({
             ))}
           </View>
         ))}
+
+        {/* Ansvarlig installatør / bemyndiget person (FEL § 12) — kun på
+            samsvarserklæringen, jf. FIXPLAN akseptansekriterie A2. */}
+        {document.kind === "samsvarserklaering" && (
+          <View style={styles.infoBox} wrap={false}>
+            <Text style={styles.infoBoxHeader}>
+              Ansvarlig installatør / bemyndiget person (FEL § 12)
+            </Text>
+            <View style={styles.infoBoxBody}>
+              <Text>
+                {settings.firma}
+                {settings.org_nr ? ` · Org.nr ${settings.org_nr}` : ""}
+              </Text>
+              {settings.selskap_adresse && <Text>{settings.selskap_adresse}</Text>}
+              {(settings.selskap_postnr || settings.selskap_sted) && (
+                <Text>
+                  {[settings.selskap_postnr, settings.selskap_sted]
+                    .filter(Boolean)
+                    .join(" ")}
+                </Text>
+              )}
+              <Text style={{ marginTop: 4, fontWeight: 700 }}>
+                {settings.installator_navn || "Ikke registrert i Innstillinger → Bedrift"}
+                {settings.installator_tittel ? ` · ${settings.installator_tittel}` : ""}
+              </Text>
+              {settings.installator_telefon && (
+                <Text>Tlf: {settings.installator_telefon}</Text>
+              )}
+              {settings.installator_epost && (
+                <Text>E-post: {settings.installator_epost}</Text>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Signaturer */}
         <View style={styles.sigSection} wrap={false} break>
