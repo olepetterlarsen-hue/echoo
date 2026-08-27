@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileDown, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import {
   DOCUMENT_KIND_LABELS,
   ELEVATED_ROLES,
@@ -11,6 +11,7 @@ import {
   type UserRole,
 } from "@/lib/types/database";
 import { NewSkjemaButton } from "./new-skjema-button";
+import { PdfDownloadLink } from "./pdf-download-link";
 import { getHiddenKinds, getCustomTemplates } from "@/lib/document-templates";
 import { getServerT } from "@/lib/i18n/server";
 
@@ -145,15 +146,9 @@ export default async function SkjemaerPage() {
                           : t("form_status_draft")}
                       </Badge>
                       {doc.status === "signert" && doc.pdf_path && (
-                        <Link
+                        <PdfDownloadLink
                           href={`/api/documents/${doc.id}/pdf`}
-                          target="_blank"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Button size="sm" variant="secondary">
-                            <FileDown className="size-4" />
-                          </Button>
-                        </Link>
+                        />
                       )}
                       {doc.status === "utkast" && (
                         <Button size="sm" variant="secondary">

@@ -9,7 +9,7 @@ create table if not exists public.email_log (
   body_text text,
   body_html text,
   category text not null,
-  -- Kategorier: 'deviation_assigned', 'comment_added', 'daily_digest', 'test', 'task_assigned'
+  -- Kategorier: 'deviation_assigned', 'comment_added', 'daily_digest', 'test', 'task_assigned', 'security_alert'
   related_project_id uuid references public.projects(id) on delete set null,
   related_deviation_id uuid references public.deviations(id) on delete set null,
   status text not null default 'sent',

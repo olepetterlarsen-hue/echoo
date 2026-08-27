@@ -51,9 +51,18 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getUser() kaster AuthApiError ("Invalid Refresh Token: Refresh Token Not
+  // Found") når cookien peker på en refresh-token Supabase ikke lenger
+  // kjenner igjen — f.eks. etter at en annen sesjon er signert ut globalt,
+  // eller cookien er gammel/korrupt. Skal behandles som ikke innlogget, ikke
+  // krasje requesten.
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch {
+    user = null;
+  }
 
   const { pathname } = request.nextUrl;
 

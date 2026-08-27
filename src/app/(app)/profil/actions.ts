@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { sendEmail } from "@/lib/email/send";
 
 interface SaveProfileInput {
   full_name: string;
@@ -74,5 +75,15 @@ export async function changePassword(input: {
     .update({ must_change_password: false })
     .eq("id", user.id);
 
+  // Varsle på e-post slik at et uautorisert passordbytte oppdages raskt.
+  await sendEmail({
+    to: user.email,
+    subject: "Passordet ditt er endret",
+    text: "Passordet på Echoo-kontoen din ble nettopp endret. Var det ikke deg som gjorde dette, kontakt oss umiddelbart på support@echoo.no.",
+    category: "security_alert",
+    sent_by: user.id,
+  });
+
+  revalidatePath("/profil");
   return {};
 }

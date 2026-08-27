@@ -5,81 +5,98 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Field } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { changePassword } from "./actions";
+import { useLocale } from "@/lib/i18n";
+import { tr } from "@/lib/i18n/strings";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 
 export function ChangePasswordSection() {
+  const { locale } = useLocale();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const hydrated = useHydrated();
+  const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setStatus("idle");
     setError(null);
-    setInfo(null);
+
     if (newPassword !== confirmPassword) {
-      setError("De nye passordene er ikke like.");
+      setStatus("error");
+      setError(tr("profile_password_mismatch", locale));
       return;
     }
+
     startTransition(async () => {
       const res = await changePassword({ currentPassword, newPassword });
       if (res?.error) {
+        setStatus("error");
         setError(res.error);
-      } else {
-        setInfo("Passordet er byttet.");
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
+        return;
       }
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setStatus("saved");
     });
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Endre passord</CardTitle>
+        <CardTitle>{tr("profile_change_password", locale)}</CardTitle>
       </CardHeader>
       <CardBody>
-        <form onSubmit={onSubmit} className="space-y-4 max-w-sm">
-          <Field label="Gjeldende passord" required>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <Field label={tr("profile_current_password", locale)} required>
             <Input
               type="password"
-              autoComplete="current-password"
-              required
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
+              autoComplete="current-password"
+              required
             />
           </Field>
-          <Field label="Nytt passord" required hint="Minst 8 tegn">
+          <Field label={tr("profile_new_password", locale)} required>
             <Input
               type="password"
-              autoComplete="new-password"
-              required
-              minLength={8}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-            />
-          </Field>
-          <Field label="Bekreft nytt passord" required>
-            <Input
-              type="password"
+              minLength={8}
               autoComplete="new-password"
               required
-              minLength={8}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
             />
           </Field>
-
-          {error && <p className="text-sm text-red">{error}</p>}
-          {info && <p className="text-sm text-green">{info}</p>}
-
-          <Button type="submit" disabled={pending || !hydrated}>
-            {!hydrated ? "Laster…" : pending ? "Bytter…" : "Bytt passord"}
-          </Button>
+          <Field label={tr("profile_confirm_password", locale)} required>
+            <Input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              minLength={8}
+              autoComplete="new-password"
+              required
+            />
+          </Field>
+          <div className="flex items-center gap-3">
+            <Button type="submit" disabled={pending || !hydrated}>
+              {!hydrated
+                ? tr("loading", locale)
+                : pending
+                  ? tr("profile_saving", locale)
+                  : tr("profile_change_password", locale)}
+            </Button>
+            {status === "saved" && (
+              <span className="text-sm text-green">
+                {tr("profile_password_changed", locale)}
+              </span>
+            )}
+            {status === "error" && error && (
+              <span className="text-sm text-red">{error}</span>
+            )}
+          </div>
         </form>
       </CardBody>
     </Card>

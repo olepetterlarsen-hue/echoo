@@ -20,7 +20,8 @@ export type EmailCategory =
   | "deviation_assigned"
   | "comment_added"
   | "task_assigned"
-  | "daily_digest";
+  | "daily_digest"
+  | "security_alert";
 
 interface SendResult {
   ok: boolean;

@@ -141,6 +141,11 @@ export const AUTH: TranslationDict = {
     en: "You have no certificates registered.",
   },
   profile_change_password: { no: "Bytt passord", en: "Change password" },
+  profile_current_password: { no: "Gjeldende passord", en: "Current password" },
+  profile_current_password_wrong: {
+    no: "Feil gjeldende passord.",
+    en: "Incorrect current password.",
+  },
   profile_new_password: { no: "Nytt passord", en: "New password" },
   profile_confirm_password: { no: "Bekreft passord", en: "Confirm password" },
   profile_password_mismatch: {
