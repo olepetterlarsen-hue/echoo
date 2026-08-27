@@ -40,6 +40,7 @@ import type { Profile } from "@/lib/types/database";
 import { getModeFromPath, type AppMode } from "@/lib/app-modes";
 import { MyTasksBadge } from "@/components/app/my-tasks-badge";
 import { ReportIssueButton } from "@/components/app/report-issue-button";
+import { VersionWatcher } from "@/components/app/version-watcher";
 import { AssistantButton } from "@/components/app/assistant-button";
 import { QuickCreateFab } from "@/components/app/quick-create-fab";
 import { ThemeToggle } from "@/components/app/theme-toggle";
@@ -431,6 +432,7 @@ export function AppShell({
         <QuickCreateFab />
         <AssistantButton />
         <ReportIssueButton />
+        <VersionWatcher />
       </div>
     </LocaleContext.Provider>
   );
