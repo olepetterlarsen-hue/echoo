@@ -1,10 +1,13 @@
 import path from "path";
 import {
+  Circle,
   Document,
   Font,
   Image,
   Page,
+  Rect,
   StyleSheet,
+  Svg,
   Text,
   View,
   renderToBuffer,
@@ -452,6 +455,8 @@ export async function renderDocumentPdf({
           <View>
             {logo ? (
               <Image src={logo} style={styles.logo} />
+            ) : settings.org_nr && ECHOO_OWN_ORG_NRS.has(settings.org_nr) ? (
+              <EchooLogoMark />
             ) : (
               <>
                 <Text style={styles.brandText}>
@@ -686,6 +691,46 @@ export async function renderDocumentPdf({
         />
       </Page>
     </Document>,
+  );
+}
+
+// Org.nr for Echoo/OPCOM sine egne demo- og interne organisasjoner. Brukes
+// KUN til å avgjøre om Echoo-logoen kan brukes som fallback (se under) —
+// ekte kunde-org-er skal ALDRI vise Echoo sin logo på egne dokumenter
+// (whitelabel-prinsipp, jf. Roadmap #2 "Whitelabel OPCOM-streng fjernet").
+const ECHOO_OWN_ORG_NRS = new Set([
+  "999000001", // Echoo Demo Elektro AS
+  "999000002", // Echoo Demo Tømrer AS
+  "999000003", // Echoo Demo Rørlegger AS
+  "920322433", // OPCOM AS
+]);
+
+// Fallback-logo når organisasjonen ikke har lastet opp sin egen (Admin →
+// Bedrift). Håndtegnet port av public/echoo-logo.svg med react-pdf sine
+// vektor-primitiver — <Image> kan ikke rastre SVG direkte, og en ekte
+// PNG-fil av Echoo-logoen finnes ikke i repoet.
+function EchooLogoMark() {
+  return (
+    <View style={{ width: 90, height: 30, position: "relative" }}>
+      <Svg width={90} height={30} viewBox="0 0 240 80">
+        <Rect x={0} y={0} width={240} height={80} rx={12} fill="#a4682f" />
+        <Circle cx={180} cy={40} r={6} fill="#f5f2ea" />
+        <Circle cx={200} cy={40} r={6} fill="#f5f2ea" opacity={0.7} />
+        <Circle cx={220} cy={40} r={6} fill="#f5f2ea" opacity={0.4} />
+      </Svg>
+      <Text
+        style={{
+          position: "absolute",
+          left: 8,
+          top: 7,
+          fontSize: 15,
+          fontWeight: 700,
+          color: "#f5f2ea",
+        }}
+      >
+        echoo
+      </Text>
+    </View>
   );
 }
 
