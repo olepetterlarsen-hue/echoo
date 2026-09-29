@@ -74,10 +74,15 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/auth");
 
   // Ruter som alltid skal være offentlige uavhengig av auth — webhook
-  // POSTes fra Stripe (uten cookie), statiske bilder fra Next, osv.
+  // POSTes fra Stripe (uten cookie), statiske bilder fra Next, /signer-
+  // kontrakt/[token] fordi HELE poenget er at den ansatte signerer UTEN
+  // konto/innlogging (se signContractAsEmployee) — uten dette unntaket
+  // redirectet middlewaren enhver ikke-innlogget besøkende til /login,
+  // og lenken var reelt ubrukelig for den den faktisk var laget for.
   const isPublicEndpoint =
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/stripe/webhook") ||
+    pathname.startsWith("/signer-kontrakt/") ||
     pathname === "/favicon.ico" ||
     pathname === "/robots.txt" ||
     /\.(?:png|jpg|jpeg|svg|webp|ico|woff2?)$/i.test(pathname);

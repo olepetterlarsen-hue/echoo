@@ -12,10 +12,37 @@
 -- Lønn er sensitivt: SELECT er begrenset til admin i egen org (RLS). Ansatt
 -- ser sin egen avtale via token-siden (server-side, service_role), ikke RLS.
 
--- Ny oppgavetype for prøvetids-evaluering (idempotent).
-insert into public.task_types (slug, label_no, label_en, order_index) values
-  ('provetid_evaluering', 'Prøvetidsevaluering', 'Probation Review', 80)
-on conflict (slug) do nothing;
+-- Ny oppgavetype for prøvetids-evaluering. task_types er org-scopet siden
+-- migrasjon 061 (ingen globale rader, unik på (organization_id, slug)) —
+-- backfill for eksisterende orgs, og legg inn i seed-funksjonen for
+-- fremtidige signups.
+insert into public.task_types
+  (organization_id, slug, label_no, label_en, order_index, is_active)
+select id, 'provetid_evaluering', 'Prøvetidsevaluering', 'Probation Review', 80, true
+from public.organizations
+on conflict (organization_id, slug) do nothing;
+
+create or replace function public.seed_default_task_types_for_org(p_org_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.task_types
+    (organization_id, slug, label_no, label_en, order_index, is_active)
+  values
+    (p_org_id, 'power_issue',     'Strømproblem',     'Power Issue',    10, true),
+    (p_org_id, 'cleanup',         'Opprydding',       'Cleanup',        20, true),
+    (p_org_id, 'coverage_issue',  'Dekningsproblem',  'Coverage Issue', 30, true),
+    (p_org_id, 'maintenance',     'Vedlikehold',      'Maintenance',    40, true),
+    (p_org_id, 'inspection',      'Inspeksjon',       'Inspection',     50, true),
+    (p_org_id, 'documentation',   'Dokumentasjon',    'Documentation',  60, true),
+    (p_org_id, 'coordination',    'Koordinering',     'Coordination',   70, true),
+    (p_org_id, 'provetid_evaluering', 'Prøvetidsevaluering', 'Probation Review', 80, true),
+    (p_org_id, 'other',           'Annet',            'Other',         100, true)
+  on conflict (organization_id, slug) do nothing;
+end $$;
 
 create table if not exists public.employment_contracts (
   id uuid primary key default gen_random_uuid(),

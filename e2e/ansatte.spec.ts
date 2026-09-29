@@ -21,21 +21,40 @@ function admin(): SupabaseClient {
 }
 
 // Tegn en strek på signatur-canvasen slik at signature_pad fyrer endStroke.
+// /signer-kontrakt/[token] er en fullstendig sideinnlasting (ikke client-nav) —
+// canvaset er bare tegnbart etter at signature_pad har montert i en effect
+// post-hydrering, så et rent "tegn én gang rett etter navigasjon" kan i sjeldne
+// tilfeller treffe før den effecten har kjørt. Prøv på nytt til placeholderen
+// ("Tegn signaturen din her") faktisk forsvinner, i stedet for å anta timing.
 async function drawSignature(scope: import("@playwright/test").Page) {
   const canvas = scope.locator("canvas");
   await canvas.waitFor({ state: "visible" });
-  const box = await canvas.boundingBox();
-  if (!box) throw new Error("Fant ikke signatur-canvas");
-  const y = box.y + box.height / 2;
-  await scope.mouse.move(box.x + 20, y);
-  await scope.mouse.down();
-  await scope.mouse.move(box.x + box.width - 20, y - 15, { steps: 8 });
-  await scope.mouse.move(box.x + box.width - 10, y + 15, { steps: 8 });
-  await scope.mouse.up();
+  const placeholder = scope.getByText("Tegn signaturen din her");
+
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error("Fant ikke signatur-canvas");
+    const y = box.y + box.height / 2;
+    await scope.mouse.move(box.x + 20, y);
+    await scope.mouse.down();
+    await scope.mouse.move(box.x + box.width - 20, y - 15, { steps: 8 });
+    await scope.mouse.move(box.x + box.width - 10, y + 15, { steps: 8 });
+    await scope.mouse.up();
+    try {
+      await placeholder.waitFor({ state: "hidden", timeout: 1_000 });
+      return;
+    } catch {
+      // Ikke registrert ennå (sannsynlig hydreringsrace) — prøv igjen.
+    }
+  }
+  throw new Error(
+    "Signatur ble aldri registrert (endStroke fyrte ikke) etter 5 forsøk",
+  );
 }
 
 test("opprett arbeidsavtale, signer via token, bruker + prøvetidsoppgave opprettes", async ({
   page,
+  browser,
 }) => {
   const creds = JSON.parse(readFileSync(CREDS_PATH, "utf8")) as E2ECreds;
   const db = admin();
@@ -61,14 +80,22 @@ test("opprett arbeidsavtale, signer via token, bruker + prøvetidsoppgave oppret
     expect(signUrl).toMatch(/\/signer-kontrakt\//);
     const tokenPath = new URL(signUrl).pathname;
 
-    // 3. Ansatt åpner token-lenka og signerer (uten egen innlogging).
-    await page.goto(tokenPath);
-    await expect(page.getByRole("heading", { name: "Arbeidsavtale" })).toBeVisible();
-    await drawSignature(page);
-    await page.getByRole("button", { name: "Signer avtalen" }).click();
-    await expect(page.getByText("Avtalen er signert")).toBeVisible({
+    // 3. Ansatt åpner token-lenka og signerer UTEN egen innlogging — bruk en
+    // helt fersk, uinnlogget browser-kontekst her. Gjenbruk av admins
+    // innloggede `page` ville ikke fanget opp at middlewaren faktisk
+    // redirectet enhver ikke-innlogget besøkende til /login på denne ruten.
+    const employeeContext = await browser.newContext();
+    const employeePage = await employeeContext.newPage();
+    await employeePage.goto(tokenPath);
+    await expect(
+      employeePage.getByRole("heading", { name: "Arbeidsavtale" }),
+    ).toBeVisible();
+    await drawSignature(employeePage);
+    await employeePage.getByRole("button", { name: "Signer avtalen" }).click();
+    await expect(employeePage.getByText("Avtalen er signert")).toBeVisible({
       timeout: 20_000,
     });
+    await employeeContext.close();
 
     // 4. Verifiser i DB: avtale signert, bruker opprettet, oppgave laget.
     const { data: contract } = await db

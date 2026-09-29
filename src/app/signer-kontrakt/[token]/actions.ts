@@ -172,7 +172,15 @@ export async function signContractAsEmployee(args: {
     const dueDate = due.toISOString().slice(0, 10);
     const reporter = (c.employer_signed_by ?? c.created_by) as string | null;
     if (reporter) {
+      // organization_id må settes eksplisitt: set_organization_id_if_null()-
+      // triggeren faller tilbake på current_organization_id(), som leser
+      // auth.uid() — alltid null under service_role (denne actionen kjører
+      // uinnlogget, på vegne av den signerende ansatte). Uten dette ble
+      // oppgaven opprettet med organization_id = NULL: ingen FK-feil (NULL i
+      // en composite FK hopper over sjekken), men oppgaven ble usynlig for
+      // organisasjonen — stille tapt, ikke feilende.
       await admin.from("tasks").insert({
+        organization_id: orgId,
         title: `Evaluer prøvetid: ${c.employee_name}`,
         description: `Prøvetiden for ${c.employee_name} (${c.stilling ?? "ansatt"}) utløper ${c.provetid_slutt}. Vurder om ansettelsen skal fortsette, og gi tilbakemelding før fristen.`,
         task_type_slug: "provetid_evaluering",
