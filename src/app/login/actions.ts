@@ -100,7 +100,7 @@ export async function requestPasswordReset({ email }: ResetInput) {
   const origin = await getAppOrigin();
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?next=/profil`,
+    redirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/nytt-passord?recovery=1")}`,
   });
   if (error) return { error: "Klarte ikke sende tilbakestillingslenke." };
 }

@@ -225,7 +225,7 @@ export async function signContractAsEmployee(args: {
     const { getAppOrigin } = await import("@/lib/origin");
     const origin = await getAppOrigin();
     await anon.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/auth/callback?next=/profil`,
+      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/nytt-passord?recovery=1")}`,
     });
   } catch {
     // E-postlevering avhenger av SMTP-oppsett; blokkerer ikke signeringen.

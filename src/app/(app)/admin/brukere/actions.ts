@@ -186,7 +186,7 @@ export async function sendReset(input: { email: string }) {
 
   const origin = await getAppOrigin();
   const { error } = await supabase.auth.resetPasswordForEmail(input.email, {
-    redirectTo: `${origin}/auth/callback?next=/profil`,
+    redirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/nytt-passord?recovery=1")}`,
   });
   if (error) return { error: error.message };
   return {};
