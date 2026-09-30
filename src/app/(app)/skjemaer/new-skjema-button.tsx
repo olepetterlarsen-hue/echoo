@@ -53,7 +53,7 @@ export function NewSkjemaButton({ builtins, customTemplates }: Props) {
         </p>
       )}
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-10 bg-card border border-border rounded-md shadow-lg min-w-[300px] overflow-hidden">
+        <div className="absolute right-0 top-full mt-1 z-10 bg-card border border-border rounded-md shadow-lg w-[300px] max-w-[calc(100vw-3rem)] overflow-hidden">
           <div className="px-3 py-1.5 text-xs uppercase tracking-wider text-text-3 bg-surface">
             {tr("form_section_builtin", locale)}
           </div>
