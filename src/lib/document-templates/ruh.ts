@@ -32,6 +32,7 @@ export const RUH: TemplateDef = {
           key: "site_id",
           label: "Site ID",
           kind: "text",
+          prefilledFrom: "project.site_ssb_number",
         },
         {
           key: "emergency_measure",

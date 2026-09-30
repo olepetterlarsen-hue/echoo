@@ -33,7 +33,12 @@ export const FORENKLET_SIKKERHET: TemplateDef = {
     {
       title: "Info",
       fields: [
-        { key: "site_id", label: "Site ID", kind: "text" },
+        {
+          key: "site_id",
+          label: "Site ID",
+          kind: "text",
+          prefilledFrom: "project.site_ssb_number",
+        },
         { key: "ordre_referanse", label: "Ordrereferanse", kind: "text" },
       ],
     },

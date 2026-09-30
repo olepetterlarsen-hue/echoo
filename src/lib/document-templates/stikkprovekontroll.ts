@@ -21,8 +21,18 @@ export const STIKKPROVEKONTROLL: TemplateDef = {
         { key: "team_leder", label: "Hvem er team leder for utførende", kind: "text" },
         { key: "ansvarlig_pl", label: "Hvem er ansvarlig PL", kind: "text" },
         { key: "kontrollansvarlig", label: "Kontrollansvarlig", kind: "text", required: true },
-        { key: "prosjektnummer_kontroll", label: "Prosjektnummer", kind: "text" },
-        { key: "site_id", label: "Site ID", kind: "text" },
+        {
+          key: "prosjektnummer_kontroll",
+          label: "Prosjektnummer",
+          kind: "text",
+          prefilledFrom: "project.project_number",
+        },
+        {
+          key: "site_id",
+          label: "Site ID",
+          kind: "text",
+          prefilledFrom: "project.site_ssb_number",
+        },
       ],
     },
     {
