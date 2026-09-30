@@ -261,7 +261,11 @@ export async function bulkImportProjects(input: {
         status,
         scheduled_start_date: r.scheduled_start_date?.trim() || null,
         scheduled_end_date: r.scheduled_end_date?.trim() || null,
-        notes: r.notes?.trim() || null,
+        // projects-tabellen har ingen "notes"-kolonne - feltet heter
+        // description (samme kolonne som prefilledFrom: "project.description"
+        // leser fra). "notes" er kun det brukervendte navnet i
+        // Excel-malen/skjermbilde-import - ikke endre uten å endre begge.
+        description: r.notes?.trim() || null,
         created_by: userId,
       },
     });
