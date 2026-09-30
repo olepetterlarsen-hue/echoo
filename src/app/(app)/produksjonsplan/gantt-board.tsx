@@ -598,7 +598,13 @@ export function GanttBoard({
             }
             const lane = row;
             const laneEntries = entries.filter((e) => e.group_id === lane.id);
-            const laneOff = offPeriods.filter((o) => o.group_id === lane.id);
+            // group_id=null på en off-periode betyr "gjelder alle team" (jf.
+            // sched_team_hint_all) - f.eks. en nasjonal helligdag. Den skal
+            // derfor vises i HVER lane, ikke bare i "Uten team"-lanen som
+            // tilfeldigvis også har id=null.
+            const laneOff = offPeriods.filter(
+              (o) => o.group_id === lane.id || o.group_id === null,
+            );
             const { withRow: laneEntriesStacked, rowCount } = assignSubRows(
               laneEntries,
             );
