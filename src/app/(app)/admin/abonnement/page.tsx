@@ -36,10 +36,19 @@ export default async function AbonnementPage({ searchParams }: PageProps) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("organization_id")
+    .select("organization_id, role")
     .eq("id", user.id)
     .single();
   if (!profile?.organization_id) redirect("/dashboard");
+  const isAdmin = profile.role === "admin";
+
+  const { data: admins } = isAdmin
+    ? { data: null }
+    : await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("organization_id", profile.organization_id)
+        .eq("role", "admin");
 
   const { data: org } = await supabase
     .from("organizations")
@@ -53,6 +62,7 @@ export default async function AbonnementPage({ searchParams }: PageProps) {
   // Auto-redirect rett til Stripe Checkout hvis bruker kom via
   // landingsside-link og ikke har et aktivt abonnement ennå.
   if (
+    isAdmin &&
     auto_checkout === "1" &&
     prefill &&
     !org.stripe_customer_id &&
@@ -211,69 +221,91 @@ export default async function AbonnementPage({ searchParams }: PageProps) {
 
       <Card>
         <CardBody className="space-y-3">
-          <h3 className="font-semibold">
-            {!org.stripe_customer_id ? "Klar til å abonnere?" : "Endre abonnement"}
-          </h3>
-          {!org.stripe_customer_id ? (
+          {!isAdmin ? (
             <>
+              <h3 className="font-semibold">Abonnement og fakturering</h3>
               <p className="text-sm text-text-2">
-                Velg om du vil starte med basis-pakken alene eller inkludere
-                ISO-modulen fra dag én. Du kan endre dette når som helst senere.
+                Kun en administrator i virksomheten kan starte eller endre
+                abonnement og åpne Stripe-kundeportalen.
+                {admins && admins.length > 0 && (
+                  <>
+                    {" "}Kontakt{" "}
+                    {admins
+                      .map((a) => a.full_name || a.email)
+                      .filter(Boolean)
+                      .join(", ")}{" "}
+                    for å gjøre endringer.
+                  </>
+                )}
               </p>
-              <form action={checkoutAndRedirect} className="space-y-3">
-                <div className="max-w-xs">
-                  <label
-                    htmlFor="campaign_code"
-                    className="block text-xs uppercase tracking-wider text-text-3 mb-1"
-                  >
-                    Kampanjekode (valgfritt)
-                  </label>
-                  <input
-                    id="campaign_code"
-                    name="campaign_code"
-                    type="text"
-                    autoComplete="off"
-                    placeholder="F.eks. VASKEDAG"
-                    className="w-full h-10 px-3 rounded-md bg-card border border-border text-sm text-text-1 placeholder:text-text-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange/40"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="submit"
-                    variant={prefill === "iso" ? "secondary" : "primary"}
-                  >
-                    Abonner — kun basis-pakke
-                  </Button>
-                  <Button
-                    type="submit"
-                    name="include_iso"
-                    value="1"
-                    variant={prefill === "iso" ? "primary" : "secondary"}
-                  >
-                    Abonner — basis + ISO-modul
-                  </Button>
-                </div>
-              </form>
             </>
           ) : (
             <>
-              <p className="text-sm text-text-2">
-                Bytt plan, oppdater betalingsmiddel eller last ned fakturaer
-                i Stripe-portalen.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <form action={portalAndRedirect}>
-                  <Button type="submit">Åpne kundeportal</Button>
-                </form>
-                {!org.has_iso_addon && (
-                  <form action={checkoutAndRedirect}>
-                    <input type="hidden" name="include_iso" value="1" />
-                    <Button type="submit" variant="secondary">
-                      Legg til ISO-modul
-                    </Button>
+              <h3 className="font-semibold">
+                {!org.stripe_customer_id ? "Klar til å abonnere?" : "Endre abonnement"}
+              </h3>
+              {!org.stripe_customer_id ? (
+                <>
+                  <p className="text-sm text-text-2">
+                    Velg om du vil starte med basis-pakken alene eller inkludere
+                    ISO-modulen fra dag én. Du kan endre dette når som helst senere.
+                  </p>
+                  <form action={checkoutAndRedirect} className="space-y-3">
+                    <div className="max-w-xs">
+                      <label
+                        htmlFor="campaign_code"
+                        className="block text-xs uppercase tracking-wider text-text-3 mb-1"
+                      >
+                        Kampanjekode (valgfritt)
+                      </label>
+                      <input
+                        id="campaign_code"
+                        name="campaign_code"
+                        type="text"
+                        autoComplete="off"
+                        placeholder="F.eks. VASKEDAG"
+                        className="w-full h-10 px-3 rounded-md bg-card border border-border text-sm text-text-1 placeholder:text-text-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange/40"
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="submit"
+                        variant={prefill === "iso" ? "secondary" : "primary"}
+                      >
+                        Abonner — kun basis-pakke
+                      </Button>
+                      <Button
+                        type="submit"
+                        name="include_iso"
+                        value="1"
+                        variant={prefill === "iso" ? "primary" : "secondary"}
+                      >
+                        Abonner — basis + ISO-modul
+                      </Button>
+                    </div>
                   </form>
-                )}
-              </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-text-2">
+                    Bytt plan, oppdater betalingsmiddel eller last ned fakturaer
+                    i Stripe-portalen.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <form action={portalAndRedirect}>
+                      <Button type="submit">Åpne kundeportal</Button>
+                    </form>
+                    {!org.has_iso_addon && (
+                      <form action={checkoutAndRedirect}>
+                        <input type="hidden" name="include_iso" value="1" />
+                        <Button type="submit" variant="secondary">
+                          Legg til ISO-modul
+                        </Button>
+                      </form>
+                    )}
+                  </div>
+                </>
+              )}
             </>
           )}
         </CardBody>
