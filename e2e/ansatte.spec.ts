@@ -31,6 +31,14 @@ async function drawSignature(scope: import("@playwright/test").Page) {
   await canvas.waitFor({ state: "visible" });
   const placeholder = scope.getByText("Tegn signaturen din her");
 
+  // Kontraktsiden er lang nok til at canvaset typisk havner under fold på
+  // standard viewport-høyde. page.mouse.move/down/up bruker rå
+  // viewport-koordinater og auto-scroller IKKE (i motsetning til .click()) -
+  // uten denne ville koordinatene treffe utenfor synlig viewport og ingen
+  // pointer-events nådde canvaset i det hele tatt (bekreftet med
+  // document.elementFromPoint under feilsøking - returnerte null).
+  await canvas.scrollIntoViewIfNeeded();
+
   for (let attempt = 1; attempt <= 5; attempt++) {
     const box = await canvas.boundingBox();
     if (!box) throw new Error("Fant ikke signatur-canvas");
@@ -92,9 +100,13 @@ test("opprett arbeidsavtale, signer via token, bruker + prøvetidsoppgave oppret
     ).toBeVisible();
     await drawSignature(employeePage);
     await employeePage.getByRole("button", { name: "Signer avtalen" }).click();
-    await expect(employeePage.getByText("Avtalen er signert")).toBeVisible({
-      timeout: 20_000,
-    });
+    // getByText("Avtalen er signert") matcher BÅDE denne overskriften OG
+    // "Arbeidsavtalen er signert av begge parter" (delstreng-match, case-
+    // insensitive) i Next.js' automatisk revaliderte server-render av samme
+    // side etter Server Action-kallet - presiser til overskriften.
+    await expect(
+      employeePage.getByRole("heading", { name: "Avtalen er signert" }),
+    ).toBeVisible({ timeout: 20_000 });
     await employeeContext.close();
 
     // 4. Verifiser i DB: avtale signert, bruker opprettet, oppgave laget.
