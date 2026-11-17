@@ -546,23 +546,29 @@ export async function renderDocumentPdf({
           </View>
         </View>
 
-        {/* Seksjoner */}
-        {template.sections.map((section, i) => (
-          <View key={i} break={false} wrap>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            {section.description && (
-              <Text style={styles.sectionDesc}>{section.description}</Text>
-            )}
-            {section.fields.map((field, fi) => (
-              <RenderField
-                key={field.key}
-                field={field}
-                data={data}
-                qNumber={`${i + 1}.${fi + 1}`}
-              />
-            ))}
-          </View>
-        ))}
+        {/* Seksjoner — felt merket hideInPrint vises i utfyllingsskjemaet men
+            utelates fra utskriften; en seksjon uten synlige felt igjen
+            skippes helt (ingen tom overskrift). */}
+        {template.sections.map((section, i) => {
+          const printFields = section.fields.filter((f) => !f.hideInPrint);
+          if (printFields.length === 0) return null;
+          return (
+            <View key={i} break={false} wrap>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+              {section.description && (
+                <Text style={styles.sectionDesc}>{section.description}</Text>
+              )}
+              {printFields.map((field, fi) => (
+                <RenderField
+                  key={field.key}
+                  field={field}
+                  data={data}
+                  qNumber={`${i + 1}.${fi + 1}`}
+                />
+              ))}
+            </View>
+          );
+        })}
 
         {/* Ansvarlig installatør / bemyndiget person (FEL § 12) — kun på
             samsvarserklæringen, jf. FIXPLAN akseptansekriterie A2. */}

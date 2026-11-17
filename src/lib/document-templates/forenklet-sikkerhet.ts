@@ -25,6 +25,7 @@ export const FORENKLET_SIKKERHET: TemplateDef = {
           key: "viktig_notis",
           label: "",
           kind: "info",
+          hideInPrint: true,
           defaultValue:
             "Denne dokumentasjonen skal kun benyttes til enkle installasjonsoppdrag med lav risiko. Dersom det kan svares JA på ALLE sjekkpunkt i gruppen «Risikovurdering (Forutsetninger – lav risiko)» er arbeidet å anse som «mindre oppdrag med lav risiko» og sjekklisten kan benyttes. Dersom ikke, må komplett 5 Sikre dokumentasjon eller tilsvarende benyttes. Det er en forutsetning at utførende kommuniserer med eier/bruker. Forenklet dokumentasjon kan ikke benyttes for installasjoner som omfattes av NEK 400 del 7 og arbeid på utstyr som batteri, likeretter, UPS, diesel-/bensinaggregat.",
         },

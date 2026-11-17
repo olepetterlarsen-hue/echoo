@@ -51,6 +51,7 @@ export interface FieldDef {
   kind: FieldKind;
   required?: boolean;
   hint?: string;
+  hideInPrint?: boolean;       // vises i utfyllingsskjemaet, utelates fra PDF-utskriften
   options?: string[];          // for select / radio / checkmark_group
   items?: YnaItem[];           // for yna_group / yna_measurement_group
   riskItems?: RiskItem[];      // for risk_assessment_group
