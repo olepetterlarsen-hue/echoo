@@ -14,6 +14,7 @@ import {
 } from "@react-pdf/renderer";
 import type {
   DocumentRow,
+  DocumentStatus,
   Profile,
   Project,
   AppSettings,
@@ -410,6 +411,27 @@ function buildAnleggsInfo(
   };
 }
 
+// Speiler labelene brukt i UI (bl.a. src/app/(app)/iso/dokumentstyring/page.tsx)
+// — tidligere sjekket render.tsx kun status === "signert" og viste "Utkast"
+// for alt annet, inkludert under_review/approved/rejected fra ISO-tillegget
+// (migrasjon 044), så et signert-og-innsendt-til-godkjenning-dokument viste
+// feilaktig "Utkast" på selve utskriften.
+function documentStatusLabel(status: DocumentStatus): string {
+  switch (status) {
+    case "signert":
+      return "Signert";
+    case "under_review":
+      return "Til gjennomgang";
+    case "approved":
+      return "Godkjent";
+    case "rejected":
+      return "Avvist";
+    case "utkast":
+    default:
+      return "Utkast";
+  }
+}
+
 export async function renderDocumentPdf({
   document,
   project,
@@ -541,7 +563,7 @@ export async function renderDocumentPdf({
             <Meta label="Totalt antall spørsmål:" value={`${totalQuestions} spørsmål`} />
             <Meta
               label="Status:"
-              value={`${document.status === "signert" ? "Signert" : "Utkast"} · v${document.version}`}
+              value={`${documentStatusLabel(document.status)} · v${document.version}`}
             />
           </View>
         </View>
