@@ -93,7 +93,13 @@ const SETTINGS = {
 } as unknown as AppSettings;
 
 async function testKind(
-  kind: "samsvarserklaering" | "risikovurdering" | "sluttkontroll" | "ruh" | "startup_checklist",
+  kind:
+    | "samsvarserklaering"
+    | "risikovurdering"
+    | "sluttkontroll"
+    | "ruh"
+    | "startup_checklist"
+    | "forenklet_sikkerhet",
   variant?: string,
 ) {
   const template = templateFor(kind, variant);
@@ -143,6 +149,7 @@ async function main() {
   await testKind("sluttkontroll");
   await testKind("ruh");
   await testKind("startup_checklist");
+  await testKind("forenklet_sikkerhet");
   console.log("Alle golden-tester for PDF-avkryssinger bestått.");
 }
 
