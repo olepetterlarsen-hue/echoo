@@ -152,6 +152,14 @@ export async function signContractAsEmployee(args: {
   }
 
   // 2) Lås avtalen som signert (token konsumeres).
+  // Merk: sign_token nulles IKKE her. Gjensigning er allerede sperret av
+  // status === "signert"-sjekken over - å nulle token her gjorde i praksis
+  // at siden ALDRI kunne vise "Avtalen er signert" (loadContractForSigning
+  // slår opp på sign_token, som da ikke lenger matchet noen rad), selv om
+  // nettopp den UI-tilstanden (contract.already_signed) finnes og brukes i
+  // page.tsx. Next.js sin automatiske revalidering av siden etter en Server
+  // Action (f.eks. ved refresh/tilbake-knapp rett etter signering) traff
+  // derfor alltid "Ugyldig eller utløpt signeringslenke" i stedet.
   const { error: updErr } = await admin
     .from("employment_contracts")
     .update({
@@ -160,7 +168,6 @@ export async function signContractAsEmployee(args: {
       employee_signed_at: new Date().toISOString(),
       employee_signed_name: signedName,
       employee_signature_snapshot: args.signatureDataUrl,
-      sign_token: null,
     })
     .eq("id", c.id);
   if (updErr) return { error: updErr.message };
